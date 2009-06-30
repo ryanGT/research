@@ -5,8 +5,8 @@ import mplutil
 reload(mplutil)
 import time
 
-import rst_creator
-reload(rst_creator)
+#import rst_creator
+#reload(rst_creator)
 
 import txt_mixin
 import rwkdataproc
@@ -788,85 +788,85 @@ class Bode_Data_Set(Data_Set):
                 
             
 
-    def Report(self, startfi=1, timedomain=True, bode=True, \
-               overlay_ave=True, coh=True, bode_coh_only=False, \
-               time_signals=None, title_dict={},
-               report_dir=None, basename=None, rst_file=None, \
-               savefigs=True, ext='.png'):
-        """Generate a report for the Bode_Data_Set.  The report may
-        include time domain plots for each signal if timedomain is
-        True as well as Bodes with the optional overlays of the
-        averaged Bodes from each individual data file/test if bode is
-        True (and overlay_ave is True).  bode_coh_only = True
-        overrides both of these options and plots just the Bode plots
-        with coherence.
+##     def Report(self, startfi=1, timedomain=True, bode=True, \
+##                overlay_ave=True, coh=True, bode_coh_only=False, \
+##                time_signals=None, title_dict={},
+##                report_dir=None, basename=None, rst_file=None, \
+##                savefigs=True, ext='.png'):
+##         """Generate a report for the Bode_Data_Set.  The report may
+##         include time domain plots for each signal if timedomain is
+##         True as well as Bodes with the optional overlays of the
+##         averaged Bodes from each individual data file/test if bode is
+##         True (and overlay_ave is True).  bode_coh_only = True
+##         overrides both of these options and plots just the Bode plots
+##         with coherence.
 
-        Note that here, bode refers to a Bode plot with only magintude
-        and phase; coh refers to Bode plots with coherence (coh, mag,
-        and phase).
+##         Note that here, bode refers to a Bode plot with only magintude
+##         and phase; coh refers to Bode plots with coherence (coh, mag,
+##         and phase).
 
-        This function will not really generate a report unless
-        report_dir and basename are specified.  If they are not
-        specified, figures will be created, but not saved and no rst
-        will be generated.  If report_dir and basename are specified,
-        then figures will be saved to report_dir/figs (provided
-        savefigs is True), and an rst file called basename.rst will be
-        created.  basename will also be the first portion of the
-        figure file names.  rst_file can contain an introduction to
-        the report and will append to if given."""
-        gen_report = False
-        if report_dir and basename:
-            gen_report = True
-            if not os.path.exists(report_dir):
-                os.mkdir(report_dir)
-            fig_dir = os.path.join(report_dir, 'figs')
-            if not os.path.exists(fig_dir):
-                os.mkdir(fig_dir)
-            if rst_file is None:
-                rst_name = basename+'.rst'
-                rst_file = rst_creator.rst_file(rst_name)
-        if not gen_report:
-            savefigs = False
-            basename = None
-            fig_dir = None
-        if bode_coh_only:
-            timedomain = False
-            bode = False
-            coh = True
-        if time_signals is None:
-            time_signals = ['theta','u','v']
-        time_plots = []
-        for key in time_signals:
-            if title_dict.has_key(key):
-                label = title_dict[key]
-            else:
-                label = key
-            time_plots.append((key, label))
-        fi = startfi
-        if coh:
-            if rst_file:
-                rst_file.add_section('Bode Plots with Coherence')
-            self.Bode_Plot(fignum=fi, coh=True, title_dict=title_dict, \
-                           basename=basename, savefigs=savefigs, \
-                           fig_dir=fig_dir, ext=ext, \
-                           rst_file=rst_file)
-            fi += self.N
-        if bode:
-            self.Bode_Plot(fignum=fi, coh=False, \
-                           overlay_ave=overlay_ave, \
-                           title_dict=title_dict, \
-                           basename=basename, savefigs=savefigs, \
-                           fig_dir=fig_dir, ext=ext)
-            fi += self.N
-        if timedomain:
-            for attr, label in time_plots:
-                self.Time_Plot(labels=[attr], ylabel=label, fignum=fi, \
-                           basename=basename, savefigs=savefigs, \
-                           fig_dir=fig_dir, ext=ext)
-                fi += 1
-        if gen_report:
-            rst_file.save()
-            rst_file.to_html()
+##         This function will not really generate a report unless
+##         report_dir and basename are specified.  If they are not
+##         specified, figures will be created, but not saved and no rst
+##         will be generated.  If report_dir and basename are specified,
+##         then figures will be saved to report_dir/figs (provided
+##         savefigs is True), and an rst file called basename.rst will be
+##         created.  basename will also be the first portion of the
+##         figure file names.  rst_file can contain an introduction to
+##         the report and will append to if given."""
+##         gen_report = False
+##         if report_dir and basename:
+##             gen_report = True
+##             if not os.path.exists(report_dir):
+##                 os.mkdir(report_dir)
+##             fig_dir = os.path.join(report_dir, 'figs')
+##             if not os.path.exists(fig_dir):
+##                 os.mkdir(fig_dir)
+##             if rst_file is None:
+##                 rst_name = basename+'.rst'
+##                 rst_file = rst_creator.rst_file(rst_name)
+##         if not gen_report:
+##             savefigs = False
+##             basename = None
+##             fig_dir = None
+##         if bode_coh_only:
+##             timedomain = False
+##             bode = False
+##             coh = True
+##         if time_signals is None:
+##             time_signals = ['theta','u','v']
+##         time_plots = []
+##         for key in time_signals:
+##             if title_dict.has_key(key):
+##                 label = title_dict[key]
+##             else:
+##                 label = key
+##             time_plots.append((key, label))
+##         fi = startfi
+##         if coh:
+##             if rst_file:
+##                 rst_file.add_section('Bode Plots with Coherence')
+##             self.Bode_Plot(fignum=fi, coh=True, title_dict=title_dict, \
+##                            basename=basename, savefigs=savefigs, \
+##                            fig_dir=fig_dir, ext=ext, \
+##                            rst_file=rst_file)
+##             fi += self.N
+##         if bode:
+##             self.Bode_Plot(fignum=fi, coh=False, \
+##                            overlay_ave=overlay_ave, \
+##                            title_dict=title_dict, \
+##                            basename=basename, savefigs=savefigs, \
+##                            fig_dir=fig_dir, ext=ext)
+##             fi += self.N
+##         if timedomain:
+##             for attr, label in time_plots:
+##                 self.Time_Plot(labels=[attr], ylabel=label, fignum=fi, \
+##                            basename=basename, savefigs=savefigs, \
+##                            fig_dir=fig_dir, ext=ext)
+##                 fi += 1
+##         if gen_report:
+##             rst_file.save()
+##             rst_file.to_html()
             
         
 
