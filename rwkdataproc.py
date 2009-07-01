@@ -6,10 +6,10 @@ from math import atan2
 import sys, os, glob, time
 #sys.path.insert(0,'..')
 #t1=time.time()
-import inline_tools
-import c_spec
+#import inline_tools
+#import c_spec
 #t1b=time.time()
-from converters import blitz as cblitz
+#from converters import blitz as cblitz
 #t2=time.time()
 #from scipy.io.mio import loadmat, savemat
 from scipy.io import save, loadmat, savemat
@@ -253,39 +253,39 @@ def thresh(iterin, value, startind=0, above=1):
     else:
         return keep2.min()
     
-def thresh_old(iterin, value, startind=0, above=1):
-#        ind=-1
-    stopind=len(iterin)
-#    print('In thresh')
-#    print('type(value)='+str(type(value)))
-#    print('type(iterin[0])='+str(type(iterin[0])))
-#    print('type(startind)='+str(type(startind)))
-#    print('type(stopind)='+str(type(stopind)))
-#    print('type(above)='+str(type(above)))
-    code="""
-        #line 21 "rwkdataproc.py"
-        int ind;
-        for(int j=startind;j<stopind;j++){
-            if(above>0){
-                if(iterin(j)>=value){
-                    ind=j;
-                    break;
-                }
-            }
-            else{
-                if(iterin(j)<=value){
-                    ind=j;
-                    break;
-                }
-            }
-        }
-        return_val = ind;
-        """
-    N=inline_tools.inline(code,['iterin','value','above','startind','stopind'],
-            compiler='gcc',
-            type_converters = cblitz,
-            verbose = 1,force=1)
-    return N
+## def thresh_old(iterin, value, startind=0, above=1):
+## #        ind=-1
+##     stopind=len(iterin)
+## #    print('In thresh')
+## #    print('type(value)='+str(type(value)))
+## #    print('type(iterin[0])='+str(type(iterin[0])))
+## #    print('type(startind)='+str(type(startind)))
+## #    print('type(stopind)='+str(type(stopind)))
+## #    print('type(above)='+str(type(above)))
+##     code="""
+##         #line 21 "rwkdataproc.py"
+##         int ind;
+##         for(int j=startind;j<stopind;j++){
+##             if(above>0){
+##                 if(iterin(j)>=value){
+##                     ind=j;
+##                     break;
+##                 }
+##             }
+##             else{
+##                 if(iterin(j)<=value){
+##                     ind=j;
+##                     break;
+##                 }
+##             }
+##         }
+##         return_val = ind;
+##         """
+##     N=inline_tools.inline(code,['iterin','value','above','startind','stopind'],
+##             compiler='gcc',
+##             type_converters = cblitz,
+##             verbose = 1,force=1)
+##     return N
 
 def trunconesweep(rawfilename,sigdict,truncchannel,junklist=[],desL=-1,truncpath="trunc"):
     rawdata=loadmat(rawfilename)
@@ -901,300 +901,300 @@ def PhaseMassage(phin, freqin, seedfreq, seedphase,jump=250.0):
     return r_[vect2,vect1]
     
     
-def PhaseMassage_old(phin, freqin, seedfreq, seedphase,jump=250.0):
-#    print('calling PhaseMassage')
-#    phout=copy.deepcopy(phin)
-#    ts=mt()
-    phout=colwise(phin)
-    addedcol=False
-#    ta=mt()
-    if len(shape(phout))==1:
-        phout=phout[:,NewAxis]
-        addedcol=True
-    if not hasattr(freqin, 'min'):
-        freqin=array(freqin)
-    if seedfreq < freqin.min():
-        ind=0
-    else:
-        #tb=mt()
-        #ind=thresh_py(freqin,seedfreq)
-#        tb=mt()
-        inds=where(freqin>seedfreq)
-        if type(inds)==type(('a',5)):#is where returning a tuple
-            if len(inds)==1:
-                inds=inds[0]
-        ind=inds.min()
-#        tc=mt()
-#        print('thresh time='+str(tc-tb))
-#    td=mt()
-    ph1=phout[0:ind,:]
-    ph2=phout[ind:,:]
-#    t2=mt()
-    Pdb().set_trace()
-    ph2o=phaseengine(ph2,seedphase,1,jump)
-#    t3=mt()
-    if ind==0:
-        ph1o=[]
-        outmat=ph2o
-    else:
-#        t4=mt()
-        ph1o=phaseengine(ph1,seedphase,-1,jump)
-#        t5=mt()
-        outmat=r_[ph1o,ph2o]
-#        t6=mt()
-#    mylist=rwkascii.rwktextlist()
-#    mylist.list=[]
-#    mylist.filename='phaseenginelog_PM.txt'
-#    for r in range(shape(outmat)[0]):
-#        curline=str(r)
-#        for c in range(shape(outmat)[1]):
-#            curline+='\t'+str(outmat[r,c])
-#        mylist.append(curline)
-#    mylist.tofile(0)
-    if addedcol:
-        outmat=outmat[:,0]
-#    te=mt()
-#    tlist=[ts,t2,t3,t4,t5,t6,te]
-#    inds=range(1,len(tlist))
-#    tdiffs=[tlist[x]-tlist[x-1] for x in inds]
-#    outlist=[str(x)+':'+str(item) for x, item in enumerate(tdiffs)]
-#    outstr='\n'.join(outlist)
-#    print('-------------------')
-#    print(outstr)
-#    print('colwise time='+str(ta-ts))
-#    print('submat time='+str(t2-td))
-#    print('td-ta='+str(td-ta))
-#    print('total PhaseMassage time='+str(te-ts))
-#    print('-------------------')
-    return outmat
+## def PhaseMassage_old(phin, freqin, seedfreq, seedphase,jump=250.0):
+## #    print('calling PhaseMassage')
+## #    phout=copy.deepcopy(phin)
+## #    ts=mt()
+##     phout=colwise(phin)
+##     addedcol=False
+## #    ta=mt()
+##     if len(shape(phout))==1:
+##         phout=phout[:,NewAxis]
+##         addedcol=True
+##     if not hasattr(freqin, 'min'):
+##         freqin=array(freqin)
+##     if seedfreq < freqin.min():
+##         ind=0
+##     else:
+##         #tb=mt()
+##         #ind=thresh_py(freqin,seedfreq)
+## #        tb=mt()
+##         inds=where(freqin>seedfreq)
+##         if type(inds)==type(('a',5)):#is where returning a tuple
+##             if len(inds)==1:
+##                 inds=inds[0]
+##         ind=inds.min()
+## #        tc=mt()
+## #        print('thresh time='+str(tc-tb))
+## #    td=mt()
+##     ph1=phout[0:ind,:]
+##     ph2=phout[ind:,:]
+## #    t2=mt()
+##     Pdb().set_trace()
+##     ph2o=phaseengine(ph2,seedphase,1,jump)
+## #    t3=mt()
+##     if ind==0:
+##         ph1o=[]
+##         outmat=ph2o
+##     else:
+## #        t4=mt()
+##         ph1o=phaseengine(ph1,seedphase,-1,jump)
+## #        t5=mt()
+##         outmat=r_[ph1o,ph2o]
+## #        t6=mt()
+## #    mylist=rwkascii.rwktextlist()
+## #    mylist.list=[]
+## #    mylist.filename='phaseenginelog_PM.txt'
+## #    for r in range(shape(outmat)[0]):
+## #        curline=str(r)
+## #        for c in range(shape(outmat)[1]):
+## #            curline+='\t'+str(outmat[r,c])
+## #        mylist.append(curline)
+## #    mylist.tofile(0)
+##     if addedcol:
+##         outmat=outmat[:,0]
+## #    te=mt()
+## #    tlist=[ts,t2,t3,t4,t5,t6,te]
+## #    inds=range(1,len(tlist))
+## #    tdiffs=[tlist[x]-tlist[x-1] for x in inds]
+## #    outlist=[str(x)+':'+str(item) for x, item in enumerate(tdiffs)]
+## #    outstr='\n'.join(outlist)
+## #    print('-------------------')
+## #    print(outstr)
+## #    print('colwise time='+str(ta-ts))
+## #    print('submat time='+str(t2-td))
+## #    print('td-ta='+str(td-ta))
+## #    print('total PhaseMassage time='+str(te-ts))
+## #    print('-------------------')
+##     return outmat
 
-def phaseengine_old(phmat,seedphase,step=1,jump=250.0):
-#    mylist=rwkascii.rwktextlist()
-#    mylist.list=[]
-#    mylist.filename='phaseenginelog.txt'
-#    print('jump='+str(jump))
-    t1=time.time()
-#    phout=copy.deepcopy(phmat)
-    phout=phmat
-    N=shape(phmat)[0]
-    nc=shape(phmat)[1]
-#    print('type (nc)='+str(type(nc)))
-    t2=time.time()
-    if step==1:
-        startind=0;
-        stopind=shape(phmat)[0]-1
-    elif step==-1:
-        startind=shape(phmat)[0]-1
-        stopind=0
-#    print('phout[startind,:]='+str(phout[startind,:]))
-#    pdb.set_trace()
-    for q in range(nc):
-#        print('phout[startind,q]='+str(phout[startind,q]))
-#        print('seedphase='+str(seedphase))
-#        print('jump='+str(jump))
-#        pdb.set_trace()
-        if (phout[startind,q]-seedphase)>jump:
-            phout[startind,q]-=360
-        elif (seedphase-phout[startind,q])>jump:
-            phout[startind,q]+=360
-#    print('phout[startind,:]='+str(phout[startind,:]))
-#----------------------------------
-#   Python Only implementation
-#----------------------------------
-    usepy=0
-    if usepy:
-        rns=range(shape(phout)[0])
-        if step==-1:
-            rns=rwkmisc.reverse(rns)
-        prevr=rns.pop(0)
-#        t3=time.time()
-    #    mylist.append('r\tc0b\tc0p\tc0a\tc1b\tc1p\tc1a\tc2b\tc2p\tc2a')
-        for r in rns:
-    #        curline=str(r)
-            for q in range(nc):
-    #            curline+='\t'+str(phout[r,q])+'\t'+str(phout[prevr,q])
-                if (phout[r,q]-phout[prevr,q])>jump:
-                    phout[r,q]-=360
-                elif (phout[prevr,q]-phout[r,q])>jump:
-                    phout[r,q]+=360
-    #            curline+='\t'+str(phout[r,q])
-    #        mylist.append(curline)
-            prevr=r
-    #    mylist.tofile(0)
-###----------------------------------
-###ccccccccccccccccccccccccccccccccc
-###   C code implementation
-###ccccccccccccccccccccccccccccccccc
-    else:
-#        t3=time.time()
-        startind+=step#this is for the c-code only
-        cursum=zeros((1,nc),'f')
-        curave=zeros((1,nc),'f')
-        aveout=zeros(shape(phout),'f')
-        code="""
-            #line 215 "rwkdataproc.py"
-            int previ;  
-            previ=startind-step;
-            //std::cout<<"using C imp."<<std::endl;
-            //std::cout<<"I am not averaging"<<std::endl;
-            for ( int i=startind;step*i<=stopind;i+=step )
-            {
-                //std::cout<<"i="<<i<<std::endl;
-                for ( int m=0;m<nc;m++ )
-                {
-                    //std::cout<<"m="<<m<<std::endl;
-                    if ((phout(i,m)-phout(previ,m))>jump){
-                        phout(i,m)-=360.0;
-                    }
-                    else if ((phout(previ,m)-phout(i,m))>jump){
-                        phout(i,m)+=360.0;
-                    }
-                }
-                previ=i;
-            }
-            """
-        inline_tools.inline(code,['phout','jump','step','startind','stopind','nc'],
-                compiler='gcc',
-                type_converters = cblitz,
-                verbose = 1, force=1)
-###cccccccccccccccccccccccccccccccccccccc
-#    t4=time.time()
-#    print('copy time='+str(t2-t1))
-#    print('time to start of loop='+str(t3-t1))
-#    print('weave loop time='+str(t4-t3))
-#    print('total time='+str(t4-t1))
-#    for r in range(shape(phout)[0]):
-#        curline=str(r)
-#        for c in range(shape(phout)[1]):
-#            curline+='\t'+str(phout[r,c])
-#        mylist.append(curline)
-#    mylist.tofile(0)
-    return phout
+## def phaseengine_old(phmat,seedphase,step=1,jump=250.0):
+## #    mylist=rwkascii.rwktextlist()
+## #    mylist.list=[]
+## #    mylist.filename='phaseenginelog.txt'
+## #    print('jump='+str(jump))
+##     t1=time.time()
+## #    phout=copy.deepcopy(phmat)
+##     phout=phmat
+##     N=shape(phmat)[0]
+##     nc=shape(phmat)[1]
+## #    print('type (nc)='+str(type(nc)))
+##     t2=time.time()
+##     if step==1:
+##         startind=0;
+##         stopind=shape(phmat)[0]-1
+##     elif step==-1:
+##         startind=shape(phmat)[0]-1
+##         stopind=0
+## #    print('phout[startind,:]='+str(phout[startind,:]))
+## #    pdb.set_trace()
+##     for q in range(nc):
+## #        print('phout[startind,q]='+str(phout[startind,q]))
+## #        print('seedphase='+str(seedphase))
+## #        print('jump='+str(jump))
+## #        pdb.set_trace()
+##         if (phout[startind,q]-seedphase)>jump:
+##             phout[startind,q]-=360
+##         elif (seedphase-phout[startind,q])>jump:
+##             phout[startind,q]+=360
+## #    print('phout[startind,:]='+str(phout[startind,:]))
+## #----------------------------------
+## #   Python Only implementation
+## #----------------------------------
+##     usepy=0
+##     if usepy:
+##         rns=range(shape(phout)[0])
+##         if step==-1:
+##             rns=rwkmisc.reverse(rns)
+##         prevr=rns.pop(0)
+## #        t3=time.time()
+##     #    mylist.append('r\tc0b\tc0p\tc0a\tc1b\tc1p\tc1a\tc2b\tc2p\tc2a')
+##         for r in rns:
+##     #        curline=str(r)
+##             for q in range(nc):
+##     #            curline+='\t'+str(phout[r,q])+'\t'+str(phout[prevr,q])
+##                 if (phout[r,q]-phout[prevr,q])>jump:
+##                     phout[r,q]-=360
+##                 elif (phout[prevr,q]-phout[r,q])>jump:
+##                     phout[r,q]+=360
+##     #            curline+='\t'+str(phout[r,q])
+##     #        mylist.append(curline)
+##             prevr=r
+##     #    mylist.tofile(0)
+## ###----------------------------------
+## ###ccccccccccccccccccccccccccccccccc
+## ###   C code implementation
+## ###ccccccccccccccccccccccccccccccccc
+##     else:
+## #        t3=time.time()
+##         startind+=step#this is for the c-code only
+##         cursum=zeros((1,nc),'f')
+##         curave=zeros((1,nc),'f')
+##         aveout=zeros(shape(phout),'f')
+##         code="""
+##             #line 215 "rwkdataproc.py"
+##             int previ;  
+##             previ=startind-step;
+##             //std::cout<<"using C imp."<<std::endl;
+##             //std::cout<<"I am not averaging"<<std::endl;
+##             for ( int i=startind;step*i<=stopind;i+=step )
+##             {
+##                 //std::cout<<"i="<<i<<std::endl;
+##                 for ( int m=0;m<nc;m++ )
+##                 {
+##                     //std::cout<<"m="<<m<<std::endl;
+##                     if ((phout(i,m)-phout(previ,m))>jump){
+##                         phout(i,m)-=360.0;
+##                     }
+##                     else if ((phout(previ,m)-phout(i,m))>jump){
+##                         phout(i,m)+=360.0;
+##                     }
+##                 }
+##                 previ=i;
+##             }
+##             """
+##         inline_tools.inline(code,['phout','jump','step','startind','stopind','nc'],
+##                 compiler='gcc',
+##                 type_converters = cblitz,
+##                 verbose = 1, force=1)
+## ###cccccccccccccccccccccccccccccccccccccc
+## #    t4=time.time()
+## #    print('copy time='+str(t2-t1))
+## #    print('time to start of loop='+str(t3-t1))
+## #    print('weave loop time='+str(t4-t3))
+## #    print('total time='+str(t4-t1))
+## #    for r in range(shape(phout)[0]):
+## #        curline=str(r)
+## #        for c in range(shape(phout)[1]):
+## #            curline+='\t'+str(phout[r,c])
+## #        mylist.append(curline)
+## #    mylist.tofile(0)
+##     return phout
         
-def phaseengine_w_ave(phmat,step=1,nave=5.0,jumpave=120.0):
-    #Note that this function only does averaging, it does not use a seedphase or look for jumps from one element to the next.  It only looks at the current element compared to the average of the nave previous elements.  It is expected that this function is called only after first calling the regular phaseengine to first clean up the data.
-#    print('jumpave='+str(jumpave))
-    t1=time.time()
-#    phout=copy.deepcopy(phmat)
-    phout=phmat
-    N=shape(phmat)[0]
-    if len(shape(phmat))==1:
-        nc=1
-    else:
-        nc=shape(phmat)[1]#assume vector for now
-    t2=time.time()
-    if step==1:
-        startind=0;
-        stopind=shape(phmat)[0]-1
-    elif step==-1:
-        startind=shape(phmat)[0]-1
-        stopind=0
-###ccccccccccccccccccccccccccccccccc
-###   C code implementation
-###ccccccccccccccccccccccccccccccccc
-    t3=time.time()
-    aveout=zeros(shape(phout),'f')
-    startind+=step#this is for the c-code only
-    code="""
-        #line 314 "rwkdataproc.py"
-        //std::ofstream outfile("log.txt");
-        int previ; 
-        int rind;
-        int q;
-        double cursum;
-        double curave;
-        bool remove;
-        double numin;
-        //outfile<<"before loop:"<<std::endl;
-        //outfile<<"previ="<<previ;
-        //outfile<<" startind="<<startind<<std::endl;
-        //std::cout<<"Nphout[1]="<<Nphout[1]<<std::endl;
-        //std::cout<<"phout(0,0)="<<phout(0,0)<<std::endl;
-        for ( int j=0;j<nc;j++ ){
-            previ=startind-step;
-            cursum=0.0;
-            curave=0.0;
-            numin=0.0;
-            remove=false;
-            for ( int i=startind;step*i<=stopind;i+=step )
-            {
-                //std::cout<<"i="<<i<<std::endl;
-                if ( numin < nave )
-                {
-                    numin+=1.0;
-                    //outfile<<"i="<<i<<" numin="<<numin<<std::endl;
-                }
-                else 
-                {
-                    remove=true;
-                }
-                cursum+=phout(previ,j);
-                if ( remove ) 
-                {
-                    //outfile<<"i="<<i<<" stopind="<<stopind<<" previ="<<previ<<" nave="<<nave<<" step="<<step;
-                    rind=static_cast<int>(previ-nave*step);
-                    //outfile<<" rind="<<rind;
-                    cursum-=phout(rind);
-                }
-                //outfile<<" numin="<<numin<<" cursum="<<cursum;
-                curave=cursum/numin;
-                aveout(previ,j)=curave;
-                if ( (phout(i,j)-aveout(previ,j))>jumpave )
-                {
-                    phout(i,j)-=360.0;
-                }
-                else if ( (aveout(previ,j)-phout(i,j))>jumpave )
-                {
-                    phout(i,j)+=360.0;
-                }
-                //aaaaaaaaaaaaaaaaaaaaaaaa
-                //outfile<<" curave="<<curave<<" phout(i,j)="<<phout(i,j)<<std::endl;
-                previ=i;
-            }
-        //outfile<<"Exiting"<<std::endl;
-        //outfile.close();
-        }
-        """
-    inline_tools.inline(code,['phout','jumpave','step','startind','stopind','nave','aveout','nc'],
-            compiler='gcc',
-            type_converters = cblitz,
-            verbose = 1,
-            headers=["<iostream>","<fstream>"])
-    t4=time.time()
-#    print('copy time='+str(t2-t1))
-#    print('time to start of loop='+str(t3-t1))
-#    print('loop time='+str(t4-t3))
-#    print('total time='+str(t4-t1))
-#    for r in range(shape(phout)[0]):
-#        curline=str(r)
-#        for c in range(shape(phout)[1]):
-#            curline+='\t'+str(phout[r,c])
-#        mylist.append(curline)
-#    mylist.tofile(0)
-    return phout
+## def phaseengine_w_ave(phmat,step=1,nave=5.0,jumpave=120.0):
+##     #Note that this function only does averaging, it does not use a seedphase or look for jumps from one element to the next.  It only looks at the current element compared to the average of the nave previous elements.  It is expected that this function is called only after first calling the regular phaseengine to first clean up the data.
+## #    print('jumpave='+str(jumpave))
+##     t1=time.time()
+## #    phout=copy.deepcopy(phmat)
+##     phout=phmat
+##     N=shape(phmat)[0]
+##     if len(shape(phmat))==1:
+##         nc=1
+##     else:
+##         nc=shape(phmat)[1]#assume vector for now
+##     t2=time.time()
+##     if step==1:
+##         startind=0;
+##         stopind=shape(phmat)[0]-1
+##     elif step==-1:
+##         startind=shape(phmat)[0]-1
+##         stopind=0
+## ###ccccccccccccccccccccccccccccccccc
+## ###   C code implementation
+## ###ccccccccccccccccccccccccccccccccc
+##     t3=time.time()
+##     aveout=zeros(shape(phout),'f')
+##     startind+=step#this is for the c-code only
+##     code="""
+##         #line 314 "rwkdataproc.py"
+##         //std::ofstream outfile("log.txt");
+##         int previ; 
+##         int rind;
+##         int q;
+##         double cursum;
+##         double curave;
+##         bool remove;
+##         double numin;
+##         //outfile<<"before loop:"<<std::endl;
+##         //outfile<<"previ="<<previ;
+##         //outfile<<" startind="<<startind<<std::endl;
+##         //std::cout<<"Nphout[1]="<<Nphout[1]<<std::endl;
+##         //std::cout<<"phout(0,0)="<<phout(0,0)<<std::endl;
+##         for ( int j=0;j<nc;j++ ){
+##             previ=startind-step;
+##             cursum=0.0;
+##             curave=0.0;
+##             numin=0.0;
+##             remove=false;
+##             for ( int i=startind;step*i<=stopind;i+=step )
+##             {
+##                 //std::cout<<"i="<<i<<std::endl;
+##                 if ( numin < nave )
+##                 {
+##                     numin+=1.0;
+##                     //outfile<<"i="<<i<<" numin="<<numin<<std::endl;
+##                 }
+##                 else 
+##                 {
+##                     remove=true;
+##                 }
+##                 cursum+=phout(previ,j);
+##                 if ( remove ) 
+##                 {
+##                     //outfile<<"i="<<i<<" stopind="<<stopind<<" previ="<<previ<<" nave="<<nave<<" step="<<step;
+##                     rind=static_cast<int>(previ-nave*step);
+##                     //outfile<<" rind="<<rind;
+##                     cursum-=phout(rind);
+##                 }
+##                 //outfile<<" numin="<<numin<<" cursum="<<cursum;
+##                 curave=cursum/numin;
+##                 aveout(previ,j)=curave;
+##                 if ( (phout(i,j)-aveout(previ,j))>jumpave )
+##                 {
+##                     phout(i,j)-=360.0;
+##                 }
+##                 else if ( (aveout(previ,j)-phout(i,j))>jumpave )
+##                 {
+##                     phout(i,j)+=360.0;
+##                 }
+##                 //aaaaaaaaaaaaaaaaaaaaaaaa
+##                 //outfile<<" curave="<<curave<<" phout(i,j)="<<phout(i,j)<<std::endl;
+##                 previ=i;
+##             }
+##         //outfile<<"Exiting"<<std::endl;
+##         //outfile.close();
+##         }
+##         """
+##     inline_tools.inline(code,['phout','jumpave','step','startind','stopind','nave','aveout','nc'],
+##             compiler='gcc',
+##             type_converters = cblitz,
+##             verbose = 1,
+##             headers=["<iostream>","<fstream>"])
+##     t4=time.time()
+## #    print('copy time='+str(t2-t1))
+## #    print('time to start of loop='+str(t3-t1))
+## #    print('loop time='+str(t4-t3))
+## #    print('total time='+str(t4-t1))
+## #    for r in range(shape(phout)[0]):
+## #        curline=str(r)
+## #        for c in range(shape(phout)[1]):
+## #            curline+='\t'+str(phout[r,c])
+## #        mylist.append(curline)
+## #    mylist.tofile(0)
+##     return phout
  
-def AveMessage(phin, freqin, seedfreq, seedphase,jump=250.0,nave=5.0):
-    #Note: Run PhaseMassage first and then pass the data to AveMessage as a second clean up step
-    phout=copy.deepcopy(phin)
-    ind=thresh_py(freqin,seedfreq)
-#    print('ind='+str(ind))
-#    print('freq(ind)='+str(freqin[ind]))
-    ph1=phout[0:ind]
-    ph2=phout[ind:]
-#    print('shape(ph1)='+str(shape(ph1)))
-#    print('shape(ph2)='+str(shape(ph2)))
-#    pdb.set_trace()
-    ph1o=zeros(shape(ph1),'f')
-    ph2o=zeros(shape(ph2),'f')
-    ph1o=phaseengine_w_ave(ph1,-1,nave,jump)
-    ph2o=phaseengine_w_ave(ph2,1,nave,jump)
-    outmat=r_[ph1o,ph2o]
-#    print('type(ph1o)='+str(type(ph1o)))
-#    outmat=ph1o
-#    print('type(ph2o)='+str(type(ph2o)))
-#    outmat=ph2o
-#    print('last line of AveMessage')
-    return outmat
+## def AveMessage(phin, freqin, seedfreq, seedphase,jump=250.0,nave=5.0):
+##     #Note: Run PhaseMassage first and then pass the data to AveMessage as a second clean up step
+##     phout=copy.deepcopy(phin)
+##     ind=thresh_py(freqin,seedfreq)
+## #    print('ind='+str(ind))
+## #    print('freq(ind)='+str(freqin[ind]))
+##     ph1=phout[0:ind]
+##     ph2=phout[ind:]
+## #    print('shape(ph1)='+str(shape(ph1)))
+## #    print('shape(ph2)='+str(shape(ph2)))
+## #    pdb.set_trace()
+##     ph1o=zeros(shape(ph1),'f')
+##     ph2o=zeros(shape(ph2),'f')
+##     ph1o=phaseengine_w_ave(ph1,-1,nave,jump)
+##     ph2o=phaseengine_w_ave(ph2,1,nave,jump)
+##     outmat=r_[ph1o,ph2o]
+## #    print('type(ph1o)='+str(type(ph1o)))
+## #    outmat=ph1o
+## #    print('type(ph2o)='+str(type(ph2o)))
+## #    outmat=ph2o
+## #    print('last line of AveMessage')
+##     return outmat
 
 def norm2(x):
     """compute |x|^2 = x*conjugate(x)"""
@@ -1239,23 +1239,23 @@ def mat_atan2(y,x):
             outmat[i,j]=atan2(y[i,j],x[i,j])
     return colwise(outmat)
 
-def mat_atan2_c(y,x):
-#    print('in mat_atan2_c')
-    assert(shape(y)==shape(x))
-    outmat=zeros(shape(y),'d')
-    nr=shape(y)[0]
-    if len(shape(y))==1:
-        nc=1
-    else:
-        nc=shape(y)[1]
-    code = """
-           for(int i = 0; i < nr; i++)
-               for(int j = 0; j < nc; j++)
-                   outmat(i,j) = atan2(y(i,j),x(i,j));  
-           """ 
-    inline_tools.inline(code,['outmat','y','x','nr','nc'],
-                        type_converters = cblitz,
-                        compiler='gcc',
-                        verbose = 1)
-    return outmat
+## def mat_atan2_c(y,x):
+## #    print('in mat_atan2_c')
+##     assert(shape(y)==shape(x))
+##     outmat=zeros(shape(y),'d')
+##     nr=shape(y)[0]
+##     if len(shape(y))==1:
+##         nc=1
+##     else:
+##         nc=shape(y)[1]
+##     code = """
+##            for(int i = 0; i < nr; i++)
+##                for(int j = 0; j < nc; j++)
+##                    outmat(i,j) = atan2(y(i,j),x(i,j));  
+##            """ 
+##     inline_tools.inline(code,['outmat','y','x','nr','nc'],
+##                         type_converters = cblitz,
+##                         compiler='gcc',
+##                         verbose = 1)
+##     return outmat
 
