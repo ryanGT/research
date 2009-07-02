@@ -4,9 +4,9 @@ from scipy import log10, shape, zeros, c_, r_, atleast_2d, compress, imag, real,
 #import pylab
 #from pylab import figure, cla, subplot, clf, ylabel, xlabel, clf, gca, legend
 
-import inline_tools
-import c_spec
-from converters import blitz as cblitz
+#import inline_tools
+#import c_spec
+#from converters import blitz as cblitz
 #from rwkdataproc import thresh_py as thresh
 from rwkdataproc import thresh, norm2
 #from rwkdataproc import mat_atan2, mat_atan2_c
