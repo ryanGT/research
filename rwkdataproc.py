@@ -34,7 +34,8 @@ def is_1D(arrayin):
     
 
 def colwise(matin, makecopy=1):
-#    t1=time.time()
+    if type(matin) != ndarray:
+        matin = array(matin)
     if makecopy:
         tempmat = matin.copy()
     else:
