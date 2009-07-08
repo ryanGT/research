@@ -1,0 +1,36 @@
+# This is a file that specifies the Bodes to create from the data set.
+# Each new Bode should begin with a label followed by a colon.  After
+# the colon should be a comma separated list of key=value pairs.
+
+# input and output are required keys and should correspond to data
+# column labels.  
+
+# Other valid keys include seedfreq, seedphase, freqlim, phaselim,
+# maglim, and cohlim
+
+# You may also specify top level data set options such as pat,
+# truncstart, truncend, output, and plot.  Each of these should be
+# on a line by themselves with key = value (spaces opitonal).
+
+# pat is the glob pattern to specify which txt data files you want
+# included in the data set.
+
+# truncstart and truncend are in Hz and specify how much of the Bode
+# plot you want to keep.
+
+# output is the basename for saving the time domain and Bode data.  Be
+# sure that output is a valid name for a python module since it will
+# eventually be imported in a manner similar to "import output"
+
+# plot tells the main script whether or not to call show() at the end
+# and to actually plot the Bodes
+
+pat = swept_sine_no_sat_amp=75_stopn=10000_test_*_SLFR_RTP_P_control_kp=1.0.txt
+bode1:input=v, output=theta, seedfreq=1.0, seedphase=-90, \
+      phaselim=[-200, 0], maglim=[-40,20], freqlim=[0.1, 50]
+bode2:input=theta, output=a, seedfreq=10, seedphase=0,
+      phaselim=[-200,200], maglim=[-25,45], freqlim=[0.1, 50]
+output=swept_sine_amp_75_July_07_2009
+truncstart =1.0
+truncend= 25.0
+

@@ -1,0 +1,8 @@
+# This file specifies how to take a bode data set and logrithmicly
+# down sample the data.  Four lines are expected with required keys
+# load_name, save_name, freqs and points.
+
+load_name = swept_sine_amp_75_July_07_2009_avebodes
+save_name = swept_sine_amp_75_July_07_2009_log_downsampled
+freqs = [1,2,3,15,20,25]
+points = [30,100,20,150,30]
