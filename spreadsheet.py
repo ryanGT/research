@@ -1352,7 +1352,8 @@ class BlackBoardGBFile(CSVSpreadSheet):
         self.uids=uids
 
 
-    def InsertColFromList(self, namelist, destlabel, valuelist, splitnames=True):
+    def InsertColFromList(self, namelist, destlabel, valuelist, \
+                          splitnames=True):
         """This is an attempt to mimic the InsertCol method of the
         Spreadsheet class, but taking into account that the
         BlackBoardGBFile has one column containg the last name, first
@@ -1375,30 +1376,87 @@ class BlackBoardGBFile(CSVSpreadSheet):
             if curind==-1:
                 print('could not find '+curname)
             else:
-                if valuelist[curind]:
-                    if destcol > len(row)-1:
-                        row.append(valuelist[curind])
-                    else:
-                        row[destcol] = valuelist[curind]
+                #if valuelist[curind]:#I don't know why this was here,
+                #I guess to allow empty cells not mess up averages
+                if destcol > len(row)-1:
+                    row.append(valuelist[curind])
+                else:
+                    row[destcol] = valuelist[curind]
 
 
-    def AppendColFromList(self, namelist, destlabel, valuelist, splitnames=True):
+    def AppendColFromList(self, namelist, destlabel, valuelist, \
+                          splitnames=True):
         self.labels.append(destlabel)
-        self.InsertColFromList(namelist, destlabel, valuelist, splitnames=splitnames)
+        self.InsertColFromList(namelist, destlabel, valuelist, \
+                               splitnames=splitnames)
+
+    def Append_From_GradeSpreadSheet(self, gradesheet, labels=None):
+        if labels is None:
+            labels = gradesheet.valuelabels
+        names, values = gradesheet.ReadNamesandValues()
+        for label, col in zip(labels, values.T):
+            self.AppendColFromList(gradesheet.lastnames, label, \
+                                   col, splitnames=False)
 
 
 class GradeSpreadSheet(CSVSpreadSheet):
-    def __init__(self, pathin=None, namelabel='Name',valuelabel='Total',dialect=None, skiprows=0):
-        CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect, skiprows=skiprows)
-
+    def __init__(self, pathin=None, namelabel='Name',valuelabel='Total', \
+                 dialect=None, skiprows=0):
+        CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect, \
+                                skiprows=skiprows)
         self.namelabel = namelabel
         self.valuelabel = valuelabel
         self.FindLabelRow([namelabel])
         self.FindDataColumns([namelabel,valuelabel],exact=True)
         self.ReadData()
         namecol = self.labels.index(namelabel)
-        self.DropEmptyRows(cols=[namecol])#drop all rows that do not have a name in them
+        self.DropEmptyRows(cols=[namecol])#drop all rows that do not
+                                          #have a name in them
+        self.names = self.ReadDataColumn(self.namelabel, exact=True)
+        self.split_names()
 
+    def split_names(self):
+        """Take self.names (which is assumed to already exist) and
+        split into self.lastnames and self.firstnames.  If a name in
+        self.names has a comma, it is assumed to be last, first (with
+        possible initials).  If the name contains no commas, it is
+        assumed to be first (middle) last, where (MI) is optional."""
+        lastnames = []
+        firstnames = []
+        for name in self.names:
+            if name.find(',') > -1:
+                #assume last, first (middle)
+                last, rest = name.split(',', 1)
+                last = last.strip()
+                rest = rest.strip()
+                if rest.find(' ') > -1:
+                    first, middle = rest.split(' ', 1)
+                    first = first.strip()
+                else:
+                    first = rest
+            else:
+                if name.find(' ') > -1:
+                    #assume first (middle) last
+                    first, rest = name.split(' ')
+                    first = first.strip()
+                    rest = rest.strip()
+                    if rest.find(' ') > -1:
+                        #assume middle last
+                        middle, last = rest.split(' ', 1)
+                        last = last.strip()
+                    else:
+                        last = rest
+                else:
+                    #with no comma and no space, assume just a last name
+                    last = name
+                    first = ''
+            last = last.replace(' ','')#Van Pelt
+            last = last.replace("'",' ')#O'Donnel
+            lastnames.append(last)
+            firstnames.append(first)
+        self.lastnames = lastnames
+        self.firstnames = firstnames
+        return self.lastnames, self.firstnames
 
     def ReadNamesandValues(self, exact=True):
         names=self.ReadDataColumn(self.namelabel, exact=exact)
@@ -1406,33 +1464,37 @@ class GradeSpreadSheet(CSVSpreadSheet):
         return names, values
 
 
-class GradeSpreadSheetMany(CSVSpreadSheet):
+class GradeSpreadSheetMany(GradeSpreadSheet):
     """A class for extracting many (or at least more than one) grades
     from a spreadsheet.
 
     valuelabels contains a list of the column labels you want to extract."""
-    def __init__(self, pathin=None, namelabel='Name',valuelabels=[], dialect=None, skiprows=0):
-        CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect, skiprows=skiprows)
-
+    def __init__(self, pathin=None, namelabel='Name',valuelabels=[], \
+                 dialect=None, skiprows=0):
+        CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect, \
+                                skiprows=skiprows)
         self.namelabel = namelabel
         self.valuelabels = valuelabels
         self.FindLabelRow([namelabel])
         self.FindDataColumns([namelabel]+valuelabels, exact=True)
         self.ReadData()
         namecol = self.labels.index(namelabel)
-        self.DropEmptyRows(cols=[namecol])#drop all rows that do not have a name in them
 
-
+        self.DropEmptyRows(cols=[namecol])#drop all rows that do not
+                                          #have a name in them
+        self.names = self.ReadDataColumn(self.namelabel, exact=True)
+        self.split_names()
+        
     def ReadNamesandValues(self, exact=True, parsefunc=myfloat):
-        names=self.ReadDataColumn(self.namelabel, exact=exact)
         nc = len(self.valuelabels)
-        nr = len(names)
+        nr = len(self.names)
         values = zeros((nr,nc))
         for n, label in enumerate(self.valuelabels):
             curcol = self.ReadDataColumn(label, exact=exact)
             curcol = map(parsefunc, curcol)
             values[:,n] = array(curcol)
-        return names, values
+        self.values = values
+        return self.names, self.values
 
 
 class QuizScoreSpreadSheet(GradeSpreadSheetMany):
@@ -1457,7 +1519,11 @@ class QuizScoreSpreadSheet(GradeSpreadSheetMany):
             
 
 class PSoCLabviewSpreadSheet(LabviewSpreadSheet, DataProcMixins.AccelMixin):
-    def __init__(self, pathin=None, tlabel='Time', collabels=['Time','u (V)','y (V)','v (V)','loop timer'], dialect=tabdelim, colmap={'u (V)':'u','y (V)':'y','v (V)':'v','loop timer':'lt'}):
+    def __init__(self, pathin=None, tlabel='Time', \
+                 collabels=['Time','u (V)','y (V)','v (V)','loop timer'], \
+                 dialect=tabdelim, \
+                 colmap={'u (V)':'u','y (V)':'y','v (V)':'v',\
+                         'loop timer':'lt'}):
         """Create an instance of the PSoCLabviewSpreadSheet class,
         where the data is assumed to be in a tab delimited text file."""
         TabDelimSpreadSheet.__init__(self, pathin=pathin, dialect=dialect)
