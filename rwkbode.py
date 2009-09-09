@@ -137,7 +137,11 @@ class rwkbode:
         return self.__add__(other)
 
     def __add__(self,other):
-        """Add two bodes or a bode and a constant.  Basically, if other is an rwkbode, call its ToComp method, and add the two complex vectors and convert back to an rwkbode, otherwise assume that other can simply be added to the complex vector (i.e. it is either a constant or a complex vector)."""
+        """Add two bodes or a bode and a constant.  Basically, if
+        other is an rwkbode, call its ToComp method, and add the two
+        complex vectors and convert back to an rwkbode, otherwise
+        assume that other can simply be added to the complex vector
+        (i.e. it is either a constant or a complex vector)."""
         if hasattr(other,'ToComp'):
             ocomp=other.ToComp()
         else:
@@ -148,13 +152,21 @@ class rwkbode:
         return bodeout
 
     def __div__(self,other):
-        """Divide two bodes or a bode and a constant.  Basically, if other is an rwkbode, call its ToComp method, and divide the two complex vectors and convert back to an rwkbode, otherwise assume that self.ToComp() can simply be divided by other (i.e. it is either a constant or a complex vector)."""
+        """Divide two bodes or a bode and a constant.  Basically, if
+        other is an rwkbode, call its ToComp method, and divide the
+        two complex vectors and convert back to an rwkbode, otherwise
+        assume that self.ToComp() can simply be divided by other
+        (i.e. it is either a constant or a complex vector)."""
         if hasattr(other,'ToComp'):
             ocomp=other.ToComp()
         else:
             ocomp=other
         compout=self.ToComp()/ocomp
-        bodeout=rwkbode(self.output,self.input,compin=compout)
+        if hasattr(other, 'output'):
+           new_input = other.output
+        else:
+           new_input = self.input#don't know how else to handle this
+        bodeout=rwkbode(self.output,new_input,compin=compout)
         bodeout.copybodeprops(source=self)
         return bodeout
 
