@@ -17,7 +17,10 @@ after running the above code, mysheet will have attributes student and team.
 """
 
 import csv, pdb, time, os
-from scipy import array, column_stack, integrate, r_, fft, arctan2, pi, shape, log10, squeeze, imag, real, signal, all, fromstring, zeros, io, dtype, row_stack, arange
+from scipy import array, column_stack, integrate, r_, fft, \
+     arctan2, pi, shape, log10, squeeze, imag, real, signal, \
+     all, fromstring, zeros, io, dtype, row_stack, arange, \
+     atleast_2d
 
 import numpy
 
@@ -42,7 +45,11 @@ def col_from_nested(nested, col):
     
 def myfloat(stringin):
     if stringin:
-        return float(stringin)
+        try:
+            out = float(stringin)
+        except ValueError:
+            out = stringin
+        return out
     else:
         return 0.0
     
@@ -1327,7 +1334,7 @@ class BlackBoardGBFile(CSVSpreadSheet):
         try:
             ind = self.lastnames.index(lastname)
         except ValueError:
-            ind = self.lastnames.index(lastname.upper())
+            ind = self.upperlast.index(lastname.upper())
         return self.firstnames[ind].capitalize()
     
         
@@ -1339,17 +1346,26 @@ class BlackBoardGBFile(CSVSpreadSheet):
             namemess = row[0]
             if namemess.find(',') > -1:
                 lastname, rest = namemess.split(',',1)
-                lastname=lastname.strip()
+                lastname = lastname.strip()
                 lastnames.append(lastname)
-                firstname, rest2 = rest.split('(',1)
-                firstname=firstname.strip()
-                firstnames.append(firstname)
-                uid, rest3 = rest2.split(')',1)
-                uid=uid.strip()
+                if rest.find('(') > -1:
+                    firstname, rest2 = rest.split('(',1)
+                    uid, rest3 = rest2.split(')',1)
+                    uid=uid.strip()
+                else:
+                    firstname = rest
+                    uid = None
+                firstname = firstname.strip()
+                if firstname.find(' ') > -1:
+                    firstname, mi = firstname.split(' ',1)
+                    firstname = firstname.strip()
                 uids.append(uid)
-        self.lastnames=lastnames
-        self.firstnames=firstnames
-        self.uids=uids
+                firstnames.append(firstname)
+        self.lastnames = lastnames
+        self.firstnames = firstnames
+        temp = [last.upper() for last in self.lastnames]
+        self.upperlast =[last.replace(' ','') for last in temp]
+        self.uids = uids
 
 
     def InsertColFromList(self, namelist, destlabel, valuelist, \
@@ -1390,13 +1406,18 @@ class BlackBoardGBFile(CSVSpreadSheet):
         self.InsertColFromList(namelist, destlabel, valuelist, \
                                splitnames=splitnames)
 
-    def Append_From_GradeSpreadSheet(self, gradesheet, labels=None):
+    def Append_From_GradeSpreadSheet(self, gradesheet, labels=None, \
+                                     parsefunc=myfloat):
         if labels is None:
             labels = gradesheet.valuelabels
         names, values = gradesheet.ReadNamesandValues()
-        for label, col in zip(labels, values.T):
-            self.AppendColFromList(gradesheet.lastnames, label, \
-                                   col, splitnames=False)
+        if (len(labels)==1) and type(values)==list:
+            self.AppendColFromList(gradesheet.lastnames, labels[0], \
+                                   values, splitnames=False)
+        else:
+            for label, col in zip(labels, values.T):
+                self.AppendColFromList(gradesheet.lastnames, label, \
+                                       col, splitnames=False)
 
 
 class GradeSpreadSheet(CSVSpreadSheet):
@@ -1406,6 +1427,7 @@ class GradeSpreadSheet(CSVSpreadSheet):
                                 skiprows=skiprows)
         self.namelabel = namelabel
         self.valuelabel = valuelabel
+        self.valuelabels = [valuelabel]#for Append_From_GradeSpreadSheet
         self.FindLabelRow([namelabel])
         self.FindDataColumns([namelabel,valuelabel],exact=True)
         self.ReadData()
@@ -1458,9 +1480,11 @@ class GradeSpreadSheet(CSVSpreadSheet):
         self.firstnames = firstnames
         return self.lastnames, self.firstnames
 
-    def ReadNamesandValues(self, exact=True):
+    def ReadNamesandValues(self, exact=True, parsefunc=None):
         names=self.ReadDataColumn(self.namelabel, exact=exact)
         values=self.ReadDataColumn(self.valuelabel, exact=exact)
+        if parsefunc is not None:
+            values = map(parsefunc, values)
         return names, values
 
 
@@ -1468,7 +1492,8 @@ class GradeSpreadSheetMany(GradeSpreadSheet):
     """A class for extracting many (or at least more than one) grades
     from a spreadsheet.
 
-    valuelabels contains a list of the column labels you want to extract."""
+    valuelabels contains a list of the column labels you want to
+    extract."""
     def __init__(self, pathin=None, namelabel='Name',valuelabels=[], \
                  dialect=None, skiprows=0):
         CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect, \

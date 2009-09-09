@@ -464,7 +464,7 @@ class Bode_Data_Set(Data_Set):
     optional fine tuning parameters."""
     def __init__(self, pattern, bode_list, \
                  time_col=0, time_label='t', \
-                 col_map={}, coh_size=(8,12), \
+                 col_map={}, coh=False, coh_size=(8,12), \
                  title_dict={}, \
                  delim='\t', skiprows=None):
         Data_Set.__init__(self, pattern, time_col=time_col, \
@@ -474,6 +474,7 @@ class Bode_Data_Set(Data_Set):
         self.bode_list = bode_list
         self.N = len(self.bode_list)
         self.coh_size = coh_size
+        self.coh = coh
 
 
     def _ave_dict(self, attr, dict_in={}, save_attr=None):
@@ -680,6 +681,7 @@ class Bode_Data_Set(Data_Set):
                    func=rwkbode.BodeCohPlot, **plotargs):
         if func == rwkbode.BodeCohPlot and size is None:
             size = self.coh_size
+            self.coh = True
         if figs is None:
             kwargs = {}
             if size is not None:
@@ -697,8 +699,9 @@ class Bode_Data_Set(Data_Set):
 
     def _set_plot_opts(self, bode_attr, figs):
         bode_list = getattr(self, bode_attr)
+        #Pdb().set_trace()
         for bode, fig in zip(bode_list, figs):
-            mplutil.set_Bode_opts(fig, bode)  
+            mplutil.set_Bode_opts(fig, bode, coh=self.coh)  
         
 
     def _set_titles(self, bode_attr, figs, \
