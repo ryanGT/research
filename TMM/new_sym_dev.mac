@@ -1,0 +1,40 @@
+Ubase:matrix([1.0, 0.0, 0.0, 0.0, 0.0],[0.0, 1.0, 1/(kbase+cbase*s), 0.0, 0.0],[0.0, 0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])$
+tex(Ubase, "new_sym_dev_eqs/maxeq0.tex")$
+Ubeam:matrix([c1beam, 0.5*Lbeam*c4beam/betabeam, (((-0.5)*abeam)*c3beam)/(betabeam*betabeam), ((((-0.5)*Lbeam)*abeam)*c2beam)/(betabeam**3), 0.0],[0.5*betabeam*c2beam/Lbeam, c1beam, 0.5*abeam*c4beam/betabeam/Lbeam, 0.5*abeam*c3beam/(betabeam*betabeam), 0.0],[(((-0.5)*betabeam*betabeam)*c3beam)/abeam, 0.5*betabeam*Lbeam*c2beam/abeam, c1beam, (((-0.5)*Lbeam)*c4beam)/betabeam, 0.0],[((((-0.5)*betabeam**3)*c4beam)/Lbeam)/abeam, 0.5*betabeam*betabeam*c3beam/abeam, (((-0.5)*betabeam)*c2beam)/Lbeam, c1beam, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])$
+tex(Ubeam, "new_sym_dev_eqs/maxeq1.tex")$
+Ul0:matrix([1.0, Ll0, 0, 0, 0.0],[0, 1.0, 0, 0, 0.0],[((-ml0)*s**2)*(Ll0-rl0), s**2*Il0-(ml0*s**2*rl0*(Ll0-rl0)), 1.0, -Ll0, 0.0],[ml0*s**2, ml0*s**2*rl0, 0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])$
+tex(Ul0, "new_sym_dev_eqs/maxeq2.tex")$
+Uj1:matrix([1.0, 0.0, 0.0, 0.0, 0.0],[0.0, 1.0, 1/(kj1+cj1*s), 0.0, 0.0],[0.0, 0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])$
+tex(Uj1, "new_sym_dev_eqs/maxeq3.tex")$
+Ul1:matrix([1.0, Ll1, 0, 0, 0.0],[0, 1.0, 0, 0, 0.0],[((-ml1)*s**2)*(Ll1-rl1), s**2*Il1-(ml1*s**2*rl1*(Ll1-rl1)), 1.0, -Ll1, 0.0],[ml1*s**2, ml1*s**2*rl1, 0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])$
+tex(Ul1, "new_sym_dev_eqs/maxeq4.tex")$
+Uact:matrix([1.0, 0.0, 0.0, 0.0, 0.0],[0.0, 1.0, 0.0, 0.0, Kact*tauact/(s*(s+tauact))],[0.0, 0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])$
+tex(Uact, "new_sym_dev_eqs/maxeq5.tex")$
+Uj2:matrix([1.0, 0.0, 0.0, 0.0, 0.0],[0.0, 1.0, 1/(kj2+cj2*s), 0.0, 0.0],[0.0, 0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])$
+tex(Uj2, "new_sym_dev_eqs/maxeq6.tex")$
+Ul2:matrix([1.0, Ll2, 0, 0, 0.0],[0, 1.0, 0, 0, 0.0],[((-ml2)*s**2)*(Ll2-rl2), s**2*Il2-(ml2*s**2*rl2*(Ll2-rl2)), 1.0, -Ll2, 0.0],[ml2*s**2, ml2*s**2*rl2, 0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])$
+tex(Ul2, "new_sym_dev_eqs/maxeq7.tex")$
+Usys:Ul2.Uj2.Uact.Ul1.Uj1.Ul0.Ubeam.Ubase$
+submat:submatrix(1,2,5,Usys,1,2,5)$
+subcol:submatrix(1,2,5,Usys,1,2,3,4)$
+tex(subcol, "new_sym_dev_eqs/maxeq8.tex")$
+nzbv:invert(submat).(-1*subcol)$
+bv:zeromatrix(5,1)$
+bv[5,1]:1$
+bv[3,1]:nzbv[1,1]$
+bv[4,1]:nzbv[2,1]$
+U1:Ubeam.Ubase$
+temprow:row(U1,1)$
+rb0:temprow.bv$
+U6:Uj2.Uact.Ul1.Uj1.Ul0.Ubeam.Ubase$
+temprow:row(U6,2)$
+rb1:temprow.bv$
+U4:Ul1.Uj1.Ul0.Ubeam.Ubase$
+temprow:row(U4,2)$
+rb2:temprow.bv$
+bode0:rb0*s^2$
+bode0:bode0*gainbode0$
+with_stdout ("new_sym_bode0.f", fortran_optimize (bode0))$
+bode1:rb1-rb2$
+bode1:bode1*gainbode1$
+with_stdout ("new_sym_bode1.f", fortran_optimize (bode1))$

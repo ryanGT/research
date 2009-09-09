@@ -1,0 +1,228 @@
+\documentclass[12pt]{article}
+\newcommand{\be}{\begin{equation}}
+\newcommand{\ee}{\end{equation}}
+\newcommand{\M}[1]{\mathbf{#1}}
+\addtolength{\textwidth}{1.0in}
+\addtolength{\textheight}{1.0in}
+\addtolength{\evensidemargin}{-0.50in}
+\addtolength{\oddsidemargin}{-0.50in}
+\addtolength{\topmargin}{-0.75in}
+\usepackage{amsmath}
+\usepackage{fancyhdr}
+%test if using pdflatex or regular latex
+\newif\ifpdf\ifx\pdfoutput\undefined\pdffalse\else\pdfoutput=1\pdftrue\fi
+%set up package use based on whether or not we are using pdflatex
+\ifpdf
+	%use these options with pdflatex
+	\usepackage[pdftex]{graphicx}
+	\DeclareGraphicsExtensions{.pdf,.jpg}
+	\usepackage{times}
+	\pdfpagewidth=\paperwidth
+	\pdfpageheight=\paperheight
+	\usepackage[pdfstartview=FitH, bookmarks=true,pdfpagemode=None, breaklinks=true, urlbordercolor={0 0 1}]{hyperref}
+\else
+	%use these options with regular latex
+	\usepackage{graphicx}
+	\DeclareGraphicsExtensions{.eps}
+	\usepackage[dvips,pdfstartview=FitH, bookmarks=true,pdfpagemode=None, breaklinks=true, urlbordercolor={0 0 1}]{hyperref}
+\fi
+%--------------------------------------------------------
+%
+%    hyperref options:
+%
+%   (details can be found in the hyperref manual which may 
+%    have been included in your Tex distribution, otherwise
+%    try typing ``hyperref manual'' into Google) 
+%
+%the breaklinks options allows links in the table of contents to break accross multiple lines.  This is important if you have long figure titles.  The link that it makes doesn't appear to work super well, at least with dvi->ps->pdf (the link is a thin line in between the two lines and it is hard to click on the line exactly.  The alternative, however is to have a long figure title forced onto one line and possibly going off the page.
+
+%deleting the pdfpagemode option or setting to pdfpagemode=UseOutlines will cause the bookmarks to be displayed when the document is first opened in Acrobat.
+%pdfpagemode=None
+%pdfpagemode=UseOutlines
+
+%pdfstartviewoptions:
+%pdfstartview=FitV  fit vertical (whole page is visible)
+%pdfstartview=FitH	fit horizontal (fit width)
+%pdfstartview=FitB	? fit both, fit badly (fairly small on my computer)
+%--------------------------------------------------------
+
+%end packages that switch
+\usepackage[dvips]{color}
+\definecolor{orange}{cmyk}{0,0.4,0.8,0.2}
+\usepackage{listings}
+\lstset{
+%Fernando + Ryan
+  language=Python,
+%%%  basicstyle=\ttfamily,
+  basicstyle=\small\sffamily,
+%%%  basicstyle=\rmfamily,
+%%%  basicstyle=\small\ttfamily,
+%  commentstyle=\ttfamily\color{blue},
+  stringstyle=\ttfamily\color{orange},
+  showstringspaces=false,
+  breaklines=true,
+%%  postbreak = \space\dots
+  postbreak = \space,
+  %Prabhu
+  commentstyle=\color{red}\itshape,
+%  commentstyle=\textbf,
+% stringstyle=\color{darkgreen},
+ showstringspaces=false,
+% keywordstyle=\color{blue}\bfseries,
+ keywordstyle=\color{blue},
+% emph={unknownparams},
+ emphstyle=\textbf
+}
+\ifpdf
+	%\newcommand{\picA}[1]{\includegraphics[angle=90,width=2.8in]{#1}}
+	\newcommand{\picR}[2]{\includegraphics[angle=90, width=#2in]{#1}}
+\else
+	\newcommand{\picR}[2]{\includegraphics[width=#2in]{#1}}
+\fi
+\newcommand{\picNR}[2]{\includegraphics[width=#2in]{#1}}
+\usepackage[all]{hypcap}
+\begin{document}
+\begin{maxima}
+	\parseopts{lhs='\M{U}_{base}'}
+Ubase:matrix([1.0, 0.0, 0.0, 0.0, 0.0],[0.0, 1.0, 1/(kbase+cbase*s), 0.0, 0.0],[0.0, 0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])
+\end{maxima}
+\begin{maxima}
+	\parseopts{lhs='\M{U}_{beam}'}
+Ubeam:matrix([c1beam, 0.5*Lbeam*c4beam/betabeam, (((-0.5)*abeam)*c3beam)/(betabeam*betabeam), ((((-0.5)*Lbeam)*abeam)*c2beam)/(betabeam**3), 0.0],[0.5*betabeam*c2beam/Lbeam, c1beam, 0.5*abeam*c4beam/betabeam/Lbeam, 0.5*abeam*c3beam/(betabeam*betabeam), 0.0],[(((-0.5)*betabeam*betabeam)*c3beam)/abeam, 0.5*betabeam*Lbeam*c2beam/abeam, c1beam, (((-0.5)*Lbeam)*c4beam)/betabeam, 0.0],[((((-0.5)*betabeam**3)*c4beam)/Lbeam)/abeam, 0.5*betabeam*betabeam*c3beam/abeam, (((-0.5)*betabeam)*c2beam)/Lbeam, c1beam, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])
+\end{maxima}
+\begin{maxima}
+	\parseopts{lhs='\M{U}_{l0}'}
+Ul0:matrix([1.0, Ll0, 0, 0, 0.0],[0, 1.0, 0, 0, 0.0],[((-ml0)*s**2)*(Ll0-rl0), s**2*Il0-(ml0*s**2*rl0*(Ll0-rl0)), 1.0, -Ll0, 0.0],[ml0*s**2, ml0*s**2*rl0, 0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])
+\end{maxima}
+\begin{maxima}
+	\parseopts{lhs='\M{U}_{j1}'}
+Uj1:matrix([1.0, 0.0, 0.0, 0.0, 0.0],[0.0, 1.0, 1/(kj1+cj1*s), 0.0, 0.0],[0.0, 0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])
+\end{maxima}
+\begin{maxima}
+	\parseopts{lhs='\M{U}_{l1}'}
+Ul1:matrix([1.0, Ll1, 0, 0, 0.0],[0, 1.0, 0, 0, 0.0],[((-ml1)*s**2)*(Ll1-rl1), s**2*Il1-(ml1*s**2*rl1*(Ll1-rl1)), 1.0, -Ll1, 0.0],[ml1*s**2, ml1*s**2*rl1, 0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])
+\end{maxima}
+\begin{maxima}
+	\parseopts{lhs='\M{U}_{act}'}
+Uact:matrix([1.0, 0.0, 0.0, 0.0, 0.0],[0.0, 1.0, 0.0, 0.0, Kact*tauact/(s*(s+tauact))],[0.0, 0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])
+\end{maxima}
+\begin{maxima}
+	\parseopts{lhs='\M{U}_{j2}'}
+Uj2:matrix([1.0, 0.0, 0.0, 0.0, 0.0],[0.0, 1.0, 1/(kj2+cj2*s), 0.0, 0.0],[0.0, 0.0, 1.0, 0.0, 0.0],[0.0, 0.0, 0.0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])
+\end{maxima}
+\begin{maxima}
+	\parseopts{lhs='\M{U}_{l2}'}
+Ul2:matrix([1.0, Ll2, 0, 0, 0.0],[0, 1.0, 0, 0, 0.0],[((-ml2)*s**2)*(Ll2-rl2), s**2*Il2-(ml2*s**2*rl2*(Ll2-rl2)), 1.0, -Ll2, 0.0],[ml2*s**2, ml2*s**2*rl2, 0, 1.0, 0.0],[0.0, 0.0, 0.0, 0.0, 1.0])
+\end{maxima}
+The system transfer matrix will be
+\begin{equation}
+	Usys=Ul2 Uj2 Uact Ul1 Uj1 Ul0 Ubeam Ubase
+\end{equation}
+\begin{maxima-noout}
+	Usys:Ul2.Uj2.Uact.Ul1.Uj1.Ul0.Ubeam.Ubase
+\end{maxima-noout}
+Based on the system boundary conditions, the submatrix whose determinant is the characteristic equation is
+\begin{maxima-noout}
+	submat:submatrix(1,2,5,Usys,1,2,5)
+\end{maxima-noout}
+\begin{equation}
+	submat=submatrix(1,2,5,Usys,1,2,5)
+\end{equation}
+and the sub-column that will be used to calculated the Bode response is
+\begin{maxima}
+	\parseopts{lhs='\M{subcol}',wrap=0}
+	subcol:submatrix(1,2,5,Usys,1,2,3,4)
+\end{maxima}
+The non-zero portion of the base vector will be found using
+\begin{equation}
+\M{nzbv}=\M{submat}^{-1}\left(-\M{subcol}\right)
+\end{equation}
+\begin{maxima-noout}
+	nzbv:invert(submat).(-1*subcol)
+\end{maxima-noout}
+\begin{maxima-noout}
+bv:zeromatrix(5,1)
+bv[5,1]:1
+bv[3,1]:nzbv[1,1]
+bv[4,1]:nzbv[2,1]
+\end{maxima-noout}
+The transfer matrix from the base vector to model position 1 is
+\begin{equation}
+	U1=Ubeam Ubase
+\end{equation}
+\begin{maxima-noout}
+	U1:Ubeam.Ubase
+\end{maxima-noout}
+The state vector at this location is given by
+\begin{equation}
+	\M{z}_{1}=U1 \M{bv}
+\end{equation}
+\begin{maxima-noout}
+	temprow:row(U1,1)
+	rb0:temprow.bv
+\end{maxima-noout}
+The transfer matrix from the base vector to model position 6 is
+\begin{equation}
+	U6=Uj2 Uact Ul1 Uj1 Ul0 Ubeam Ubase
+\end{equation}
+\begin{maxima-noout}
+	U6:Uj2.Uact.Ul1.Uj1.Ul0.Ubeam.Ubase
+\end{maxima-noout}
+The state vector at this location is given by
+\begin{equation}
+	\M{z}_{6}=U6 \M{bv}
+\end{equation}
+\begin{maxima-noout}
+	temprow:row(U6,2)
+	rb1:temprow.bv
+\end{maxima-noout}
+The transfer matrix from the base vector to model position 4 is
+\begin{equation}
+	U4=Ul1 Uj1 Ul0 Ubeam Ubase
+\end{equation}
+\begin{maxima-noout}
+	U4:Ul1.Uj1.Ul0.Ubeam.Ubase
+\end{maxima-noout}
+The state vector at this location is given by
+\begin{equation}
+	\M{z}_{4}=U4 \M{bv}
+\end{equation}
+\begin{maxima-noout}
+	temprow:row(U4,2)
+	rb2:temprow.bv
+\end{maxima-noout}
+Bode output 0 will be given by
+\begin{equation}
+	bode0=rb0 s^2
+\end{equation}
+\begin{maxima-noout}
+bode0:rb0*s^2
+\end{maxima-noout}
+A gain is introduced to scale the bode output to engineering units
+\begin{equation}
+	bode0=bode0*gainbode0
+\end{equation}
+\begin{maxima-noout}
+	bode0:bode0*gainbode0
+\end{maxima-noout}
+\begin{maxima-noout}
+	with_stdout ("new_sym_bode0.f", fortran_optimize (bode0))
+\end{maxima-noout}
+Bode output 1 will be given by
+\begin{equation}
+	bode1=rb1-rb2
+\end{equation}
+\begin{maxima-noout}
+bode1:rb1-rb2
+\end{maxima-noout}
+A gain is introduced to scale the bode output to engineering units
+\begin{equation}
+	bode1=bode1*gainbode1
+\end{equation}
+\begin{maxima-noout}
+	bode1:bode1*gainbode1
+\end{maxima-noout}
+\begin{maxima-noout}
+	with_stdout ("new_sym_bode1.f", fortran_optimize (bode1))
+\end{maxima-noout}
+\end{document}

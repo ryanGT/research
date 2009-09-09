@@ -1,0 +1,1317 @@
+
+ <html>
+ <head>
+   <meta name='GENERATOR' content='Dymore HTML'>
+   <title>index file</title>
+ </head>
+ <body bgcolor='#E9E9E9' background='C:\dymore2_0\manual\figures\ltsand.jpg'>
+
+ <p><center><a name='TOP_OF_FILE'>
+ <font color='#004000' size=+3>
+ Model Definition for analysis:
+ </font>
+ <font size=+3> { </font>
+ <font color='#ff0000' size=+3>
+ E:\pythonscripts\rwkpython\TMM\beam_w_rigid_link\beam_w_rigid_link
+ </font>
+ <font size=+3>}</font>
+ </center></p>
+
+ <ul>
+ <li><a href='#Actuator_Elements'>Actuator_Elements</a>.
+ <li><a href='#Aerodynamic_Elements'>Aerodynamic_Elements</a>.
+ <li><a href='#Aerodynamic_Properties'>Aerodynamic_Properties</a>.
+ <li><a href='#Analysis_Control'>Analysis_Control</a>.
+ <li><a href='#Constraint_Elements'>Constraint_Elements</a>.
+ <li><a href='#Controller_Elements'>Controller_Elements</a>.
+ <li><a href='#External_Loading'>External_Loading</a>.
+ <li><a href='#Geometric_Objects'>Geometric_Objects</a>.
+ <li><a href='#Graphical_Objects'>Graphical_Objects</a>.
+ <li><a href='#Utility_Objects'>Utility_Objects</a>.
+ <li><a href='#Structural_Elements'>Structural_Elements</a>.
+ <li><a href='#Structural_Properties'>Structural_Properties</a>.
+ </ul>
+
+ <p><center><hr>
+ <a name='Actuator_Elements'></a>
+ <font color="#ff0000">Actuator_Elements</font>
+ <a href='C:\dymore2_0\manual\manual\ActuatorElements.html'> (User's Manual)</a>
+ <hr></center></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='Aerodynamic_Elements'></a>
+ <font color="#ff0000">Aerodynamic_Elements</font>
+ <a href='C:\dymore2_0\manual\manual\AerodynamicElements.html'> (User's Manual)</a>
+ <hr></center></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='Aerodynamic_Properties'></a>
+ <font color="#ff0000">Aerodynamic_Properties</font>
+ <a href='C:\dymore2_0\manual\manual\AerodynamicProperties.html'> (User's Manual)</a>
+ <hr></center></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='Analysis_Control'></a>
+ <font color="#ff0000">Analysis_Control</font>
+ <a href='C:\dymore2_0\manual\manual\AnalysisControls.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p> @FEM_CONTROL_PARAMETERS {
+ <a href='#AnalysisControlParameters'>AnalysisControlParameters</a>}
+ <br></p>
+
+ <p> @GRAPHICS_CONTROL_PARAMETERS {
+ <a href='#GraphicsControlParameters'>GraphicsControlParameters</a>}
+ <br></p>
+
+ <p> @PLOTTING_CONTROL_PARAMETERS {
+ <a href='#PlottingControlParameters'>PlottingControlParameters</a>}
+ <br></p>
+
+ <p> @POST_PROCESSING_CONTROL_PARAMETERS {
+ <a href='#PostProcessControlParameters'>PostProcessControlParameters</a>}
+ <br></p>
+
+ <p> @STEP_CONTROL_PARAMETERS {
+ <a href='#Step1'>Step1</a>}
+ <br></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='Constraint_Elements'></a>
+ <font color="#ff0000">Constraint_Elements</font>
+ <a href='C:\dymore2_0\manual\manual\ConstraintElements.html'> (User's Manual)</a>
+ <hr></center></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='Controller_Elements'></a>
+ <font color="#ff0000">Controller_Elements</font>
+ <a href='C:\dymore2_0\manual\manual\ControllerElements.html'> (User's Manual)</a>
+ <hr></center></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='External_Loading'></a>
+ <font color="#ff0000">External_Loading</font>
+ <a href='C:\dymore2_0\manual\manual\ExternalLoading.html'> (User's Manual)</a>
+ <hr></center></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='Geometric_Objects'></a>
+ <font color="#ff0000">Geometric_Objects</font>
+ <a href='C:\dymore2_0\manual\manual\GeometricElements.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p> @BOUNDARY_CONDITION_DEFINITION {
+ <a href='#ClampA'>ClampA</a>, 
+ <a href='#FreeC'>FreeC</a>}
+ <br></p>
+
+ <p> @CURVE_DEFINITION {
+ <a href='#RigidLinkCurve'>RigidLinkCurve</a>, 
+ <a href='#CurveBeam1'>CurveBeam1</a>}
+ <br></p>
+
+ <p> @FIXED_FRAME_DEFINITION {
+ <a href='#FXDFRAME_INERTIAL'>FXDFRAME_INERTIAL</a>, 
+ <a href='#frame1'>frame1</a>}
+ <br></p>
+
+ <p> @CURVE_MESH_PARAMETERS_DEFINITION {
+ <a href='#RigidLinkMesh'>RigidLinkMesh</a>, 
+ <a href='#MeshBeam1'>MeshBeam1</a>}
+ <br></p>
+
+ <p> @POINT_DEFINITION {
+ <a href='#POINT_ORIGIN'>POINT_ORIGIN</a>, 
+ <a href='#PointA'>PointA</a>, 
+ <a href='#PointB'>PointB</a>, 
+ <a href='#PointC'>PointC</a>}
+ <br></p>
+
+ <p> @REFERENCE_FRAME_DEFINITION {
+ <a href='#REFFRAME_INERTIAL'>REFFRAME_INERTIAL</a>}
+ <br></p>
+
+ <p> @TRIAD_DEFINITION {
+ <a href='#TRIAD_INERTIAL'>TRIAD_INERTIAL</a>, 
+ <a href='#TriadRvjA'>TriadRvjA</a>, 
+ <a href='#TriadRvjB'>TriadRvjB</a>, 
+ <a href='#TriadRvjC'>TriadRvjC</a>, 
+ <a href='#TriadRvjD'>TriadRvjD</a>}
+ <br></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='Graphical_Objects'></a>
+ <font color="#ff0000">Graphical_Objects</font>
+ <a href='C:\dymore2_0\manual\manual\GraphicalObjects.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p> @GRAPHICAL_PARAMETERS_DEFINITION {
+ <a href='#RigidLinkGraphParams'>RigidLinkGraphParams</a>, 
+ <a href='#GrfParamBeam1'>GrfParamBeam1</a>}
+ <br></p>
+
+ <p> @VIEW_PARAMETERS_DEFINITION {
+ <a href='#ViewParameters'>ViewParameters</a>}
+ <br></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='Utility_Objects'></a>
+ <font color="#ff0000">Utility_Objects</font>
+ <a href='C:\dymore2_0\manual\manual\UtilityObjects.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p> @SENSOR_DEFINITION {
+ <a href='#SensorBeam1Displacements'>SensorBeam1Displacements</a>, 
+ <a href='#SensorBeam1Positions'>SensorBeam1Positions</a>, 
+ <a href='#SensorBeam1Velocities'>SensorBeam1Velocities</a>, 
+ <a href='#SensorBeam1Forces'>SensorBeam1Forces</a>, 
+ <a href='#SensorEnergy'>SensorEnergy</a>}
+ <br></p>
+
+ <p> @SIGNAL_POST_PROCESSING_DEFINITION {
+ <a href='#SigPostBeam1Forces'>SigPostBeam1Forces</a>}
+ <br></p>
+
+ <p> @TIME_FUNCTION_DEFINITION {
+ <a href='#ScheduleRotationA'>ScheduleRotationA</a>}
+ <br></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='Structural_Elements'></a>
+ <font color="#ff0000">Structural_Elements</font>
+ <a href='C:\dymore2_0\manual\manual\StructuralElements.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p> @BEAM_DEFINITION {
+ <a href='#Beam1'>Beam1</a>}
+ <br></p>
+
+ <p> @RIGID_BODY_DEFINITION {
+ <a href='#RigidLink'>RigidLink</a>}
+ <br></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='Structural_Properties'></a>
+ <font color="#ff0000">Structural_Properties</font>
+ <a href='C:\dymore2_0\manual\manual\StructuralProperties.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p> @BEAM_PROPERTY_DEFINITION {
+ <a href='#PropertyBeam1'>PropertyBeam1</a>}
+ <br></p>
+
+ <p> @MASS_PROPERTY_DEFINITION {
+ <a href='#RigidLinkMass'>RigidLinkMass</a>}
+ <br></p>
+ <p><center>
+ <a href='#TOP_OF_FILE'>Top of File</a>
+ </center></p>
+
+ <p><center><hr>
+ <a name='POINT_ORIGIN'></a>
+ <font color='#004000' SIZE=+1>
+ @POINT_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Point.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @POINT_NAME {
+ <font color="#ff0000">POINT_ORIGIN</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @COORDINATES {  0.00000e+000,  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[m]</font>
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='TRIAD_INERTIAL'></a>
+ <font color='#004000' SIZE=+1>
+ @TRIAD_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Triad.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @TRIAD_NAME {
+ <font color="#ff0000">TRIAD_INERTIAL</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @ORIENTATION_E2 {  0.00000e+000,  1.00000e+000,  0.00000e+000}
+
+ <dd>
+ @ORIENTATION_E3 {  0.00000e+000,  0.00000e+000,  1.00000e+000}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='FXDFRAME_INERTIAL'></a>
+ <font color='#004000' SIZE=+1>
+ @FIXED_FRAME_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\FxdFrame.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @FIXED_FRAME_NAME {
+ <font color="#ff0000">FXDFRAME_INERTIAL</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @ORIGIN {  0.00000e+000,  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[m]</font>
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='frame1'></a>
+ <font color='#004000' SIZE=+1>
+ @FIXED_FRAME_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\FxdFrame.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @FIXED_FRAME_NAME {
+ <font color="#ff0000">frame1</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @ORIGIN {  0.00000e+000,  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[m]</font>
+
+ <dd>
+ @ORIENTATION_E2 { -1.00000e+000,  0.00000e+000,  0.00000e+000}
+
+ <dd>
+ @ORIENTATION_E3 {  0.00000e+000,  0.00000e+000,  1.00000e+000}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='TriadRvjA'></a>
+ <font color='#004000' SIZE=+1>
+ @TRIAD_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Triad.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @TRIAD_NAME {
+ <font color="#ff0000">TriadRvjA</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @ORIENTATION_E2 {  0.00000e+000,  1.00000e+000,  0.00000e+000}
+
+ <dd>
+ @ORIENTATION_E3 {  0.00000e+000,  0.00000e+000,  1.00000e+000}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='TriadRvjB'></a>
+ <font color='#004000' SIZE=+1>
+ @TRIAD_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Triad.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @TRIAD_NAME {
+ <font color="#ff0000">TriadRvjB</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @ORIENTATION_E2 {  0.00000e+000,  1.00000e+000,  0.00000e+000}
+
+ <dd>
+ @ORIENTATION_E3 {  0.00000e+000,  0.00000e+000,  1.00000e+000}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='TriadRvjC'></a>
+ <font color='#004000' SIZE=+1>
+ @TRIAD_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Triad.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @TRIAD_NAME {
+ <font color="#ff0000">TriadRvjC</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @EULER_ANGLES_323 {  0.00000e+000,  5.00000e+000,  0.00000e+000}
+ <font color='#975820'>[deg]</font>
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='TriadRvjD'></a>
+ <font color='#004000' SIZE=+1>
+ @TRIAD_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Triad.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @TRIAD_NAME {
+ <font color="#ff0000">TriadRvjD</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @ORIENTATION_E2 {  0.00000e+000,  1.00000e+000,  0.00000e+000}
+
+ <dd>
+ @ORIENTATION_E3 {  0.00000e+000,  0.00000e+000,  1.00000e+000}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='PointA'></a>
+ <font color='#004000' SIZE=+1>
+ @POINT_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Point.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @POINT_NAME {
+ <font color="#ff0000">PointA</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @COORDINATES {  0.00000e+000,  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[m]</font>
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='PointB'></a>
+ <font color='#004000' SIZE=+1>
+ @POINT_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Point.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @POINT_NAME {
+ <font color="#ff0000">PointB</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @COORDINATES {  7.20000e+000,  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[m]</font>
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='PointC'></a>
+ <font color='#004000' SIZE=+1>
+ @POINT_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Point.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @POINT_NAME {
+ <font color="#ff0000">PointC</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @COORDINATES {  7.70000e+000,  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[m]</font>
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='RigidLinkMesh'></a>
+ <font color='#004000' SIZE=+1>
+ @CURVE_MESH_PARAMETERS_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\MeshCurv.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @CURVE_MESH_PARAMETERS_NAME {
+ <font color="#ff0000">RigidLinkMesh</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @NUMBER_OF_ELEMENTS {     2}
+
+ <dd>
+ @ORDER_OF_ELEMENTS {     3}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='RigidLinkCurve'></a>
+ <font color='#004000' SIZE=+1>
+ @CURVE_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Curve.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @CURVE_NAME {
+ <font color="#ff0000">RigidLinkCurve</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @IS_DEFINED_IN_FRAME {<a href='#frame1'>frame1</a>}
+
+ <p>@POINT_DEFINITION {</p>
+ <dl>
+
+ <dd>
+ @NUMBER_OF_CONTROL_POINTS {     2}
+
+ <dd>
+ @DEGREE_OF_CURVE {     1}
+ <dd> @RATIONAL_CURVE_FLAG {<font color='#808000'>NO</font>}
+ <dd> @END_POINT_0 {<a href='#PointB'>PointB</a>}
+ <dd> @END_POINT_1 {<a href='#PointC'>PointC</a>}
+ </dl><p>
+ }
+ <dd> @CURVE_MESH_PARAMETERS_NAME {<a href='#RigidLinkMesh'>RigidLinkMesh</a>}
+ </dl><p>
+ }
+
+ <center><IMG src='FIGURES\RigidLinkCurveQcv3Q.png' border='5'></center>
+ <center>CURVE (X2 X3 VIEW)</center>
+ <p>
+
+ <center><IMG src='FIGURES\RigidLinkCurveQcv2Q.png' border='5'></center>
+ <center>CURVE (X1 X3 VIEW)</center>
+ <p>
+
+ <center><IMG src='FIGURES\RigidLinkCurveQcv1Q.png' border='5'></center>
+ <center>CURVE (X1 X2 VIEW)</center>
+ <p>
+
+ <p><center><hr>
+ <a name='RigidLinkMass'></a>
+ <font color='#004000' SIZE=+1>
+ @MASS_PROPERTY_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\MassProp.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @MASS_PROPERTY_NAME {
+ <font color="#ff0000">RigidLinkMass</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @TOTAL_MASS {  2.00000e+001}
+ <font color='#975820'>[Kg]</font>
+
+ <dd>
+ @CENTRE_OF_MASS_LOCATION {  4.00000e-001,  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[m]</font>
+
+ <dd> @MOMENTS_OF_INERTIA 
+ <dd>
+[  4.33333e-001  0.00000e+000  0.00000e+000 ]
+ <dd>
+[  0.00000e+000  3.28333e+000  0.00000e+000 ]
+ <dd>
+[  0.00000e+000  0.00000e+000  3.68333e+000 ]
+ <font color='#975820'>[Kg.m^2]</font>
+ <dd> @WITH_RESPECT_TO_MASS_CENTRE {<font color='#808000'>NO</font>}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='RigidLink'></a>
+ <font color='#004000' SIZE=+1>
+ @RIGID_BODY_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Rgb.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @RIGID_BODY_NAME {
+ <font color="#ff0000">RigidLink</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @CONNECTED_TO_BODY {<a href='#Beam1'>Beam1</a>}
+ <dd> @AT_POINT {<a href='#PointB'>PointB</a>}
+ <dd> @CONNECTED_TO_BODY {<a href='#FreeC'>FreeC</a>}
+ <dd> @AT_POINT {<a href='#PointC'>PointC</a>}
+ <dd> @TRIAD_NAME {<a href='#TRIAD_INERTIAL'>TRIAD_INERTIAL</a>}
+ <dd> @MASS_PROPERTY_NAME {<a href='#RigidLinkMass'>RigidLinkMass</a>}
+ <dd> @CURVE_NAME {<a href='#RigidLinkCurve'>RigidLinkCurve</a>}
+ <dd> @GRAPHICAL_PARAMETERS_NAME {<a href='#RigidLinkGraphParams'>RigidLinkGraphParams</a>}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='RigidLinkGraphParams'></a>
+ <font color='#004000' SIZE=+1>
+ @GRAPHICAL_PARAMETERS_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\GrfParam.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @GRAPHICAL_PARAMETERS_NAME {
+ <font color="#ff0000">RigidLinkGraphParams</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @OBJECT_HIGHLIGHTED {<font color='#808000'>YES</font>}
+ <dd> @REPRESENTATION_TYPE {<font color='#808000'>SYMBOL</font>}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='PropertyBeam1'></a>
+ <font color='#004000' SIZE=+1>
+ @BEAM_PROPERTY_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\BldProp.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @BEAM_PROPERTY_NAME {
+ <font color="#ff0000">PropertyBeam1</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @ETA_VALUE {  0.00000e+000}
+
+ <dd>
+ @AXIAL_STIFFNESS {  1.45736e+008}
+ <font color='#975820'>[N]</font>
+
+ <dd>
+ @BENDING_STIFFNESSES {  3.39137e+005,  5.08706e+010,  0.00000e+000}
+ <font color='#975820'>[N.m^2]</font>
+
+ <dd>
+ @TORSIONAL_STIFFNESS {  2.55774e+010}
+ <font color='#975820'>[N.m^2]</font>
+
+ <dd>
+ @SHEARING_STIFFNESSES {  1.30000e+013,  1.30000e+013,  0.00000e+000}
+ <font color='#975820'>[N]</font>
+
+ <dd>
+ @MASS_PER_UNIT_SPAN {  5.72815e+000}
+ <font color='#975820'>[Kg/m]</font>
+
+ <dd>
+ @MOMENTS_OF_INERTIA {  2.66596e-002,  1.33298e-002,  1.33298e-002}
+ <font color='#975820'>[Kg.m^2/m]</font>
+
+ <dd>
+ @CENTRE_OF_MASS_LOCATION {  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[m]</font>
+
+ <dd>
+ @SHEAR_CENTRE_LOCATION {  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[m]</font>
+
+ <dd>
+ @CENTROID_LOCATION {  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[m]</font>
+ <dd> @COMMENTS {<font color='#808000'>SAMII cantilever beam properties with EI2 changed to get different eigenvalues in the two different directions</font>}
+ </dl><p>
+ }
+
+ <center><IMG src='FIGURES\PropertyBeam1QbxcQ.png' border='5'></center>
+ <center>LOCATION OF THE CENTROID</center>
+ <p>
+
+ <center><IMG src='FIGURES\PropertyBeam1Qi11Q.png' border='5'></center>
+ <center>AXIAL STIFFNESS</center>
+ <p>
+
+ <center><IMG src='FIGURES\PropertyBeam1Qi23Q.png' border='5'></center>
+ <center>BENDING STIFFNESS</center>
+ <p>
+
+ <center><IMG src='FIGURES\PropertyBeam1QbxkQ.png' border='5'></center>
+ <center>LOCATION OF THE SHEAR CENTRE</center>
+ <p>
+
+ <center><IMG src='FIGURES\PropertyBeam1Qk11Q.png' border='5'></center>
+ <center>TORSIONAL STIFFNESS</center>
+ <p>
+
+ <center><IMG src='FIGURES\PropertyBeam1Qk23Q.png' border='5'></center>
+ <center>SHEARING STIFFNESSES</center>
+ <p>
+
+ <center><IMG src='FIGURES\PropertyBeam1QbxmQ.png' border='5'></center>
+ <center>LOCATION OF THE CENTRE OF MASS</center>
+ <p>
+
+ <center><IMG src='FIGURES\PropertyBeam1Qm00Q.png' border='5'></center>
+ <center>MASS PER UNIT LENGTH</center>
+ <p>
+
+ <center><IMG src='FIGURES\PropertyBeam1Qm23Q.png' border='5'></center>
+ <center>MOMENTS OF INERTIA</center>
+ <p>
+
+ <p><center><hr>
+ <a name='Beam1'></a>
+ <font color='#004000' SIZE=+1>
+ @BEAM_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Bld.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @BEAM_NAME {
+ <font color="#ff0000">Beam1</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @CONNECTED_TO_BODY {<a href='#ClampA'>ClampA</a>}
+ <dd> @AT_POINT {<a href='#PointA'>PointA</a>}
+ <dd> @CONNECTED_TO_BODY {<a href='#RigidLink'>RigidLink</a>}
+ <dd> @AT_POINT {<a href='#PointB'>PointB</a>}
+ <dd> @CURVE_NAME {<a href='#CurveBeam1'>CurveBeam1</a>}
+ <dd> @BEAM_PROPERTY_NAME {<a href='#PropertyBeam1'>PropertyBeam1</a>}
+ <dd> @GRAPHICAL_PARAMETERS_NAME {<a href='#GrfParamBeam1'>GrfParamBeam1</a>}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='CurveBeam1'></a>
+ <font color='#004000' SIZE=+1>
+ @CURVE_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Curve.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @CURVE_NAME {
+ <font color="#ff0000">CurveBeam1</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @IS_DEFINED_IN_FRAME {<font color='#808000'>INERTIAL</font>}
+
+ <p>@POINT_DEFINITION {</p>
+ <dl>
+
+ <dd>
+ @NUMBER_OF_CONTROL_POINTS {     2}
+
+ <dd>
+ @DEGREE_OF_CURVE {     1}
+ <dd> @RATIONAL_CURVE_FLAG {<font color='#808000'>NO</font>}
+ <dd> @END_POINT_0 {<a href='#PointA'>PointA</a>}
+ <dd> @END_POINT_1 {<a href='#PointB'>PointB</a>}
+ </dl><p>
+ }
+
+ <p>@TRIAD_DEFINITION {</p>
+ <dl>
+
+ <dd>
+ @ETA_VALUE {  0.00000e+000}
+
+ <dd>
+ @ORIENTATION_E2 {  0.00000e+000,  1.00000e+000,  0.00000e+000}
+
+ <dd>
+ @ORIENTATION_E3 {  0.00000e+000,  0.00000e+000,  1.00000e+000}
+ </dl><p>
+ }
+ <dd> @CURVE_MESH_PARAMETERS_NAME {<a href='#MeshBeam1'>MeshBeam1</a>}
+ </dl><p>
+ }
+
+ <center><IMG src='FIGURES\CurveBeam1Qcv3Q.png' border='5'></center>
+ <center>CURVE (X2 X3 VIEW)</center>
+ <p>
+
+ <center><IMG src='FIGURES\CurveBeam1Qcv2Q.png' border='5'></center>
+ <center>CURVE (X1 X3 VIEW)</center>
+ <p>
+
+ <center><IMG src='FIGURES\CurveBeam1Qcv1Q.png' border='5'></center>
+ <center>CURVE (X1 X2 VIEW)</center>
+ <p>
+
+ <center><IMG src='FIGURES\CurveBeam1QcrvQ.png' border='5'></center>
+ <center>TRIAD CVR Vs ETA</center>
+ <p>
+
+ <p><center><hr>
+ <a name='MeshBeam1'></a>
+ <font color='#004000' SIZE=+1>
+ @CURVE_MESH_PARAMETERS_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\MeshCurv.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @CURVE_MESH_PARAMETERS_NAME {
+ <font color="#ff0000">MeshBeam1</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @NUMBER_OF_ELEMENTS {    50}
+
+ <dd>
+ @ORDER_OF_ELEMENTS {     3}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='GrfParamBeam1'></a>
+ <font color='#004000' SIZE=+1>
+ @GRAPHICAL_PARAMETERS_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\GrfParam.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @GRAPHICAL_PARAMETERS_NAME {
+ <font color="#ff0000">GrfParamBeam1</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @REPRESENTATION_TYPE {<font color='#808000'>SURFACE</font>}
+
+ <dd>
+ @COLOR_FOR_CONFIGURATION {     0,   255,   255}
+ <dd> @VECTOR_FIELD_TYPE {<font color='#808000'>FORCES</font>}
+
+ <dd>
+ @COLOR_FOR_VECTOR_FIELD {   255,     0,     0}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='ClampA'></a>
+ <font color='#004000' SIZE=+1>
+ @BOUNDARY_CONDITION_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Boundary.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @BOUNDARY_CONDITION_NAME {
+ <font color="#ff0000">ClampA</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @APPLIED_TO_BODY {<a href='#Beam1'>Beam1</a>}
+ <dd> @AT_POINT {<a href='#PointA'>PointA</a>}
+
+ <dd>
+ @DISPLACEMENT_BOUNDARY_CONDITIONS {     1,     1,     1}
+
+ <dd>
+ @ROTATION_BOUNDARY_CONDITIONS {     1,     1,     1}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='FreeC'></a>
+ <font color='#004000' SIZE=+1>
+ @BOUNDARY_CONDITION_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Boundary.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @BOUNDARY_CONDITION_NAME {
+ <font color="#ff0000">FreeC</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @APPLIED_TO_BODY {<a href='#RigidLink'>RigidLink</a>}
+ <dd> @AT_POINT {<a href='#PointC'>PointC</a>}
+
+ <dd>
+ @DISPLACEMENT_BOUNDARY_CONDITIONS {     0,     0,     0}
+
+ <dd>
+ @ROTATION_BOUNDARY_CONDITIONS {     0,     0,     0}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='ScheduleRotationA'></a>
+ <font color='#004000' SIZE=+1>
+ @TIME_FUNCTION_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\TimFun.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @TIME_FUNCTION_NAME {
+ <font color="#ff0000">ScheduleRotationA</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @TIME_FUNCTION_TYPE {<font color='#808000'>USER_DEFINED</font>}
+
+ <dd>
+ @TIME {  0.00000e+000}
+ <font color='#975820'>[sec]</font>
+
+ <dd>
+ @FUNCTION_VALUE {  0.00000e+000}
+
+ <dd>
+ @TIME {  1.00000e+001}
+ <font color='#975820'>[sec]</font>
+
+ <dd>
+ @FUNCTION_VALUE { -2.00000e+002}
+ </dl><p>
+ }
+
+ <center><IMG src='FIGURES\ScheduleRotationA.png' border='5'></center>
+ <center>TIME FUNCTION</center>
+ <p>
+
+ <p><center><hr>
+ <a name='SensorBeam1Displacements'></a>
+ <font color='#004000' SIZE=+1>
+ @SENSOR_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Sensor.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @SENSOR_NAME {
+ <font color="#ff0000">SensorBeam1Displacements</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @OBJECT_NAME {<a href='#Beam1'>Beam1</a>}
+ <dd> @SENSOR_TYPE {<font color='#808000'>DISPLACEMENTS</font>}
+
+ <dd>
+ @ETA_VALUE {  1.00000e+000}
+ <dd> @FRAME_NAME {<font color='#808000'>INERTIAL</font>}
+ </dl><p>
+ }
+
+ <center><IMG src='FIGURES\SensorBeam1DisplacementsQdisQ.png' border='5'></center>
+ <center>DISPLACEMENTS</center>
+ <p>
+
+ <center><IMG src='FIGURES\SensorBeam1DisplacementsQrotQ.png' border='5'></center>
+ <center>ROTATIONS</center>
+ <p>
+
+ <p><center><hr>
+ <a name='SensorBeam1Positions'></a>
+ <font color='#004000' SIZE=+1>
+ @SENSOR_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Sensor.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @SENSOR_NAME {
+ <font color="#ff0000">SensorBeam1Positions</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @OBJECT_NAME {<a href='#Beam1'>Beam1</a>}
+ <dd> @SENSOR_TYPE {<font color='#808000'>POSITIONS</font>}
+
+ <dd>
+ @ETA_VALUE {  1.00000e+000}
+ <dd> @FRAME_NAME {<font color='#808000'>INERTIAL</font>}
+ </dl><p>
+ }
+
+ <center><IMG src='FIGURES\SensorBeam1PositionsQposQ.png' border='5'></center>
+ <center>POSITIONS</center>
+ <p>
+
+ <center><IMG src='FIGURES\SensorBeam1PositionsQoriQ.png' border='5'></center>
+ <center>ORIENTATIONS</center>
+ <p>
+
+ <p><center><hr>
+ <a name='SensorBeam1Velocities'></a>
+ <font color='#004000' SIZE=+1>
+ @SENSOR_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Sensor.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @SENSOR_NAME {
+ <font color="#ff0000">SensorBeam1Velocities</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @OBJECT_NAME {<a href='#Beam1'>Beam1</a>}
+ <dd> @SENSOR_TYPE {<font color='#808000'>VELOCITIES</font>}
+
+ <dd>
+ @ETA_VALUE {  1.00000e+000}
+ </dl><p>
+ }
+
+ <center><IMG src='FIGURES\SensorBeam1VelocitiesQvelQ.png' border='5'></center>
+ <center>VELOCITIES</center>
+ <p>
+
+ <center><IMG src='FIGURES\SensorBeam1VelocitiesQomeQ.png' border='5'></center>
+ <center>ANGULAR VELOCITIES</center>
+ <p>
+
+ <p><center><hr>
+ <a name='SensorBeam1Forces'></a>
+ <font color='#004000' SIZE=+1>
+ @SENSOR_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Sensor.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @SENSOR_NAME {
+ <font color="#ff0000">SensorBeam1Forces</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @OBJECT_NAME {<a href='#Beam1'>Beam1</a>}
+ <dd> @SENSOR_TYPE {<font color='#808000'>FORCES</font>}
+
+ <dd>
+ @ETA_VALUE {  0.00000e+000}
+ </dl><p>
+ }
+
+ <center><IMG src='FIGURES\SensorBeam1ForcesQforQ.png' border='5'></center>
+ <center>FORCES</center>
+ <p>
+
+ <center><IMG src='FIGURES\SensorBeam1ForcesQmomQ.png' border='5'></center>
+ <center>MOMENTS</center>
+ <p>
+
+ <p><center><hr>
+ <a name='SensorEnergy'></a>
+ <font color='#004000' SIZE=+1>
+ @SENSOR_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\Sensor.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @SENSOR_NAME {
+ <font color="#ff0000">SensorEnergy</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @OBJECT_NAME {<a href='#ENERGY'>ENERGY</a>}
+ </dl><p>
+ }
+
+ <center><IMG src='FIGURES\SensorEnergyQfseQ.png' border='5'></center>
+ <center>SYSTEM ENERGIES</center>
+ <p>
+
+ <center><IMG src='FIGURES\SensorEnergyQwrkQ.png' border='5'></center>
+ <center>TOTAL WORK</center>
+ <p>
+
+ <center><IMG src='FIGURES\SensorEnergyQjseQ.png' border='5'></center>
+ <center>SYSTEM ENERGY JUMPS</center>
+ <p>
+
+ <center><IMG src='FIGURES\SensorEnergyQtssQ.png' border='5'></center>
+ <center>TIME STEP SIZE</center>
+ <p>
+
+ <p><center><hr>
+ <a name='SigPostBeam1Forces'></a>
+ <font color='#004000' SIZE=+1>
+ @SIGNAL_POST_PROCESSING_DEFINITION
+ </font>
+ <hr></center></p>
+
+ <p>
+ @SIGNAL_POST_PROCESSING_NAME {
+ <font color="#ff0000">SigPostBeam1Forces</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @SIGNAL_POST_PROCESSING_TYPE {<font color='#808000'>MINMAX</font>}
+ <dd> @SENSOR_LIST {<a href='#SensorBeam1Forces'>SensorBeam1Forces</a>}
+
+ <dd>
+ @CHANNEL_NUMBER {     3}
+ </dl><p>
+ }
+
+ <center><IMG src='FIGURES\SigPostBeam1Forces.png' border='5'></center>
+ <center>MINIMUM AND MAXIMUM</center>
+ <p>
+
+ <p><center><hr>
+ <a name='PlottingControlParameters'></a>
+ <font color='#004000' SIZE=+1>
+ @PLOTTING_CONTROL_PARAMETERS
+ </font>
+ <hr></center></p>
+
+ <p>
+ @PLOTTING_CONTROL_PARAMETERS_NAME {
+ <font color="#ff0000">PlottingControlParameters</font>
+ } { 
+ </p>
+ <dl>
+ <dd> @PLOTTING_PACKAGE_OBJECT {<font color='#808000'>GNUPLOT</font>}
+ <dd> @OBJECT_PLOT_FORMAT {<font color='#808000'>PNG</font>,<font color='#808000'>EPS</font>,<font color='#808000'>PS</font>}
+
+ <dd>
+ @OBJECT_PLOT_SIZE {     3,     2,     2}
+ <dd> @PLOTTING_PACKAGE_SENSOR {<font color='#808000'>GNUPLOT</font>}
+ <dd> @SENSOR_PLOT_FORMAT {<font color='#808000'>PNG</font>,<font color='#808000'>EPS</font>,<font color='#808000'>PS</font>}
+
+ <dd>
+ @SENSOR_PLOT_SIZE {     3,     2,     2}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='AnalysisControlParameters'></a>
+ <font color='#004000' SIZE=+1>
+ @FEM_CONTROL_PARAMETERS
+ </font>
+ <a href='C:\dymore2_0\manual\manual\FemCtrl.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @FEM_CONTROL_PARAMETERS_NAME {
+ <font color="#ff0000">AnalysisControlParameters</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @MAXIMUM_NUMBER_OF_TIME_STEPS {     1}
+
+ <dd>
+ @SIMULATION_TIME_RANGE {  0.00000e+000,  0.00000e+000}
+ <font color='#975820'>[sec]</font>
+
+ <dd>
+ @TIME_STEP_SIZE_RANGE {  1.00000e-007,  1.00000e-002}
+ <font color='#975820'>[sec]</font>
+
+ <dd>
+ @REFERENCE_ENERGY_LEVEL {  5.00000e+001}
+ <font color='#975820'>[J]</font>
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='Step1'></a>
+ <font color='#004000' SIZE=+1>
+ @STEP_CONTROL_PARAMETERS
+ </font>
+ <a href='C:\dymore2_0\manual\manual\StpCtrl.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @STEP_CONTROL_PARAMETER_NAME {
+ <font color="#ff0000">Step1</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @ARCHIVAL_FREQUENCY {     4}
+
+ <dd>
+ @REUSE_NUMBER { 100000}
+
+ <dd>
+ @NUMBER_OF_EIGENVALUES {    20}
+
+ <dd>
+ @EIGENPROBLEM_PRINT_FLAG {     0}
+ <dd> @GYROSCOPIC_TERMS {<font color='#808000'>NO</font>}
+
+ <dd>
+ @EIGEN_SPECTRUM_SHIFT {  0.00000e+000}
+
+ <dd>
+ @SPECTRAL_RADIUS_AT_INFINITY {  0.00000e+000}
+
+ <dd>
+ @TIME_STEP_SIZE {  0.00000e+000}
+ <font color='#975820'>[sec]</font>
+
+ <dd>
+ @MAXIMUM_NUMBER_OF_ITERATIONS {    10}
+
+ <dd>
+ @FACTORIZATION_STRATEGY {     5}
+
+ <dd>
+ @CONVERGENCE_TOLERANCE {  1.00000e-006}
+
+ <dd>
+ @MAXIMUM_NUMBER_OF_REJECT {     5}
+
+ <dd>
+ @AVERAGE_STIFFNESS_TERM {  1.00000e+008}
+
+ <dd>
+ @AVERAGE_MASS_TERM {  0.00000e+000}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='GraphicsControlParameters'></a>
+ <font color='#004000' SIZE=+1>
+ @GRAPHICS_CONTROL_PARAMETERS
+ </font>
+ <a href='C:\dymore2_0\manual\manual\GrfCtrl.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @GRAPHICS_CONTROL_PARAMETERS_NAME {
+ <font color="#ff0000">GraphicsControlParameters</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @TIME_STEP_SIZE {  0.00000e+000}
+ <font color='#975820'>[sec]</font>
+
+ <dd>
+ @EIGENVECTORS_SCALING_FACTOR {  2.00000e-001}
+
+ <dd>
+ @MODAL_ANIMATION_CYCLES {     5}
+
+ <dd>
+ @MODAL_ANIMATION_FRAMES_PER_CYCLE {    50}
+ <dd> @VECTOR_FIELD_TYPE {<font color='#808000'>FORCES</font>}
+
+ <dd>
+ @VECTOR_FIELD_SCALING_FACTOR {  1.00000e+000}
+ <dd> @VECTOR_FIELD_TYPE {<font color='#808000'>VELOCITIES</font>}
+
+ <dd>
+ @VECTOR_FIELD_SCALING_FACTOR {  1.00000e+000}
+ </dl><p>
+ }
+
+ <p><center><hr>
+ <a name='ViewParameters'></a>
+ <font color='#004000' SIZE=+1>
+ @VIEW_PARAMETERS_DEFINITION
+ </font>
+ <a href='C:\dymore2_0\manual\manual\ViewParm.html'> (User's Manual)</a>
+ <hr></center></p>
+
+ <p>
+ @VIEW_PARAMETERS_NAME {
+ <font color="#ff0000">ViewParameters</font>
+ } { 
+ </p>
+ <dl>
+
+ <dd>
+ @VIEW_REFERENCE_POINT {  5.00000e-001,  5.00000e-001,  5.00000e-001}
+
+ <dd>
+ @VIEW_SIZE {  1.20000e+000,  1.20000e+000,  1.20000e+000}
+
+ <dd>
+ @PROJECTION_REFERENCE_POINT {  1.66233e-001, -8.33333e-001, -8.33333e-001}
+
+ <dd>
+ @PROJECTION_EYE_VECTOR {  6.91358e-001, -6.91358e-001,  2.09877e-001}
+
+ <dd>
+ @PROJECTION_UP_VECTOR {  3.95062e-001,  6.04938e-001,  6.91358e-001}
+
+ <dd>
+ @PROJECTION_VIEWPORT { -2.00747e+000,  2.00747e+000, -1.10370e+000,  1.10370e+000}
+ </dl><p>
+ }

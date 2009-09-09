@@ -1,0 +1,143 @@
+from __future__ import division
+from scipy import cos, cosh, sin, sinh, array, r_, c_, exp, pi, matrixmultiply, real, imag, zeros, eye, shape, atleast_1d, shape
+import MLab
+import scipy
+from scipy.linalg import det
+import copy
+import pdb
+
+#import TMM
+#reload(TMM)
+from TMM import TMMElement, HT4
+#import TMM
+#reload(TMM)
+#from TMM import HT4
+
+from rwkmisc import symstr, SymstrMattoMaxima
+import rwkmisc
+
+from  IPython.Debugger import Pdb
+#TMMElement=TMM.TMMElement
+
+class TorsionalSpringDamper(TMMElement):
+    def __init__(self,params,**kwargs):
+        if not params.has_key('k'):
+            params['k']=None
+        params['k']=atleast_1d(params['k'])
+        if not params.has_key('c'):
+            params['c']=zeros(shape(params['k']))
+        else:
+            params['c']=atleast_1d(params['c'])
+        TMMElement.__init__(self,'spring',params,**kwargs)
+        if not self.symname:
+            self.symname='Usd'
+
+    def GetMat(self,s,sym=False):
+        N=self.maxsize
+        if sym:
+            myparams=self.symparams
+        else:
+            myparams=self.params
+        k=myparams['k']
+        c=myparams['c']
+        springterm=1/(k[0]+c[0]*s)
+        if sym:
+            maxlen=len(springterm)+10
+            matout=eye(N,dtype='f')
+            matout=matout.astype('S%d'%maxlen)
+        else:
+            matout=eye(N,dtype='D')
+        matout[1,2]=springterm
+        if max(shape(k))>1 and self.maxsize>=8:
+            matout[5,6]=1/(k[1]+c[1]*s)
+        if max(shape(k))>2 and self.maxsize>=12:
+            matout[9,10]=1/(k[2]+c[2]*s)
+        return matout
+
+    def GetMaximaString(self,name=None,label=None,N=None,aug=0):
+        defs=[]
+        params=[]
+        if label is None:
+            if self.symlabel:
+                label=self.symlabel
+            else:
+                label='sd'
+                self.symlabel=label
+        if name is None:
+            if self.symname:
+                name=self.symname
+            else:
+                name='Usd'
+        maximalines=[]
+        if N is None:
+            N=self.maxsize
+        Nstr=str(N)
+        maximalines.append(name+':ident('+Nstr+')')
+        dof=int(N/4)
+        for x in range(dof):
+            if dof==1:
+                rc=''
+            else:
+                rc=str(x+1)
+            r=4*x+2
+            c=r+1
+            kstr='k'+label+rc
+            cstr='c'+label+rc
+            maximalines.append(name+'['+str(r)+','+str(c)+']:1/('+kstr+'+s*'+cstr+')')
+            params.append(kstr)
+            params.append(cstr)
+        for line in maximalines:
+            if line[-1]!=';':
+                line+=';'
+        return maximalines, name, defs, params, label
+
+    def GetMaximaLatexString(self,name=None,label=None,wrap=0,N=None,intro=None,aug=0):
+        if intro is None:
+            intro='The transfer matrix for a spring/damper element is given by'
+        return TMMElement.GetMaximaLatexString(self,name=name,label=label,wrap=wrap,N=N,intro=intro,aug=aug)
+        
+    def GetHT(self):
+        return HT4()
+
+class MajetteActuator(TorsionalSpringDamper):
+    def __init__(self,params,maxsize=12,label='',):
+        params['k']=atleast_1d(params['k'])
+        if not params.has_key('c'):
+            params['c']=zeros(shape(params['k']))
+        else:
+            params['c']=atleast_1d(params['c'])
+        TMMElement.__init__(self,'spring with actuator',params,maxsize=maxsize,label=label)
+
+    def GetAugMat(self,s):
+        N=self.maxsize
+#        print('s='+str(s))
+#        print('elemstr='+self.elemstr)
+#        tempout=eye(N+1,'d')+0.0j
+        tempout=eye(N+1,dtype='D')
+        tempout[0:N,0:N]=self.GetMat(s)
+        tempout[2,4]=1.0
+        return tempout
+
+    def GetHT(self):
+        return HT4()
+
+
+class Spring2x2(TMMElement):
+    def __init__(self,params,symlabel='K',**kwargs):
+        TMMElement.__init__(self,'spring',params,maxsize=2,symlabel=symlabel,**kwargs)
+
+    def GetMat(self,s,sym=False):
+        N=self.maxsize
+        if sym:
+            myparams=self.symparams
+        else:
+            myparams=self.params
+        k=myparams['k']
+        maxlen=20
+        if sym:#type(s)==type(rwkmisc.symstr('s')):
+            matout=eye(N,dtype='f')
+            matout=matout.astype('S%d'%maxlen)
+        else:
+            matout=eye(N,dtype='D')
+        matout[0,1]=1/k
+        return matout
