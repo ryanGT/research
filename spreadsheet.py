@@ -779,9 +779,12 @@ class SpreadSheet:
                     try:
                         curcol = map(curfunc, curcol)
                     except ValueError:
+                        print('ValueError in ReadDataColumns')
                         curcol = curcol
                 data.append(curcol)
+            #print('type(data[0][0])='+str(type(data[0][0])))
             myarray = column_stack(data)
+            #print('type(myarray[0,0])='+str(type(myarray[0,0])))
             self.data = myarray
 
 
@@ -934,9 +937,9 @@ class CSVSpreadSheet(SpreadSheet):
 
 
     def sniff(self, sniffbytes=1000, resniff=False):
-        """Try and determine the dialect of a text file by reading in the
-        first sniffbytes bytes of data from filepath.  My slightly more
-        intelligent version than the csv module.
+        """Try and determine the dialect of a text file by reading in
+        the first sniffbytes bytes of data from filepath.  My slightly
+        more intelligent version than the csv module.
 
         If self.dialect is not None, this function will not attempt to
         re-sniff unless resniff is True"""
@@ -1207,6 +1210,48 @@ class TXTDataFile(TabDelimSpreadSheet):
                 self.colmap = colmap
                 self.MapCols()
 
+
+class LabeledDataFile(TXTDataFile):
+    """A class for files whose columns are well labeled (may have
+    issues with spaces).  Automatically creates a column map from the
+    labels."""
+    def _make_clean_colmap(self):
+        """Assuming self.labels is already defined, use it to create a
+        colmap."""
+        colmap = None
+        for item in self.labels:
+            prop = copy.copy(item)
+            k = prop.find('(')
+            if k > 0:
+                prop = prop[0:k]
+            prop = prop.strip()
+            prop = prop.replace(' ','_')
+            if prop == 'Time':
+                prop='t'
+            if colmap is None:
+                colmap = {item:prop}
+            else:
+                colmap[item] = prop
+        self.colmap = colmap
+        
+    def __init__(self, pathin, skiprows=0, poprows=0, dialect=None, \
+                 colmap=None):
+        TabDelimSpreadSheet.__init__(self, pathin=pathin, \
+                                     dialect=dialect)
+        self.ReadData()
+        for i in range(skiprows):
+            self.alldata.pop(0)
+        for i in range(poprows):
+            self.alldata.pop()#from the end
+        self.labelrow = 0
+        self.labels = self.alldata.pop(0)
+        if colmap is None:
+            self._make_clean_colmap()
+        else:
+            self.colmap = colmap
+        #Pdb().set_trace()
+        self.MapCols()
+        
 
 class JCILabviewSpreadSheet(LabviewSpreadSheet, DataProcMixins.AccelMixin):
     def __init__(self, pathin=None, tlabel='Time', collabels=['Time','Light Gate','Accel'], dialect=tabdelim, ascale=9.81*1000.0/5.0):

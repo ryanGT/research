@@ -428,10 +428,24 @@ def bendmatz_comp(s, params, EIstr='EI2', symlabel='', \
     EI = params[EIstr]
     mu = params['mu']
     L = params['L']
-    if not myparams.has_key('c'):
+    if not params.has_key('c'):
         c = 0.0#no damping
     else:
-        c = params['c']
+        w = imag(s)
+        c = params['c']/w
+
+##     if abs(s) > 5*2*pi:
+##         c = 0.0
+    beta=pow((-1*s*s*L**4*mu/(EI*(c*s+1))),0.25)
+    
+    d1 = 0.5*(cos(beta)+cosh(beta))
+    d2 = 0.5*(sinh(beta)-sin(beta))
+    d3 = 0.5*(cosh(beta)-cos(beta))
+    d4 = 0.5*(sin(beta)+sinh(beta))
+
+    # there is an error in my thesis and this is it: (eqn 285)
+    #a = beta/(L**2)#to check Brian Posts work  
+    a=L*L/EI
     
     outmat = array([[d1, L*d4/beta, a*d3/(beta**2*(1 + c*s)), \
                      -L*a*d2/(beta**3*(1 + c*s))], \
