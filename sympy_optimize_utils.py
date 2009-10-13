@@ -34,11 +34,11 @@ from rwkdataproc import thresh
 ind1 = thresh(fexp,5)
 
 log_file = 'sympy_param_log_w_base_mass_12_terms_w_con_dict.txt'
-keys = ['b_I','b_m','k_spring','c_spring','K_act','p_act1', \
-        'mu','EI','a_m','k_clamp','c_clamp','c_beam']
+#keys = ['b_I','b_m','k_spring','c_spring','K_act','p_act1', \
+#        'mu','EI','a_m','k_clamp','c_clamp','c_beam']#
 
-labels = keys + ['error', 'p1', 'p2']
-N = len(labels)
+#labels = keys + ['error', 'p1', 'p2']
+#N = len(labels)
 
 def _set_vals(x, params, param_names):
     """Set the values of parameters param_names in the SLFR_params
@@ -113,31 +113,31 @@ def make_list(min, max, N):
     mylist = arange(min, max+dp/2, dp)
     return mylist
 
-def str_out(string):
-    f = open(log_file,'ab')
+def str_out(string, myfile=log_file):
+    f = open(myfile,'ab')
     f.write(string)
     f.close()
     
-def row_of_strings_out(row):
-    assert(len(row)==N), "Got a row of bad length:len(row)=" + \
-                         str(len(row))
+def row_of_strings_out(row, **kwargs):
+##     assert(len(row)==N), "Got a row of bad length:len(row)=" + \
+##                          str(len(row))
     row_str = '\t'.join(row) +'\n'
-    str_out(row_str)
+    str_out(row_str, **kwargs)
     return row_str
 
-def row_of_floats_out(row, fmt='%0.8g'):
+def row_of_floats_out(row, fmt='%0.8g', **kwargs):
     string_list = [fmt % item for item in row]
-    row_str = row_of_strings_out(string_list)
+    row_str = row_of_strings_out(string_list, **kwargs)
     return row_str
 
-def build_param_list(params):
+def build_param_list(params, labels):
     mylist = [getattr(params, item) for item in labels[0:-3]]
     return mylist
 
-def save_row(params, e, z1, z2):
-    param_list = build_param_list(params)
+def save_row(params, labels, e, z1, z2, **kwargs):
+    param_list = build_param_list(params, labels)
     row = param_list + [e, z1, z2]
-    row_of_floats_out(row)
+    row_of_floats_out(row, **kwargs)
     return row
 
 
@@ -158,12 +158,16 @@ def find_peaks(a_bode):
     return z1, z2
 
 
-def spreadsheet_row_to_params(rowin, pklname=None):
+def spreadsheet_row_to_params(rowin, labels, old=False, \
+                              pklname=None):
     keys = labels[0:-3]
     if pklname is not None:
         params = SFLR_TMM.load_params(pklname)
     else:
-        params = SFLR_TMM.new_def_params()
+        if old:
+            params = SFLR_TMM.SFLR_params()
+        else:
+            params = SFLR_TMM.new_def_params()
     for key, val in zip(keys, rowin[0:-3]):
         setattr(params, key, val)
     return params

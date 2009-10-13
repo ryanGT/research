@@ -70,7 +70,7 @@ EI = E*I
 class SFLR_params(object):
     def __init__(self, \
                  K_act=0.05, \
-                 p_act1=1.0*2*pi, \
+                 p_act1=10.0*2*pi, \
                  p_act2=50.0*2*pi, \
                  z_act=3.0*2*pi, \
                  tau=10.0*2*pi, \
