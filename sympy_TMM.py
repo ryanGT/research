@@ -72,7 +72,7 @@ def U_rigid(m, L, I, r, n=5):
 
 def z_sub(substr, n=5):
     """Generate a z vector with the subscript substr."""
-    states = ['x','th','M','V']
+    states = ['w','th','M','V']
     varnames = [item+substr for item in states]
     mylist = []
     for item in varnames:

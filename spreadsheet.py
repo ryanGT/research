@@ -22,6 +22,8 @@ from scipy import array, column_stack, integrate, r_, fft, \
      all, fromstring, zeros, io, dtype, row_stack, arange, \
      atleast_2d
 
+import re
+
 import numpy
 
 from numpy import float64, int32
@@ -34,6 +36,8 @@ import cPickle#, dumb_shelve
 from scipy.io import dumb_shelve
 
 import rwkmisc
+
+import txt_mixin
 
 from rwkdataproc import thresh, CalcSpectra, makefreqvect
 
@@ -1253,8 +1257,110 @@ class LabeledDataFile(TXTDataFile):
         self.MapCols()
         
 
+class email_list(CSVSpreadSheet):
+    """A spreadsheet class for looking up emails in a class list.
+    Typically, there is one row of labels and the first two columns
+    contain student names and emails."""
+    def __init__(self, pathin, name_col=0, email_col=1, \
+                 labelrow=0, dialect=None):
+        CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect)
+        self.labelrow=labelrow
+        self.ReadData()
+        self.names = txt_mixin.txt_list(self.get_col(name_col))
+        self.emails = txt_mixin.txt_list(self.get_col(email_col))
+
+
+    def get_email(self, lastname, firstname=None, aslist=False):
+        """Search for email in list using lastname or lastname,
+        firstname.  aslist=True forces email to be returned in list
+        even if it is only one address.  Students can have more than
+        one list if the entry in that column is delimited by [,; ]."""
+        p = re.compile('[,; ]+')
+        name = lastname
+        if firstname is not None:
+            name += ', '+firstname
+        inds = self.names.findall(name)
+        if len(inds) == 0:
+            print('did not find %s in self.names' % name)
+        if len(inds) > 1:
+            print('found more than 1 %s in self.names' % name)
+        email = self.emails[inds[0]]
+        email = email.strip()
+        q = p.search(email)
+        if q or aslist:
+            return p.split(email)
+        else:
+            return email
+
+    def get_emails(self, lastnames, firstnames=None):
+        if firstnames is None:
+            firstnames = [None]*len(lastnames)
+        email_list = None
+        for lastname, firstname in zip(lastnames, firstnames):
+            curemails = self.get_email(lastname, firstname, aslist=1)
+            if email_list is None:
+                email_list = curemails
+            else:
+                email_list.extend(curemails)
+        return email_list
+        
+        
+class group_list(LabeledDataFile):
+    """A class list to find the members of a group given the group or
+    team name.  The spreadsheet has one label row, group names in the
+    first column, and team members in the second column."""
+    def __init__(self, pathin, team_name_col=0, members_col=1, \
+                 labelrow=0, dialect=None):
+        CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect)
+        self.labelrow=labelrow
+        self.ReadData()
+        self.Project_Name = txt_mixin.txt_list(self.get_col(team_name_col))
+        self.Group_Members = txt_mixin.txt_list(self.get_col(members_col))
+
+        
+    def find_group(self, group_name):
+        ind = self.Project_Name.findall(group_name)
+        assert len(ind)==1, 'Did not find exactly 1 group called ' + \
+               group_name + ' len(ind) = ' + str(len(ind))
+        return ind[0]
+    
+    def get_team_members(self, group_name):
+        ind = self.find_group(group_name)
+        members = self.Group_Members[ind]
+        return members
+
+    def _get_names(self, member_string):
+        name_list = member_string.split(',')
+        name_list = [item.strip() for item in name_list]
+        lastnames = None
+        firstnames = None
+        for name in name_list:
+            first, last = name.split(' ',1)
+            last = last.strip()
+            first = first.strip()
+            if lastnames is None:
+                lastnames = [last]
+                firstnames = [first]
+            else:
+                lastnames.append(last)
+                firstnames.append(first)
+        return lastnames, firstnames
+        
+    def get_last_names(self, group_name):
+        members = self.get_team_members(group_name)
+        last, first = self._get_names(members)
+        return last
+
+    def get_names(self, group_name):
+        members = self.get_team_members(group_name)
+        return self._get_names(members)
+    
+
+
 class JCILabviewSpreadSheet(LabviewSpreadSheet, DataProcMixins.AccelMixin):
-    def __init__(self, pathin=None, tlabel='Time', collabels=['Time','Light Gate','Accel'], dialect=tabdelim, ascale=9.81*1000.0/5.0):
+    def __init__(self, pathin=None, tlabel='Time', \
+                 collabels=['Time','Light Gate','Accel'], \
+                 dialect=tabdelim, ascale=9.81*1000.0/5.0):
         """Create an instance of the JCILabviewSpreadSheet class,
         where the data is assumed to be in a tab delimited text file.
         This data file was used in Dynatup testing with an
