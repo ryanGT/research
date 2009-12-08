@@ -720,10 +720,11 @@ class Bode_Data_Set(Data_Set):
 
 
     def Bode_Plot2(self, attr='avebodes', f_attr='f', \
-                   figs=None, fignum=1, size=None, **plotargs):
+                   figs=None, fignum=1, size=None, \
+                   func=rwkbode.BodeCohPlot, **plotargs):
         figs = self._bode_plot(attr, f_attr=f_attr, \
                                figs=figs, fignum=fignum, \
-                               size=size, **plotargs)
+                               size=size, func=func, **plotargs)
         self._set_plot_opts(attr, figs)
         self._set_titles(attr, figs)
         return figs
