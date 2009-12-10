@@ -56,6 +56,28 @@ def myfloat(stringin):
         return out
     else:
         return 0.0
+
+
+def split_names(namelist, delim=' ', reverse=False):
+    lastnames = []
+    firstnames = []
+    for curname in namelist:
+        first, last = curname.split(delim, 1)
+        if reverse:
+            temp = first
+            first = last
+            last = temp
+        last = last.strip()
+        if last[-1] == ',':
+            last = last[0:-1]
+        first = first.strip()
+        if first.find(' ') > -1:
+            first, middle = first.split(' ',1)
+            first = first.strip()
+        lastnames.append(last)
+        firstnames.append(first)
+    return firstnames, lastnames
+
     
 class tabdelim(csv.Dialect):
     # placeholders
@@ -553,6 +575,7 @@ class SpreadSheet:
         if not self.header:
             self.ReadHeader(headerrows=self.labelrow+1)
         self.labels = self.header[self.labelrow]
+        self.strip_labels()
         return self.labels 
 
 
@@ -921,6 +944,9 @@ class SpreadSheet:
             self.data = column_stack([listin, colsafter])
         else:
             self.data = column_stack([colsbefore, listin, colsafter])
+
+    def strip_labels(self):
+        self.labels = [item.strip() for item in self.labels]
         
 
 ## class DataSpreadSheet:
@@ -1456,7 +1482,11 @@ class BlackBoardGBFile(CSVSpreadSheet):
             self.alldata.pop(0)
         self.clean_empty_rows()
         self.ParseNames()
-        
+
+
+    def save(self, csvpathout):
+        self.WriteAllDataCSV(csvpathout)
+
 
     def clean_empty_rows(self):
         """Clean rows at the bottom of self.alldata that may be used
@@ -1561,7 +1591,11 @@ class BlackBoardGBFile(CSVSpreadSheet):
                                      parsefunc=myfloat):
         if labels is None:
             labels = gradesheet.valuelabels
-        names, values = gradesheet.ReadNamesandValues()
+        if hasattr(gradesheet, 'values'):
+            names = gradesheet.names
+            values = gradesheet.values
+        else:
+            names, values = gradesheet.ReadNamesandValues()
         if (len(labels)==1) and type(values)==list:
             self.AppendColFromList(gradesheet.lastnames, labels[0], \
                                    values, splitnames=False)
@@ -1571,6 +1605,33 @@ class BlackBoardGBFile(CSVSpreadSheet):
                                        col, splitnames=False)
 
 
+class BlackBoardGBFile_v_8_0(BlackBoardGBFile):
+    def __init__(self, pathin='gb_export.csv', dialect=mycsv, **kwargs):
+        CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect, **kwargs)
+        self.labelrow=0
+        self.GetLabelRow()
+        self.ReadData()
+        if self.alldata[0][0].find('AAStudent') > -1:
+            self.alldata.pop(0)
+        self.ParseNames()
+
+    def ParseNames(self):
+        self.MapCols({'Last Name':'lastnames', \
+                      'First Name':'firstnames', \
+                      'Username':'uids'})
+
+class Fake_BlackBoard_File(BlackBoardGBFile_v_8_0):
+    def __init__(self, lastnames, firstnames=None):
+        if firstnames is None:
+            firstnames, lastnames = split_names(lastnames, reverse=1)
+        self.lastnames = lastnames
+        self.firstnames = firstnames
+        self.uids = [None]*len(self.lastnames)
+        self.labels = ['Last Name', 'First Name', 'Username']
+        alldata_tups = zip(self.lastnames, self.firstnames, \
+                           self.uids)
+        self.alldata = [list(item) for item in alldata_tups]
+    
 class GradeSpreadSheet(CSVSpreadSheet):
     def __init__(self, pathin=None, namelabel='Name',valuelabel='Total', \
                  dialect=None, skiprows=0):
@@ -2069,14 +2130,14 @@ def trunc_nested_based_on_col(nestin, trunccol):
     nestout=truncate_nested(nestin,endind=end_row)
     return nestout
 
-def split_names(names):
-    first_names=[]
-    last_names=[]
-    for name in names:
-        firstn,lastn=name.split(' ',1)
-        firstn=firstn.strip()
-        lastn=lastn.strip()
-        first_names.append(firstn)
-        last_names.append(lastn)
-    return first_names, last_names
+## def split_names(names):
+##     first_names=[]
+##     last_names=[]
+##     for name in names:
+##         firstn,lastn=name.split(' ',1)
+##         firstn=firstn.strip()
+##         lastn=lastn.strip()
+##         first_names.append(firstn)
+##         last_names.append(lastn)
+##     return first_names, last_names
     
