@@ -1550,7 +1550,7 @@ class BlackBoardGBFile(CSVSpreadSheet):
 
 
     def InsertColFromList(self, namelist, destlabel, valuelist, \
-                          splitnames=True):
+                          splitnames=True, verbosity=2):
         """This is an attempt to mimic the InsertCol method of the
         Spreadsheet class, but taking into account that the
         BlackBoardGBFile has one column containg the last name, first
@@ -1568,17 +1568,28 @@ class BlackBoardGBFile(CSVSpreadSheet):
                 last=last.strip()
                 lastnames.append(last)
             namelist = lastnames
+        found = 0
         for curname, row in zip(self.lastnames,self.alldata):
-            curind = search_list(namelist, curname)
-            if curind==-1:
-                print('could not find '+curname)
+            curind = search_list(namelist, curname, match=1)
+            if curind == -1:
+                if verbosity > 1:
+                    print('could not find '+curname)
             else:
                 #if valuelist[curind]:#I don't know why this was here,
                 #I guess to allow empty cells not mess up averages
+                found += 1
+                if verbosity > 10:
+                    print('found: ' + curname)
+                    print('curind = '+ str(curind))
+                    print('lastnames[curind] = ' +self.lastnames[curind])
                 if destcol > len(row)-1:
                     row.append(valuelist[curind])
                 else:
                     row[destcol] = valuelist[curind]
+        if (found != len(namelist)) and (verbosity >0):
+            print('found = ' + str(found))
+            print('len(namelist) = '+str(len(namelist)))
+                                         
 
 
     def AppendColFromList(self, namelist, destlabel, valuelist, \
@@ -1965,20 +1976,21 @@ def WriteMatrixtoCSV(matrix, filepath, labels=None, append=False):
 #
 ################################
 
-def search_list(mylist, ent, check_case=False, exact=False):
+def search_list(mylist, ent, check_case=False, match=False):
     ind=-1
     for x, item in enumerate(mylist):
-        if exact:
-            if item==ent:
+        ci = -1
+        if match and check_case:
+            if item == ent:
                 ci=1
-            else:
-                ci=-1
+        elif match and not check_case:
+            if item.lower() == ent.lower():
+                ci = 1
+        elif check_case:
+            ci=item.find(ent)
         else:
-            if check_case:
-                ci=item.find(ent)
-            else:
-                ci=item.lower().find(ent.lower())
-        if ci>-1:
+            ci=item.lower().find(ent.lower())
+        if ci > -1:
             ind=x
             break
     return ind
