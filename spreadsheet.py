@@ -682,11 +682,20 @@ class SpreadSheet:
         self.alldata = data
 
 
-    def get_col(self, ind):
+    def get_col_old(self, ind):
         if self.alldata == []:
             self.ReadData()
         return transpose(self.alldata)[ind]
 
+    def get_col(self, ind):
+        col_out = None
+        for row in self.alldata:
+            ent = row[ind]
+            if col_out is None:
+                col_out = [ent]
+            else:
+                col_out.append(ent)
+        return col_out
 
     def get_data_col(self, ind):
         if hasattr(self.data, 'transpose'):
@@ -1279,7 +1288,6 @@ class LabeledDataFile(TXTDataFile):
             self._make_clean_colmap()
         else:
             self.colmap = colmap
-        #Pdb().set_trace()
         self.MapCols()
         
 
@@ -1483,6 +1491,43 @@ class BlackBoardGBFile(CSVSpreadSheet):
         self.clean_empty_rows()
         self.ParseNames()
 
+    def assign_col_to_attr(self, collabel, attr, array=1, dtype=float):
+        ind = self.labels.index(collabel)
+        col = self.get_col(ind)
+        if array:
+            col = numpy.array(col, dtype=dtype)
+            
+        setattr(self, attr, col)
+
+    def assign_letter_grades(self, attr='course_grades', \
+                             cutoffs=None, append=True):
+        N = len(self.lastnames)
+        #letter_grades = numpy.zeros(N, dtype='S1')
+        letter_grades = array(['F']*N)
+        num_grades = numpy.zeros(N)
+        if cutoffs is None:
+            cutoffs = [59.5, 69.5, 79.5, 89.5]
+        grades = getattr(self, attr)
+        gpas = [1.0, 2.0, 3.0, 4.0]
+        letters = ['D','C','B','A']
+        for cutoff, gpa, letter in zip(cutoffs, gpas, letters):
+            num_grades = numpy.where(grades > cutoff, \
+                                     gpa, num_grades)
+            letter_grades = numpy.where(grades > cutoff, \
+                                        letter, letter_grades)
+        self.num_grades = num_grades
+        self.letter_grades = letter_grades
+        self.course_gpa = self.num_grades.mean()
+        if append:
+            self.AppendColFromList(self.lastnames, \
+                                   'Letter Grade', \
+                                   self.letter_grades, \
+                                   splitnames=False)
+            self.AppendColFromList(self.lastnames, \
+                                   'GPA', \
+                                   self.num_grades, \
+                                   splitnames=False)
+        
 
     def save(self, csvpathout):
         self.WriteAllDataCSV(csvpathout)
@@ -1578,14 +1623,15 @@ class BlackBoardGBFile(CSVSpreadSheet):
                 #if valuelist[curind]:#I don't know why this was here,
                 #I guess to allow empty cells not mess up averages
                 found += 1
+                N = len(row)-1
                 if verbosity > 10:
                     print('found: ' + curname)
                     print('curind = '+ str(curind))
                     print('lastnames[curind] = ' +self.lastnames[curind])
-                if destcol > len(row)-1:
-                    row.append(valuelist[curind])
-                else:
-                    row[destcol] = valuelist[curind]
+                if destcol > N:
+                    row += [None]*(destcol-N)
+                    #row.append(valuelist[curind])
+                row[destcol] = valuelist[curind]
         if (found != len(namelist)) and (verbosity >0):
             print('found = ' + str(found))
             print('len(namelist) = '+str(len(namelist)))
@@ -1718,7 +1764,7 @@ class GradeSpreadSheetMany(GradeSpreadSheet):
     valuelabels contains a list of the column labels you want to
     extract."""
     def __init__(self, pathin=None, namelabel='Name',valuelabels=[], \
-                 dialect=None, skiprows=0):
+                 dialect=None, skiprows=0, split_names=1):
         CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect, \
                                 skiprows=skiprows)
         self.namelabel = namelabel
@@ -1731,8 +1777,50 @@ class GradeSpreadSheetMany(GradeSpreadSheet):
         self.DropEmptyRows(cols=[namecol])#drop all rows that do not
                                           #have a name in them
         self.names = self.ReadDataColumn(self.namelabel, exact=True)
-        self.split_names()
+        if split_names:
+            self.split_names()
+        else:
+            self.lastnames = self.names
+
+    def get_col(self, label):
+        index = self.valuelabels.index(label)
+        col = self.values[:,index]
+        return col
+
+    def append_col(self, label, col):
+        self.valuelabels.append(label)
+        self.values = numpy.append(self.values, col, -1)
         
+    def _prep_average_or_total(self, new_label):
+        self.valuelabels.append(new_label)
+        nr, nc = self.values.shape
+        zero_col = zeros((nr,1))
+        self.values = numpy.append(self.values, zero_col, -1)
+        
+    def average_sheet(self, new_label, drop_lowest=False):
+        self._prep_average_or_total(new_label)
+        for n, row in enumerate(self.values):
+            all_scores = row[0:-1]#there is a new 0 at the end for the ave
+            if drop_lowest:
+                imin = all_scores.argmin()
+                top_scores = numpy.delete(all_scores, imin)
+                ave = top_scores.mean()
+            else:
+                ave = all_scores.mean()
+            self.values[n, -1] = ave
+
+    def total_sheet(self, new_label, drop_lowest=False):
+        self._prep_average_or_total(new_label)
+        for n, row in enumerate(self.values):
+            all_scores = row[0:-1]#there is a new 0 at the end for the ave
+            if drop_lowest:
+                imin = all_scores.argmin()
+                top_scores = numpy.delete(all_scores, imin)
+                total = top_scores.sum()
+            else:
+                total = all_scores.sum()
+            self.values[n, -1] = total
+
     def ReadNamesandValues(self, exact=True, parsefunc=myfloat):
         nc = len(self.valuelabels)
         nr = len(self.names)
