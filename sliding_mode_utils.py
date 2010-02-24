@@ -3,6 +3,11 @@ from scipy import *
 from IPython.Debugger import Pdb
 
 def my_smooth_s(delta_x, max_v, max_a, cushion=2.0, dt=0.002):
+    if delta_x < 0:
+        return_neg = True
+        delta_x = abs(delta_x)
+    else:
+        return_neg = False
     max_v = float(max_v)
     max_a = float(max_a)
     delta_x = float(delta_x)
@@ -80,7 +85,10 @@ def my_smooth_s(delta_x, max_v, max_a, cushion=2.0, dt=0.002):
     xd_dot[n2:] = 0.0
     xd_ddot[n2:] = 0.0
 
-    return t, xd, xd_dot, xd_ddot
+    if return_neg:
+        return t, -xd, -xd_dot, -xd_ddot
+    else:
+        return t, xd, xd_dot, xd_ddot
 
 
 def sat(x):
