@@ -98,3 +98,7 @@ def sat(x):
         return 1.0
     elif x < -1:
         return -1.0
+
+
+def smooth_sign(x, delta=0.01):
+    return x/(abs(x)+delta)
