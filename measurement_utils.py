@@ -143,7 +143,7 @@ def plot_results(u, y, v, n, fignum=1, label='Experimental', clear=True, \
     print('-'*30)
 
     ts, overshoot, penalty = ts_with_penalties(y, u, t)
-    plot_overshoot_and_settling(y, u, t)
+    plot_overshoot_and_settling(y, u, t, fignum=fignum)
 
     xlabel('Time (sec)')
     ylabel('Signal Amp. (counts)')
