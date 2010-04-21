@@ -94,40 +94,68 @@ def plot_overshoot_and_settling(y, u, t, Mp=10.0, p=0.01, fignum=1):
     plot_overshoot(u, t, Mp, fignum=fignum)
     plot_settling_lines(u, t, p, fignum=fignum)
     plot_settling_point(y, u, t, p, fignum=fignum)
-    
 
-def ts_with_penalties(y, u, t, Mp=10.0, p=0.01, fignum=1):
+
+def find_e_ss_penalty(y, u, t, p=0.01):
     ts = find_settling_time(y, u, t, p)
     e_ss = find_steady_state_error(y, u)
     if ts is None:
-        print('did not settle')
-        penalty1 = abs(float(e_ss))
+        #print('did not settle')
+        penalty = abs(float(e_ss))
     else:
-        print('ts = %0.4f (before penalty)' % ts)
-        penalty1 = 0.0
-    print('steady state error penalty = %0.4f' % penalty1)
+        #print('ts = %0.4f (before penalty)' % ts)
+        penalty = 0.0
+    return penalty
+
     
+def find_overshoot_penalty(y, u, t, Mp=10.0):
     overshoot = find_overshoot(y, u)
-    print('overshoot = %0.2f percent' % overshoot)
-    
     if overshoot > Mp:
-        penalty2 = overshoot-Mp
+        penalty = overshoot-Mp
     else:
-        penalty2 = 0.0
-    print('overshoot penalty = %0.4f' % penalty2)
-    penalty = penalty1 + penalty2
+        penalty = 0.0
+    return penalty
+
+    
+def ts_with_penalties(y, u, t, Mp=10.0, p=0.01, fignum=1):
+    #print('steady state error penalty = %0.4f' % penalty1)
+    ts = find_settling_time(y, u, t, p)
+    e_ss_penalty = find_e_ss_penalty(y, u, t, p=p)
+    overshoot = find_overshoot(y, u)
+    Mp_penalty = find_overshoot_penalty(y, u, t, Mp=Mp)
+
+    #print('overshoot = %0.2f percent' % overshoot)
+    
+    #print('overshoot penalty = %0.4f' % penalty2)
+    penalty = e_ss_penalty + Mp_penalty
     if ts is None:
         ts = penalty
     else:
         ts += penalty
         
+    #print('total penalty = %0.4f' % penalty)
+    #print('final ts = %0.4f' % ts)
+    return ts, overshoot, penalty
+
+
+def print_results(y, u, t, Mp=10.0, p=0.01):
+    ts_raw = find_settling_time(y, u, t, p)
+    if ts_raw is None:
+        print('did not settle')
+    else:
+        print('ts = %0.4f (before penalty)' % ts_raw)
+    e_ss_penalty = find_e_ss_penalty(y, u, t, p=p)
+    print('steady-state eror penalty = %0.4f' % e_ss_penalty)
+    ts, overshoot, penalty = ts_with_penalties(y, u, t, Mp=Mp, p=p)
+    print('overshoot = %0.2f' % overshoot)
+    Mp_penalty = find_overshoot_penalty(y, u, t, Mp=Mp)
+    print('overshoot penalty = %0.4f' % Mp_penalty)
     print('total penalty = %0.4f' % penalty)
     print('final ts = %0.4f' % ts)
-    return ts, overshoot, penalty
-    
 
-def plot_results(u, y, v, n, fignum=1, label='Experimental', clear=True, \
-                 plotu=True, legend_subscript='exp', dt=1.0/500):
+
+def plot_results(u, y, v, n, fignum=1, clear=True, plotu=True, \
+                 legend_subscript='exp', dt=1.0/500, plot_bars=True):
     t = dt*n#dt gets imported from RTP_utils.py
     figure(fignum)
     if clear:
@@ -138,14 +166,37 @@ def plot_results(u, y, v, n, fignum=1, label='Experimental', clear=True, \
     plot(t, y, label='$y_{%s}$' % legend_subscript)
     plot(t, v, label='$v_{%s}$' % legend_subscript)
 
-    print('\n'*2)
-    print(label +' Results:')
-    print('-'*30)
-
-    ts, overshoot, penalty = ts_with_penalties(y, u, t)
-    plot_overshoot_and_settling(y, u, t, fignum=fignum)
+    if plot_bars:
+        plot_overshoot_and_settling(y, u, t, fignum=fignum)
 
     xlabel('Time (sec)')
     ylabel('Signal Amp. (counts)')
     legend(loc=5)
     
+
+
+## class step_response_measurer(object):
+##     def __init__(self, u, y, t, fignum=1, label='Experimental'):
+##         self.u = u
+##         self.y = y
+##         self.t = t
+##         self.fignum = fignum
+##         self.label = label
+
+    
+##     def find_settling_time(self):
+##         self.ts = find_settling_time(self.y, self.u, self.t, self.p)
+##         return self.ts
+
+
+##     def find_overshoot(self):
+##         self.percent_overshoot = find_overshoot(self.y, self.u)
+
+    
+##     def find_settling_index(self):
+##         self.index_settled = find_settling_index(self.y, \
+##                                                  self.u, \
+##                                                  self.p)
+##         return self.index_settled
+
+
