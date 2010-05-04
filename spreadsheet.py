@@ -35,9 +35,10 @@ import xlrd, copy
 import cPickle#, dumb_shelve
 from scipy.io import dumb_shelve
 
-import rwkmisc
+import rwkmisc, mplutil
 
 import txt_mixin
+reload(txt_mixin)
 
 from rwkdataproc import thresh, CalcSpectra, makefreqvect
 
@@ -246,6 +247,16 @@ class SpreadSheet:
         self.datafunc = datafunc
 
 
+    def FindColLabel(self, label):
+        """Search self.labels for label and return the index if found.
+        Return -1 if not found."""
+        ind = -1
+        for n, curlabel in enumerate(self.labels):
+            if curlabel == label:
+                return n
+        return ind
+    
+        
     def PopList(self, indlist):
         if type(indlist)== numpy.ndarray:
             indlist = indlist.tolist()
@@ -263,6 +274,24 @@ class SpreadSheet:
             self.data = newmat
             return poprow
             
+
+    def MapOut(self, outpath, colmap, labels=None, dtype='|S100'):
+        """Output selected attributes to a spreadsheet file using
+        colmap to map attributes to specific columns of the output
+        file.  The keys in colmap are the column labels and the values
+        are attributes that will be retrieved via getattr.  These
+        should return arrays or lists of the same length."""
+        if labels is None:
+            labels = colmap.keys()
+        NC = len(labels)
+        firstcol = getattr(self, colmap[labels[0]])
+        NR = len(firstcol)
+        data = zeros((NR,NC), dtype=dtype)
+        for i, label in enumerate(labels):
+            curcol = array(getattr(self, colmap[label]))
+            data[:,i] = curcol.astype(dtype)
+        self.WriteCSV(outpath, labels, data)
+                      
 
     def MapCols(self, colmap = None):
         if colmap is None:
@@ -527,13 +556,17 @@ class SpreadSheet:
             else:
                 n+=1
 
-    def ReadRows(self, maxrows=None, startrow=0, parsefunc=None):
+    def ReadRows(self, maxrows=None, startrow=0, parsefunc=None, \
+                 stop_on_blank=True):
         i=0
         dataout = []
         first = 1
 #        floattime = 0.0
 #        appendtime = 0.0
         for row in self.iterrows():
+            if stop_on_blank and (row[0] == ''):
+                print('stopping based on blank cell in first column, i=%i' % i)
+                break
             if i>=startrow:
                 if first and (parsefunc is None):#try float anyways if parsefunc is None
                     try:
@@ -848,11 +881,14 @@ class SpreadSheet:
         else:
             f=open(outpath, 'wb')
         writer = csv.writer(f,dialect)
-        writer.writerow(self.labels)
+        if self.labels:
+            writer.writerow(self.labels)
         writer.writerows(self.alldata)
         f.close()
 
-    def WriteDataCSV(self, outpath, dialect=None, append=False):
+
+    def WriteCSV(self, outpath, labels, data, \
+                 dialect=None, append=False):
         if dialect is None:
             if hasattr(self,'dialect'):
                 dialect=self.dialect
@@ -863,9 +899,32 @@ class SpreadSheet:
         else:
             f=open(outpath, 'wb')
         writer = csv.writer(f,dialect)
-        writer.writerow(self.collabels)
-        writer.writerows(self.data)
+        writer.writerow(labels)
+        writer.writerows(data)
         f.close()
+
+
+    def WriteDataCSV(self, outpath, dialect=None, append=False):
+        data = self.data
+        labels = self.collabels
+        self.WriteCSV(outpath, labels, data, dialect=dialect, \
+                      append=append)
+
+
+##     def WriteDataCSV(self, outpath, dialect=None, append=False):
+##         if dialect is None:
+##             if hasattr(self,'dialect'):
+##                 dialect=self.dialect
+##             else:
+##                 dialect=mycsv
+##         if append:
+##             f=open(outpath,'ab')
+##         else:
+##             f=open(outpath, 'wb')
+##         writer = csv.writer(f,dialect)
+##         writer.writerow(self.collabels)
+##         writer.writerows(self.data)
+##         f.close()
 
     def InsertColFromList(self, matchlabel, matchlist, destlabel, valuelist):
         """This method is for copying a column from one spreadsheet to
@@ -969,7 +1028,8 @@ class CSVSpreadSheet(SpreadSheet):
     this class will attempt to sniff it out.  TabDelimSpreadSheet does
     specify the delimitter explicitly.  So, if you are not sure about
     your delimitter, use CSVSpreadSheet."""
-    def __init__(self, pathin=None, dialect=None, skiprows=0, collabels=None, colmap=None):
+    def __init__(self, pathin=None, dialect=None, skiprows=0, \
+                 collabels=None, colmap=None):
         self.dialect = dialect
         SpreadSheet.__init__(self, pathin=pathin, skiprows=skiprows, \
                              colmap=colmap, collabels=collabels)
@@ -1047,6 +1107,14 @@ class CSVSpreadSheet(SpreadSheet):
             mymat[n,:] = currow
         return mymat
 
+
+class TrueCSVSpreadSheet(CSVSpreadSheet):
+    def __init__(self, pathin=None, dialect=mycsv, **kwargs):
+        CSVSpreadSheet.__init__(self, pathin=pathin, \
+                                dialect=dialect, \
+                                **kwargs)
+
+        
 class ExcelSpreadSheet(SpreadSheet):
     def __init__(self, pathin=None, datasheet=0, skiprows=0):
         """Initialize an ExcelSpreadSheet derived from SpreadSheet.
@@ -1852,7 +1920,167 @@ class QuizScoreSpreadSheet(GradeSpreadSheetMany):
         self.scores_kept = array(self.scores_kept)
         self.quiz_averages = self.scores_kept.mean(axis=1)
         self.AppendCol('Quiz Average', self.quiz_averages)
+
+
+class Survey_Answer(object):
+    def count_answers(self):
+        N = len(self.choices)
+        self.histogram = numpy.zeros(N)
+        for i, choice in enumerate(self.choices):
+            count = self.answers.count(choice)
+            self.histogram[i] = count
+        self.percentages = self.histogram/self.N*100.0
+
+
+    def _get_fig(self, fig=None, fignum=1):
+        if fig is None:
+            import pylab as P
+            fig = P.figure(fignum)
+        return fig
+
+    def build_caption(self, caption=None):
+        if caption is None:
+            caption = ['Responses to survey question number %i.' % \
+                      self.number]
+        caption.append('`\\newline`')
+
+        caption.append('Key: `\\newline`')
+        for n, answer in enumerate(self.choices):
+##             if n == self.NC-1:
+##                 caption += 'and '
+            curline ='%i = "%s"' % (n+1, answer)
+            if n < self.NC-1:
+                curline += ' `\\newline`'
+##                 caption +=', '
+            elif n == self.NC-1:
+                curline += ' `\\label{fig:surveyQ%i}`' % self.number
+            caption.append(curline)
+        self.caption = caption
             
+
+    def get_fig_path(self, name=None, folder='figs', ext='.eps'):
+        if name is None:
+            name = 'question_%0.2i' % self.number
+
+        name_only, old_ext = os.path.splitext(name)
+        if not old_ext:
+            name = name_only + ext
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+        path = os.path.join(folder, name)
+        return path
+
+            
+    def save_fig(self, name=None, fig=None, fignum=1, folder='figs', \
+                 ext='.eps'):
+        path = self.get_fig_path(name, folder, ext)
+        fig = self._get_fig(fig, fignum)
+        mplutil.mysave(path, fig)
+
+    def save_rst(self, caption=None, name=None, folder='figs', \
+                 relfolder=None):
+        #Pdb().set_trace()
+        path = self.get_fig_path(name, folder, ext='.rst')
+        self.build_caption(caption=caption)
+        junk, nameonly = os.path.split(path)
+        fno, old_ext = os.path.splitext(nameonly)
+        pdfname = fno + '.pdf'
+        if relfolder is None:
+            relfolder = folder
+        relpath = os.path.join(relfolder, pdfname)
+        ws = ' '*4
+        rstlist = ['.. figure:: ' + relpath]
+        rstlist.append(ws + ':width: 4.5in')
+        rstlist.append('')
+        for curline in self.caption:
+            rstlist.append(ws + curline)
+        rstlist.append('')
+        txt_mixin.dump(path, rstlist)
+        
+        
+    
+    def plot_histogram(self, fig=None, fignum=1, clear=True, \
+                       title=None, xlim=None, use_percentages=True):
+        fig = self._get_fig(fig, fignum)
+        if title is None:
+            title = self.question
+        if clear:
+            fig.clf()
+        if xlim is None:
+            low = 0.5
+            high = self.NC + 0.5
+            xlim = [low, high]
+        ax = fig.add_subplot(1,1,1)
+        ind = range(1,self.NC+1)
+        if use_percentages:
+            ax.bar(ind, self.percentages, align='center')
+            ax.set_ylabel('Percentage of Students')
+        else:
+            ax.bar(ind, self.histogram, align='center')
+            ax.set_ylabel('Number of Students')
+        ax.set_title(title)
+        ax.set_xticks(ind)
+        ax.set_xlabel('Response')
+        fig.autofmt_xdate(rotation=0.0)
+        if xlim:
+            ax.set_xlim(xlim)
+
+
+
+
+    def print_histogram(self):
+        print('Histogram:')
+        print('-'*15)
+        for answer, num, percent in \
+                zip(self.choices, self.histogram, self.percentages):
+            print('%s : %i (%0.2f percent)' % (answer, num, percent))
+            
+            
+    def __init__(self, number, question, answers, choices=None):
+        self.number = number
+        self.question = question
+        self.answers = txt_mixin.txt_list(answers)
+        self.N = len(self.answers)
+        if choices is None:
+            self.choices = self.answers.find_unique()
+        else:
+            self.choices = choices
+        self.NC = len(self.choices)
+        self.count_answers()
+
+
+class BlackBoard_Survey_File(BlackBoardGBFile):
+    """Note: if you are getting NULL byte errors from the csv reader,
+    you haven't cleaned the file of yucky xls characters.  Saving as
+    ods, closing oocalc, then reopening the ods and saving as csv
+    worked for me."""
+    def __init__(self, pathin, dialect=mycsv, **kwargs):
+        CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect, **kwargs)
+        self.labelrow=0
+        self.GetLabelRow()
+        self.ReadData()
+        self.data = {}
+
+    def Find_Question_Col(self, number):
+        ind = self.FindColLabel('Question %i' % number)
+        return ind
+
+
+    def Find_Answer_Col(self, number):
+        ind = self.FindColLabel('Answer %i' % number)
+        return ind
+
+
+    def Parse_One_Question(self, number, choices=None):
+        qind = self.Find_Question_Col(number)
+        aind = self.Find_Answer_Col(number)
+        qdata = self.get_col(qind)
+        question = qdata[0]
+        answers = self.get_col(aind)
+        self.data[number] = Survey_Answer(number, question, answers, \
+                                          choices=choices)
+
+
 
 class PSoCLabviewSpreadSheet(LabviewSpreadSheet, DataProcMixins.AccelMixin):
     def __init__(self, pathin=None, tlabel='Time', \

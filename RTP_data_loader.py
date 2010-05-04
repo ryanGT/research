@@ -4,6 +4,7 @@ from scipy import *
 #import controls
 import os
 import pylab_util
+import measurement_utils
 
 class data_loader(object):
     def load_data(self):
@@ -26,6 +27,14 @@ class data_loader(object):
         if os.path.exists(self.pathin):
             self.load_data()
 
+    def _find_filename(self, pathout=None, ext='.eps'):
+        if pathout is None:
+            pno, old_ext = os.path.splitext(self.pathin)
+            if ext[0] != '.':
+                ext = '.' + ext
+            pathout = pno + ext
+            self.pathout = pathout
+        return pathout
 
     def Plot(self, fignum=1, use_t=None, plotu=True, clear=True, \
              legend=None, legloc=None, xlabel=None, ylabel=None, \
@@ -55,8 +64,19 @@ class data_loader(object):
         pylab_util.set_ylabel(ylabel, fi=fignum)
 
 
-    def Save(self, pathout, fignum=None):
+    def Save(self, pathout=None, fignum=None, ext='.eps'):
         if fignum is None:
             fignum = self.fignum
+        if pathout is None:
+            pathout = self._find_filename(ext=ext)
+        else:
+            self.pathout = pathout
         pylab_util.mysave(pathout, fignum)
         
+
+    def plot_overshoot_and_settling(self, Mp=10.0, p=0.01, fignum=None):
+        if fignum is None:
+            fignum = self.fignum
+        measurement_utils.plot_overshoot_and_settling(self.y, self.u, self.t, \
+                                                      Mp=Mp, p=p, \
+                                                      fignum=fignum)
