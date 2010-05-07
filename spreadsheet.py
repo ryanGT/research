@@ -1935,6 +1935,9 @@ class QuizScoreSpreadSheet(GradeSpreadSheetMany):
         self.AppendCol('Quiz Average', self.quiz_averages)
 
 
+
+
+
 class Survey_Answer(object):
     def count_answers(self):
         N = len(self.choices)
@@ -1945,10 +1948,10 @@ class Survey_Answer(object):
         self.percentages = self.histogram/self.N*100.0
 
 
-    def _get_fig(self, fig=None, fignum=1):
+    def _get_fig(self, fig=None, fignum=1, figsize=None):
         if fig is None:
             import pylab as P
-            fig = P.figure(fignum)
+            fig = P.figure(fignum, figsize=figsize)
         return fig
 
     def build_caption(self, caption=None):
@@ -2013,8 +2016,10 @@ class Survey_Answer(object):
         
     
     def plot_histogram(self, fig=None, fignum=1, clear=True, \
-                       title=None, xlim=None, use_percentages=True):
-        fig = self._get_fig(fig, fignum)
+                       title=None, xlim=None, use_percentages=True, \
+                       figsize=None):
+        fig = self._get_fig(fig, fignum, figsize=figsize)
+                
         if title is None:
             title = self.question
         if clear:
@@ -2024,6 +2029,7 @@ class Survey_Answer(object):
             high = self.NC + 0.5
             xlim = [low, high]
         ax = fig.add_subplot(1,1,1)
+        #ax = fig.add_axes([0.1,0.1,0.8,0.8])
         ind = range(1,self.NC+1)
         if use_percentages:
             ax.bar(ind, self.percentages, align='center')
@@ -2039,6 +2045,33 @@ class Survey_Answer(object):
             ax.set_xlim(xlim)
 
 
+    def plot_pie_chart(self, fig=None, fignum=1, clear=True, title=None, \
+                       figsize=(11,8)):
+        fig = self._get_fig(fig, fignum, figsize=figsize)
+        if title is None:
+            title = self.question
+        if clear:
+            fig.clf()
+
+        #ax = fig.add_subplot(1,1,1)
+        ax = fig.add_axes([0.25,0.1,0.5,0.7])
+        #Pdb().set_trace()
+        mygrays = []
+        for value in arange(1,0,-0.15):
+            mytup = (value, value, value)
+            mygrays.append(mytup)
+        ax.pie(self.nonempty_percentages, labels=self.clean_pie_labels, \
+               autopct='%1.1f%%', colors=mygrays, shadow=True)
+        t = ax.set_title(title)
+        t.set_position((0.5, 1.1))        
+
+        empty_x = -1.5
+        empty_y = -1.5
+        dy = 0.2
+        for label, value in zip(self.empty_labels, self.empty_percentages):
+            msg = '%s: %0.1f' % (label, value) + '%'
+            ax.text(empty_x, empty_y, msg)
+            empty_y += dy
 
 
     def print_histogram(self):
@@ -2049,10 +2082,11 @@ class Survey_Answer(object):
             print('%s : %i (%0.2f percent)' % (answer, num, percent))
             
             
-    def __init__(self, number, question, answers, choices=None):
+    def __init__(self, number, question, answers, choices=None, pretty_labels={}):
         self.number = number
         self.question = question
         self.answers = txt_mixin.txt_list(answers)
+        self.pretty_labels = pretty_labels
         self.N = len(self.answers)
         if choices is None:
             self.choices = self.answers.find_unique()
@@ -2060,6 +2094,27 @@ class Survey_Answer(object):
             self.choices = choices
         self.NC = len(self.choices)
         self.count_answers()
+        self.clean_pie_labels = copy.copy(self.choices)
+        for i, key in enumerate(self.clean_pie_labels):
+            if self.pretty_labels.has_key(key):
+                self.clean_pie_labels[i] = self.pretty_labels[key]
+        self.empty_percentages = []
+        self.empty_labels = []
+        self.nonempty_percentages = copy.copy(self.percentages)
+        N = len(self.nonempty_percentages)
+        i = 0
+        while i < N:
+            value = self.nonempty_percentages[i]
+            if value == 0:
+                self.nonempty_percentages = numpy.delete(self.nonempty_percentages, i)
+                self.empty_percentages.append(value)
+                label = self.clean_pie_labels[i]
+                self.clean_pie_labels = numpy.delete(self.clean_pie_labels, i)
+                self.empty_labels.append(label)
+            else:
+                i += 1
+            N = len(self.nonempty_percentages)
+
 
 
 class BlackBoard_Survey_File(BlackBoardGBFile):
@@ -2067,12 +2122,14 @@ class BlackBoard_Survey_File(BlackBoardGBFile):
     you haven't cleaned the file of yucky xls characters.  Saving as
     ods, closing oocalc, then reopening the ods and saving as csv
     worked for me."""
-    def __init__(self, pathin, dialect=mycsv, **kwargs):
+    def __init__(self, pathin, dialect=mycsv, pretty_labels={}, \
+                 **kwargs):
         CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect, **kwargs)
         self.labelrow=0
         self.GetLabelRow()
         self.ReadData()
         self.data = {}
+        self.pretty_labels = pretty_labels
 
     def Find_Question_Col(self, number):
         ind = self.FindColLabel('Question %i' % number)
@@ -2091,7 +2148,8 @@ class BlackBoard_Survey_File(BlackBoardGBFile):
         question = qdata[0]
         answers = self.get_col(aind)
         self.data[number] = Survey_Answer(number, question, answers, \
-                                          choices=choices)
+                                          choices=choices, \
+                                          pretty_labels=self.pretty_labels)
 
 
 
