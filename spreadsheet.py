@@ -49,11 +49,18 @@ def col_from_nested(nested, col):
     return [row[col] for row in nested]
     
 def myfloat(stringin):
+    """Try converting stringin to a float.  Return 0 for empty
+    strings.  Convert the '#DIV/0!' to 0.  On all other float
+    conversions failures, just return stringin."""
     if stringin:
         try:
             out = float(stringin)
         except ValueError:
-            out = stringin
+            #apparently, this is supposed to fail gracefully for string data
+            if stringin == '#DIV/0!':
+                out = 0.0
+            else:
+                out = stringin
         return out
     else:
         return 0.0
@@ -1677,8 +1684,14 @@ class BlackBoardGBFile(CSVSpreadSheet):
         if splitnames:
             lastnames = []
             for curname in namelist:
-                first, last = curname.split(' ')
-                last=last.strip()
+                #handling two cases for now:
+                # 1. last, first
+                # 2. first last
+                if curname.find(',') > -1:
+                    last, first = curname.split(',')
+                else:
+                    first, last = curname.split(' ')
+                last = last.strip()
                 lastnames.append(last)
             namelist = lastnames
         found = 0
