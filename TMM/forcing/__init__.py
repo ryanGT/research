@@ -6,9 +6,13 @@ from scipy.linalg import det
 import copy
 import pdb
 
-from TMM.TMMElement import TMMElement, HT4, TMMElementLHT
+from TMM.TMMElement import TMMElement, HT4, TMMElementIHT ,\
+     TMMElementLHT
 
-class ForcingElement(TMMElementLHT):
+class ForcingElement(TMMElementIHT):#TMMElementLHT <-- no idea why
+                                    #this was LHT.  A forcing element
+                                    #seems like a dimensionless
+                                    #element to me (now). rwk 06/03/2010
     """This class represents arbitrary forcing at any location in a
     TMM model, using a vector as a column of the augmented transfer
     matrix."""
@@ -17,7 +21,7 @@ class ForcingElement(TMMElementLHT):
         only one key: 'fv', whose value is a column vector of the
         elements of the augmented column of the transfer matrix.  It
         should have only N element (the bottom 1 is assumed)."""
-        TMMElementLHT.__init__(self,'forcing',params,**kwargs)
+        TMMElementIHT.__init__(self,'forcing',params,**kwargs)
         for n, ent  in enumerate(self.params['fv']):
             if ent == 0:
                 self.symparams['fv'][n]='0'

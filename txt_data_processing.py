@@ -308,6 +308,7 @@ class Data_Set(object):
         if ax is None:
             from pylab import figure
             fig = figure(fignum)
+            fig.clf()
             ax = fig.add_subplot(111)
         for label in labels:
             cur_mat = getattr(self, label)
@@ -315,7 +316,8 @@ class Data_Set(object):
             if curlabel is None:
                 if self.title_dict.has_key(label):
                     curlabel = self.title_dict[label]
-            mplutil.plot_cols(ax, self.t, cur_mat, ylabel=curlabel)
+            mplutil.plot_cols(ax, self.t, cur_mat, ylabel=curlabel, \
+                              clear=False)
         if basename and savefigs:
             fig_name = basename+'_time_plot'
             fig_name += '_%s' % '_'.join(labels)

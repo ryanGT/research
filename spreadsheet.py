@@ -1954,23 +1954,25 @@ class Survey_Answer(object):
             fig = P.figure(fignum, figsize=figsize)
         return fig
 
-    def build_caption(self, caption=None):
+    def build_caption(self, caption=None, add_key=False):
         if caption is None:
             caption = ['Responses to survey question number %i.' % \
                       self.number]
-        caption.append('`\\newline`')
+        if add_key:
+            caption.append('`\\newline`')
 
-        caption.append('Key: `\\newline`')
-        for n, answer in enumerate(self.choices):
-##             if n == self.NC-1:
-##                 caption += 'and '
-            curline ='%i = "%s"' % (n+1, answer)
-            if n < self.NC-1:
-                curline += ' `\\newline`'
+            caption.append('Key: `\\newline`')
+            for n, answer in enumerate(self.choices):
+                curline ='%i = "%s"' % (n+1, answer)
+                if n < self.NC-1:
+                    curline += ' `\\newline`'
 ##                 caption +=', '
-            elif n == self.NC-1:
-                curline += ' `\\label{fig:surveyQ%i}`' % self.number
-            caption.append(curline)
+                elif n == self.NC-1:
+                    curline += ' `\\label{fig:surveyQ%i}`' % self.number
+                    caption.append(curline)
+        else:
+            caption.append('`\\label{fig:surveyQ%i}`' % self.number)
+
         self.caption = caption
             
 
@@ -2063,15 +2065,24 @@ class Survey_Answer(object):
         ax.pie(self.nonempty_percentages, labels=self.clean_pie_labels, \
                autopct='%1.1f%%', colors=mygrays, shadow=True)
         t = ax.set_title(title)
-        t.set_position((0.5, 1.1))        
+        t.set_position((0.5, 1.05))        
 
-        empty_x = -1.5
+        empty_x = -2.0
         empty_y = -1.5
-        dy = 0.2
-        for label, value in zip(self.empty_labels, self.empty_percentages):
-            msg = '%s: %0.1f' % (label, value) + '%'
-            ax.text(empty_x, empty_y, msg)
-            empty_y += dy
+        dy = 0.15
+        if hasattr(self, 'empty_x'):
+            empty_x = self.empty_x
+        if hasattr(self, 'empty_y'):
+            empty_y = self.empty_y
+        if hasattr(self, 'dy'):
+            dy = self.dy
+        
+        NE = len(self.empty_percentages) 
+        if (NE > 0) and (NE < 3):
+            for label, value in zip(self.empty_labels, self.empty_percentages):
+                msg = '%s: %0.1f' % (label, value) + '%'
+                ax.text(empty_x, empty_y, msg)
+                empty_y += dy
 
 
     def print_histogram(self):
@@ -2110,6 +2121,9 @@ class Survey_Answer(object):
                 self.empty_percentages.append(value)
                 label = self.clean_pie_labels[i]
                 self.clean_pie_labels = numpy.delete(self.clean_pie_labels, i)
+                label = label.replace('\n',' ')
+                label = label.replace('  ',' ')
+                label = label.replace('  ',' ')
                 self.empty_labels.append(label)
             else:
                 i += 1
