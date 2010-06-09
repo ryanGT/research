@@ -218,7 +218,7 @@ class Data_File(object):
             curvect = getattr(self, label)
             mplutil.plot_vect(ax, self.t, curvect, clear=False, \
                               ylabel=ylabel, **plot_opts)
-        ax.legend(labels, loc=legloc)
+        #ax.legend(labels, loc=legloc)
 ##         if basename and savefigs:
 ##             fig_name = basename+'_time_plot'
 ##             fig_name += '_%s' % '_'.join(labels)
@@ -317,7 +317,7 @@ class Data_Set(object):
                 if self.title_dict.has_key(label):
                     curlabel = self.title_dict[label]
             mplutil.plot_cols(ax, self.t, cur_mat, ylabel=curlabel, \
-                              clear=False)
+                              clear=False, labels=curlabel)
         if basename and savefigs:
             fig_name = basename+'_time_plot'
             fig_name += '_%s' % '_'.join(labels)
@@ -466,7 +466,8 @@ class Bode_Data_Set(Data_Set):
     optional fine tuning parameters."""
     def __init__(self, pattern, bode_list, \
                  time_col=0, time_label='t', \
-                 col_map={}, coh=False, coh_size=(8,12), \
+                 col_map={}, coh=False, coh_size=(6,9), \
+                 #coh_size=(8,12), \
                  title_dict={}, \
                  delim='\t', skiprows=None):
         Data_Set.__init__(self, pattern, time_col=time_col, \

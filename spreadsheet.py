@@ -236,7 +236,7 @@ def interp(x, x1, x2, y1, y2, eps=1e-16):
         return y1 + ((x - x1) * (y2 - y1))/(x2 - x1)
     
 
-class SpreadSheet:
+class SpreadSheet(object):
     def __init__(self, pathin=None, skiprows=0, collabels=None, colmap=None, datafunc=float, picklekeys=[]):
 #        print('pathin='+pathin)
         self.path = pathin
@@ -571,10 +571,11 @@ class SpreadSheet:
 #        floattime = 0.0
 #        appendtime = 0.0
         for row in self.iterrows():
-            if stop_on_blank and (row[0] == ''):
-                print('stopping based on blank cell in first column, i=%i' % i)
-                break
             if i>=startrow:
+                if stop_on_blank and (row[0] == ''):
+                    print('stopping based on blank cell in first column, i=%i' % i)
+                    break
+
                 if first and (parsefunc is None):#try float anyways if parsefunc is None
                     try:
                         temprow = map(float, row)
