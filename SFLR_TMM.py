@@ -71,6 +71,15 @@ EI = E*I
 #L = 0.508
 
 class SFLR_params(object):
+    def _calc_num_act(self):
+        s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
+        #changes in p's
+        m1 = abs(s1+self.p_act1)
+        #m2 = abs(s1+p_act2)
+        self.num_act = self.K_act*m1#*m2
+        return self.num_act
+
+        
     def __init__(self, \
                  K_act=0.05, \
                  p_act1=10.0*2*pi, \
@@ -94,7 +103,8 @@ class SFLR_params(object):
                  b_m=0.0077, \
                  b_L=0.011125, \
                  b_r=0.005556, \
-                 b_I=7.0627e-7):
+                 b_I=7.0627e-7, \
+                 H=180.0/pi*1024.0/360.0):
         self.K_act = K_act
         self.p_act1 = p_act1
         self.p_act2 = p_act2
@@ -118,6 +128,10 @@ class SFLR_params(object):
         self.b_L = b_L
         self.b_r = b_r
         self.b_I = b_I
+        self.H = H
+        #calc actuator numerator
+        self._calc_num_act()
+        
 
 
     def __repr__(self):
@@ -130,6 +144,8 @@ class SFLR_params(object):
     def update(self, newdict):
         for key, val in newdict.iteritems():
             setattr(self, key, val)
+        if not newdict.has_key('num_act'):
+            self._calc_num_act()
 
 
     def __sub__(self, other):
@@ -633,11 +649,13 @@ class SFLR_TMM_OL_model_v4(TMM.TMMSystem.ClampedFreeTMMSystem):
 class model_w_bm(SFLR_TMM_OL_model_v4):
     def _create_AVS(self):
         self.avs = AVS1_ol(params={'K_act':self.params.K_act, \
-                                'p_act1':self.params.p_act1}, \
+                                   'p_act1':self.params.p_act1, \
+                                   'num_act':self.params.num_act}, \
                         maxsize=ms, \
                         symname='Uact', \
                         symlabel='act', \
                         unknownparams=['K_act','p_act1'])
+
 
     def _load_params(self, pkl_path=None):
         if pkl_path is not None and (not os.path.exists(pkl_path)):
@@ -650,6 +668,7 @@ class model_w_bm(SFLR_TMM_OL_model_v4):
         else:
             myparams = load_params(pkl_path)
         return myparams
+
 
     def _create_base_mass(self):
         bm_params = {'m':self.params.b_m, \
@@ -708,15 +727,80 @@ class model_w_bm(SFLR_TMM_OL_model_v4):
 
 
 class model_w_bm_with_theta_feedback(model_w_bm):
+    def _create_bode_outs(self):
+        """Note that self.list and self.b2_ind must be defined before
+        self._create_bode_outs is called.  self.b2_ind is the index of
+        the element just before the encoder measurement.  If the
+        actuator is rigid, self.b2_ind should probably be set to
+        self.avs.  If there is flexibility in the actuator,
+        self.b2_ind should probaby be set to the torsional
+        spring/damper following the avs."""
+        self._set_accel_ind()
+        a_gain = self.params.a_gain
+        bodeout1={'input':'u', 'output':'atip', 'type':'abs', \
+                  'ind':self.accel_ind, 'post':'accel', 'dof':0, \
+                  'gain':a_gain*2.0,'gainknown':False}#the *2.0
+                                                      #accounts for
+                                                      #10-bit ADC
+                                                      #vs. 9 when the
+                                                      #curve fitting
+                                                      #was done
+        bodeout2={'input':'u', 'output':'th', 'type':'abs', \
+                  'ind':self.b2_ind, 'post':'', 'dof':1, \
+                  'gain':self.params.H}
+        self.bodeout1=bodeout(**bodeout1)
+        self.bodeout2=bodeout(**bodeout2)
+
+
+    def calc_bodes(self, fvect):
+        self.fvect = fvect
+        bodes = self.BodeResponse(fvect)
+        theta_u_bode = bodes[1]
+        theta_u_bode.seedphase = -90.0
+        theta_u_bode.seedfreq = 1.2
+        theta_u_bode.PhaseMassage(fvect)
+
+        accel_u_bode = bodes[0]
+        accel_u_bode.seedfreq = 1.0
+        accel_u_bode.seedphase = 150.0
+        accel_u_bode.PhaseMassage(fvect)
+        #accel_u_bode = a_massage(accel_u_bode, fvect, lim2=-90)
+        #accel_u_bode = phase_shift(accel_u_bode)
+
+##         a_th_bode = accel_v_bode.__div__(theta_v_bode)
+##         a_th_bode.seedfreq = 10.0
+##         a_th_bode.seedphase = 0.0
+##         a_th_bode.PhaseMassage(fvect)
+##         a_th_bode = a_massage(a_th_bode, fvect)
+        self.bodes = bodes
+        self.theta_u_bode = theta_u_bode
+        self.accel_u_bode = accel_u_bode
+        ##self.accel_theta_bode = a_th_bode
+        return theta_u_bode, accel_u_bode#, a_th_bode
+
+
+    def plot_bodes(self, startfi=1, clear=False, **kwargs):
+        f = self.fvect
+        rwkbode.GenBodePlot(startfi, f, self.theta_u_bode, clear=clear, \
+                            **kwargs)
+        rwkbode.GenBodePlot(startfi+1, f, self.accel_u_bode, \
+                            clear=clear, **kwargs)
+##         rwkbode.GenBodePlot(startfi+2, f, self.accel_theta_bode, \
+##                             clear=clear, **kwargs)
+
+
     def _create_AVS(self):
-        self.avs = AVS1_kp(kp=self.kp, params={'K_act':self.params.K_act, \
-                                               'p_act1':self.params.p_act1, \
-                                               'k_spring':self.params.k_spring, \
-                                               'c_spring':self.params.c_spring}, \
-                        maxsize=ms, \
-                        symname='Uact_tfb', \
-                        symlabel='act_tfb', \
-                        unknownparams=['K_act','p_act1','k_spring','c_spring'])
+        self.avs = AVS1_kp(kp=self.kp, \
+                           params={'K_act':self.params.K_act, \
+                                   'p_act1':self.params.p_act1, \
+                                   'k_spring':self.params.k_spring, \
+                                   'c_spring':self.params.c_spring, \
+                                   'num_act':self.params.num_act, \
+                                   'H':self.params.H}, \
+                           maxsize=ms, \
+                           symname='Uact_tfb', \
+                           symlabel='act_tfb', \
+                           unknownparams=['K_act','p_act1','k_spring','c_spring'])
 
 
     def __init__(self, pkl_path=None, kp=1.0):
@@ -731,8 +815,8 @@ class model_w_bm_with_theta_feedback(model_w_bm):
         self._create_accel_mass()
         self._create_beam2()
         self._set_accel_ind()
-        #self.b2_ind = self.base_mass
-        self.b2_ind = self.avs
+        self.b2_ind = self.base_mass
+        #self.b2_ind = self.avs
         self.list = [self.avs, self.base_mass, \
                      self.clamp_spring, \
                      self.beam, self.accel, self.beam2]

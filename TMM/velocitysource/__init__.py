@@ -144,6 +144,18 @@ class AngularVelocitySource(TMMElementLHT):
 
 
 class AVS1(AngularVelocitySource):
+    def _calc_num_act(self):
+        K_act = self.params['K_act']
+        p_act1 = self.params['p_act1']
+        s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
+        #changes in p's
+        m1 = abs(s1+p_act1)
+        #m2 = abs(s1+p_act2)
+        num = K_act*m1#*m2
+        self.params['num_act'] = num
+        return num
+
+        
     def __init__(self,params={},**kwargs):
         """Initialize an instance of the AngularVelocitySource class.
         params is a dictionary with keys 'K', 'tau', and 'axis'.  All
@@ -153,7 +165,10 @@ class AVS1(AngularVelocitySource):
         the actuator (i.e. if 'tau' is given and is > 0, the trasnfer
         function of the actuator will be tau/(s*(s+tau))."""
         self.params = params
+        if not params.has_key('num_act'):
+            self._calc_num_act()
         TMMElementLHT.__init__(self,'avs',params,**kwargs)
+
 
     def GetAugMat(self, s, sym=False):
         """Return the augmented element transfer matrix for the
@@ -171,25 +186,22 @@ class AVS1(AngularVelocitySource):
             matout=eye(N+1,dtype='D')
             myparams=self.params
         myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
-        K_act = self.params['K_act']
+        num_act = self.params['num_act']
+        #K_act = self.params['K_act']
         p_act1 = self.params['p_act1']
-        s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
-        #changes in p's
-        m1 = abs(s1+p_act1)
-        #m2 = abs(s1+p_act2)
-        num = K_act*m1#*m2
-        matout[myrow,N] = num/(s*(s+p_act1))
+        matout[myrow,N] = num_act/(s*(s+p_act1))
         return matout
 
 
 def Gth(s, params):
-    K_act = params['K_act']
+    #K_act = params['K_act']
     p_act1 = params['p_act1']
-    s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
+    #s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
     #changes in p's
-    m1 = abs(s1+p_act1)
+    #m1 = abs(s1+p_act1)
     #m2 = abs(s1+p_act2)
-    num = K_act*m1#*m2
+    #num = K_act*m1#*m2
+    num = params['num_act']
     out = num/(s*(s+p_act1))
     return out
     
@@ -229,7 +241,7 @@ class AVS1_ol(AVS1):
             return matout
 
 
-class AVS1_kp(AVS1):
+class AVS1_kp(AVS1_ol):
     def __init__(self,params={}, kp=1.0, Gth_func=Gth, **kwargs):
         """Initialize an instance of the AVS1_kp class, used to model
         an Angular Velocity Source under proportional feedback. There
@@ -258,8 +270,11 @@ class AVS1_kp(AVS1):
         Gth = self.kp
         k_spring = self.params['k_spring']
         c_spring = self.params['c_spring']
-        term1 = 1.0/(k_spring + c_spring*s + Gact*Gth*k_spring + Gact*Gth*c_spring*s)
-        term2 = Gact*Gth/(1.0 + Gact*Gth)
+        H = self.params['H']
+        term1 = 1.0/((1.0 + Gact*Gth*H)*(k_spring + c_spring*s))
+        term2 = Gact*Gth/(1.0 + Gact*Gth*H)
+        #term1 = 1.0/(k_spring + c_spring*s + Gact*Gth*k_spring + Gact*Gth*c_spring*s)
+        #term2 = Gact*Gth/(1.0 + Gact*Gth)
 
         myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
         matout[myrow,2] = term1

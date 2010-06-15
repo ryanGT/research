@@ -741,7 +741,13 @@ class Bode_Data_Set(Data_Set):
         self._set_plot_opts(attr, figs)
         self._set_titles(attr, figs)
         return figs
-        
+
+ 
+    def trunc_Bode_Plot2(self, attr='trunc_avebodes', \
+                         f_attr='trunc_f', \
+                         **kwargs):
+        return self.Bode_Plot2(attr=attr, f_attr=f_attr, **kwargs)
+       
 
     def Bode_Plot(self, overlay_ave=True, figs=None, fignum=1, \
                   title=None, autotitle=True, coh=False, \
@@ -1031,7 +1037,20 @@ def find_matching_bode(bode1, bode_list):
         if bode.input == bode1.input:
             if bode.output == bode1.output:
                 return bode
-            
+
+def overlay_trunc_bodes(mod_name_list, startfi=1, linetype='-'):
+    first = 1
+    for mod_name in mod_name_list:
+        cur_exp = load_avebode_data_set(mod_name)
+        if first:
+            clear = True
+            first = 0
+        else:
+            clear = False
+        cur_exp.trunc_Bode_Plot2(clear=clear, \
+                                 fignum=startfi, \
+                                 linetype=linetype)
+    
 
 def merge_trunc_ave_data_sets(data_set1, data_set2):
     """Merge data_set1 and data_set2, which are presumed to be
