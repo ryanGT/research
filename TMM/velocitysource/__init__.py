@@ -193,7 +193,7 @@ class AVS1(AngularVelocitySource):
         return matout
 
 
-def Gth(s, params):
+def Gact(s, params):
     #K_act = params['K_act']
     p_act1 = params['p_act1']
     #s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
@@ -204,10 +204,11 @@ def Gth(s, params):
     num = params['num_act']
     out = num/(s*(s+p_act1))
     return out
+
     
     
 class AVS1_ol(AVS1):
-    def __init__(self,params={}, Gth_func=Gth, **kwargs):
+    def __init__(self,params={}, Gact_func=Gact, **kwargs):
         """Initialize an instance of the AngularVelocitySource class.
         params is a dictionary with keys 'K', 'tau', and 'axis'.  All
         of these keys are optional.  'K' is the gain and it defaults
@@ -216,7 +217,7 @@ class AVS1_ol(AVS1):
         the actuator (i.e. if 'tau' is given and is > 0, the trasnfer
         function of the actuator will be tau/(s*(s+tau))."""
         self.params = params
-        self.Gth_func = Gth_func
+        self.Gact_func = Gact_func
         TMMElementLHT.__init__(self,'avs',params,**kwargs)
 
 
@@ -236,13 +237,13 @@ class AVS1_ol(AVS1):
                 matout=eye(N+1,dtype='D')
                 myparams=self.params
             myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
-            act_out = self.Gth_func(s, self.params)
+            act_out = self.Gact_func(s, self.params)
             matout[myrow,N] = act_out
             return matout
 
 
 class AVS1_kp(AVS1_ol):
-    def __init__(self,params={}, kp=1.0, Gth_func=Gth, **kwargs):
+    def __init__(self,params={}, kp=1.0, Gact_func=Gact, **kwargs):
         """Initialize an instance of the AVS1_kp class, used to model
         an Angular Velocity Source under proportional feedback. There
         is internal compliance in the actuator.  params is a
@@ -250,7 +251,7 @@ class AVS1_kp(AVS1_ol):
         gain on the theta feedback loop."""
         self.params = params
         self.kp = kp
-        self.Gth_func = Gth_func
+        self.Gact_func = Gact_func
         TMMElementLHT.__init__(self,'avs',params,**kwargs)
 
 
@@ -266,8 +267,49 @@ class AVS1_kp(AVS1_ol):
             matout=eye(N+1,dtype='D')
             myparams=self.params
         myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
-        Gact = self.Gth_func(s, self.params)
+        Gact = self.Gact_func(s, self.params)
         Gth = self.kp
+        k_spring = self.params['k_spring']
+        c_spring = self.params['c_spring']
+        H = self.params['H']
+        term1 = 1.0/((1.0 + Gact*Gth*H)*(k_spring + c_spring*s))
+        term2 = Gact*Gth/(1.0 + Gact*Gth*H)
+        #term1 = 1.0/(k_spring + c_spring*s + Gact*Gth*k_spring + Gact*Gth*c_spring*s)
+        #term2 = Gact*Gth/(1.0 + Gact*Gth)
+
+        myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+        matout[myrow,2] = term1
+        matout[myrow,N] = term2
+        return matout
+
+
+class AVS1_Gth_comp(AVS1_kp):
+    def __init__(self, params={}, Gth=None, Gact_func=Gact, **kwargs):
+        """Initialize an instance of the AVS1_Gth_comp class, used to
+        model an Angular Velocity Source with a compensator in the
+        theta feedback loop. There is internal compliance in the
+        actuator.  params is a dictionary with keys 'K_act', 'p_act1'.
+        Gth should be a controls.TransferFunction instance."""
+        self.params = params
+        self.Gth = Gth
+        self.Gact_func = Gact_func
+        TMMElementLHT.__init__(self,'avs',params,**kwargs)
+
+
+    def GetAugMat(self, s, sym=False):
+        """Return the augmented element transfer matrix for the
+        AVS1_kp element."""
+        N=self.maxsize
+        if sym:
+            myparams=self.symparams
+            matout=eye(N+1,dtype='f')
+            matout=matout.astype('S30')
+        else:
+            matout=eye(N+1,dtype='D')
+            myparams=self.params
+        myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+        Gact = self.Gact_func(s, self.params)
+        Gth = self.Gth(s)
         k_spring = self.params['k_spring']
         c_spring = self.params['c_spring']
         H = self.params['H']

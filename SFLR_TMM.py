@@ -27,7 +27,7 @@ from TMM.spring import TorsionalSpringDamper
 from TMM.velocitysource import AngularVelocitySource
 from TMM.velocitysource import AVS1
 from TMM.velocitysource import AVS1_ol
-from TMM.velocitysource import AVS1_kp
+from TMM.velocitysource import AVS1_kp, AVS1_Gth_comp
 from TMM.velocitysource import AVSwThetaFB
 from TMM.feedback import SAMIIAccelFB
 from rwkdataproc import datastruct
@@ -36,7 +36,7 @@ import rwkparse
 import rwkbode
 reload(rwkbode)
 from rwkbode import bodeout
-
+import controls
 import copy
 
 ms=4
@@ -826,6 +826,30 @@ class model_w_bm_with_theta_feedback(model_w_bm):
                                                     bodeouts=[self.bodeout1, \
                                                               self.bodeout2])
 
+
+
+
+class model_w_bm_with_theta_feedback_comp(model_w_bm_with_theta_feedback):
+    def _create_AVS(self):
+        self.avs = AVS1_Gth_comp(params={'K_act':self.params.K_act, \
+                                         'p_act1':self.params.p_act1, \
+                                         'k_spring':self.params.k_spring, \
+                                         'c_spring':self.params.c_spring, \
+                                         'num_act':self.params.num_act, \
+                                         'H':self.params.H}, \
+                                 Gth=self.Gth, \
+                                 maxsize=ms, \
+                                 symname='Uact_tfb', \
+                                 symlabel='act_tfb', \
+                                 unknownparams=['K_act','p_act1','k_spring','c_spring'])
+
+
+    def __init__(self, pkl_path=None, p=20*2*pi, z=3.0*2*pi, gain=2.0):
+        self.Gth = controls.TransferFunction([1,z], [1,p])*gain*(p/z)
+        model_w_bm_with_theta_feedback.__init__(self, pkl_path)
+        self.kp = None
+        
+        
 
 
 
