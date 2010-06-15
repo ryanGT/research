@@ -142,6 +142,131 @@ class AngularVelocitySource(TMMElementLHT):
             intro='The transfer matrix for an angular velocity source element is given by'
         return TMMElementLHT.GetMaximaLatexString(self,name=name,label=label,wrap=wrap,N=N,intro=intro,aug=aug)
 
+
+class AVS1(AngularVelocitySource):
+    def __init__(self,params={},**kwargs):
+        """Initialize an instance of the AngularVelocitySource class.
+        params is a dictionary with keys 'K', 'tau', and 'axis'.  All
+        of these keys are optional.  'K' is the gain and it defaults
+        to 1.  'axis' is the axis about which the actuator rotates -
+        it defaults to 1.  'tau' is the pole of the first order lag of
+        the actuator (i.e. if 'tau' is given and is > 0, the trasnfer
+        function of the actuator will be tau/(s*(s+tau))."""
+        self.params = params
+        TMMElementLHT.__init__(self,'avs',params,**kwargs)
+
+    def GetAugMat(self, s, sym=False):
+        """Return the augmented element transfer matrix for the
+        AngularVelocitySource element, which includes the velocity
+        source portion of 1/s in the augmentend column for theta.  If
+        sym=True, 's' must be a symbolic string and a matrix of
+        strings will be returned.  Otherwise, 's' is a numeric value
+        (probably complex) and the matrix returned will be complex."""
+        N=self.maxsize
+        if sym:
+            myparams=self.symparams
+            matout=eye(N+1,dtype='f')
+            matout=matout.astype('S30')
+        else:
+            matout=eye(N+1,dtype='D')
+            myparams=self.params
+        myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+        K_act = self.params['K_act']
+        p_act1 = self.params['p_act1']
+        s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
+        #changes in p's
+        m1 = abs(s1+p_act1)
+        #m2 = abs(s1+p_act2)
+        num = K_act*m1#*m2
+        matout[myrow,N] = num/(s*(s+p_act1))
+        return matout
+
+
+def Gth(s, params):
+    K_act = params['K_act']
+    p_act1 = params['p_act1']
+    s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
+    #changes in p's
+    m1 = abs(s1+p_act1)
+    #m2 = abs(s1+p_act2)
+    num = K_act*m1#*m2
+    out = num/(s*(s+p_act1))
+    return out
+    
+    
+class AVS1_ol(AVS1):
+    def __init__(self,params={}, Gth_func=Gth, **kwargs):
+        """Initialize an instance of the AngularVelocitySource class.
+        params is a dictionary with keys 'K', 'tau', and 'axis'.  All
+        of these keys are optional.  'K' is the gain and it defaults
+        to 1.  'axis' is the axis about which the actuator rotates -
+        it defaults to 1.  'tau' is the pole of the first order lag of
+        the actuator (i.e. if 'tau' is given and is > 0, the trasnfer
+        function of the actuator will be tau/(s*(s+tau))."""
+        self.params = params
+        self.Gth_func = Gth_func
+        TMMElementLHT.__init__(self,'avs',params,**kwargs)
+
+
+        def GetAugMat(self, s, sym=False):
+            """Return the augmented element transfer matrix for the
+            AngularVelocitySource element, which includes the velocity
+            source portion of 1/s in the augmentend column for theta.  If
+            sym=True, 's' must be a symbolic string and a matrix of
+            strings will be returned.  Otherwise, 's' is a numeric value
+            (probably complex) and the matrix returned will be complex."""
+            N=self.maxsize
+            if sym:
+                myparams=self.symparams
+                matout=eye(N+1,dtype='f')
+                matout=matout.astype('S30')
+            else:
+                matout=eye(N+1,dtype='D')
+                myparams=self.params
+            myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+            act_out = self.Gth_func(s, self.params)
+            matout[myrow,N] = act_out
+            return matout
+
+
+class AVS1_kp(AVS1):
+    def __init__(self,params={}, kp=1.0, Gth_func=Gth, **kwargs):
+        """Initialize an instance of the AVS1_kp class, used to model
+        an Angular Velocity Source under proportional feedback. There
+        is internal compliance in the actuator.  params is a
+        dictionary with keys 'K_act', 'p_act1'.  kp is the feedback
+        gain on the theta feedback loop."""
+        self.params = params
+        self.kp = kp
+        self.Gth_func = Gth_func
+        TMMElementLHT.__init__(self,'avs',params,**kwargs)
+
+
+    def GetAugMat(self, s, sym=False):
+        """Return the augmented element transfer matrix for the
+        AVS1_kp element."""
+        N=self.maxsize
+        if sym:
+            myparams=self.symparams
+            matout=eye(N+1,dtype='f')
+            matout=matout.astype('S30')
+        else:
+            matout=eye(N+1,dtype='D')
+            myparams=self.params
+        myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+        Gact = self.Gth_func(s, self.params)
+        Gth = self.kp
+        k_spring = self.params['k_spring']
+        c_spring = self.params['c_spring']
+        term1 = 1.0/(k_spring + c_spring*s + Gact*Gth*k_spring + Gact*Gth*c_spring*s)
+        term2 = Gact*Gth/(1.0 + Gact*Gth)
+
+        myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+        matout[myrow,2] = term1
+        matout[myrow,N] = term2
+        return matout
+
+
 class AVSwThetaFB(TMMElementLHT):
     """This class models the closed-loop response of an angular
     velocity source with compliance and relative theta feedback."""

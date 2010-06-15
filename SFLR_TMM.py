@@ -25,6 +25,9 @@ from TMM.beam import BeamElement, BeamElement_v2
 from TMM.rigid import RigidMass
 from TMM.spring import TorsionalSpringDamper
 from TMM.velocitysource import AngularVelocitySource
+from TMM.velocitysource import AVS1
+from TMM.velocitysource import AVS1_ol
+from TMM.velocitysource import AVS1_kp
 from TMM.velocitysource import AVSwThetaFB
 from TMM.feedback import SAMIIAccelFB
 from rwkdataproc import datastruct
@@ -211,6 +214,16 @@ class accel_mass(RigidMass):
                  maxsize=ms, symname='Uaccel', symlabel='accel', \
                  symsub=True, usez=True):
         return RigidMass.__init__(self, accel_params,\
+                                  maxsize=maxsize, symlabel=symlabel, \
+                                  symname=symname, symsub=symsub, \
+                                  usez=usez)
+
+
+class base_mass(RigidMass):
+    def __init__(self, bm_params, \
+                 maxsize=ms, symname='Ubm', symlabel='bm', \
+                 symsub=True, usez=True):
+        return RigidMass.__init__(self, bm_params,\
                                   maxsize=maxsize, symlabel=symlabel, \
                                   symname=symname, symsub=symsub, \
                                   usez=usez)
@@ -615,7 +628,123 @@ class SFLR_TMM_OL_model_v4(TMM.TMMSystem.ClampedFreeTMMSystem):
         t2 = time.time()
         print('self.BodeResponse time='+str(t2-t1))
         self.plot_bodes(startfi, clear=clear, **kwargs)
-        
+
+
+class model_w_bm(SFLR_TMM_OL_model_v4):
+    def _create_AVS(self):
+        self.avs = AVS1_ol(params={'K_act':self.params.K_act, \
+                                'p_act1':self.params.p_act1}, \
+                        maxsize=ms, \
+                        symname='Uact', \
+                        symlabel='act', \
+                        unknownparams=['K_act','p_act1'])
+
+    def _load_params(self, pkl_path=None):
+        if pkl_path is not None and (not os.path.exists(pkl_path)):
+            print('could not find pkl_path: '+pkl_path)
+            print('using default params')
+            pkl_path = None
+        if pkl_path is None:
+            myparams = new_def_params()
+            myparams.p_act1 = 15*2*pi
+        else:
+            myparams = load_params(pkl_path)
+        return myparams
+
+    def _create_base_mass(self):
+        bm_params = {'m':self.params.b_m, \
+                     'L':self.params.b_L, \
+                     'r':self.params.b_r, \
+                     'I':self.params.b_I}
+        self.base_mass = base_mass(bm_params)
+
+    
+    def __init__(self, pkl_path=None):
+        self.maxsize = ms
+        self.pkl_path = pkl_path
+        self.params = self._load_params(pkl_path)
+        self._create_AVS()
+        self._create_spring()
+        self._create_base_mass()
+        self._create_clamp_spring()
+        self._create_beam()
+        self._create_accel_mass()
+        self._create_beam2()
+        self._set_accel_ind()
+        #self.b2_ind = self.base_mass
+        self.b2_ind = self.spring
+        self.list = [self.avs, self.spring, self.base_mass, \
+                     self.clamp_spring, \
+                     self.beam, self.accel, self.beam2]
+        self._create_bode_outs()
+        TMM.TMMSystem.ClampedFreeTMMSystem.__init__(self, \
+                                                    self.list, \
+                                                    bodeouts=[self.bodeout1, \
+                                                              self.bodeout2])
+
+
+    def find_symbolic_bodes(self, save=1):
+        """This is copied from the sympy model, don't call this method."""
+        U0 = AVS.Get_Aug_Mat(s)
+        U1 = TSD.Get_Aug_Mat(s)
+        U2 = Base_Mass.Get_Aug_Mat(s)
+        U3 = TSD_clamp.Get_Aug_Mat(s)
+        U4 = beam1.Get_Aug_Mat(s)
+        U5 = Accel_Mass.Get_Aug_Mat(s)
+        U6 = beam2.Get_Aug_Mat(s)
+        Usys = U6*(U5*(U4*(U3*(U2*(U1*U0)))))
+        z_b = sympy_TMM.find_base_vector(Usys)
+        z_enc = U2*(U1*(U0*z_b))
+        enc_gain = 180.0/pi*1024.0/360.0
+        theta = z_enc[1]*enc_gain
+
+        z_a = U5*(U4*(U3*z_enc))
+        atip = s**2*z_a[0]*a_gain
+        self.sym_bodes = [theta, atip]
+        self.Usys = Usys
+        if save:
+            self.cse_to_file()
+            return self.sym_bodes
+
+
+class model_w_bm_with_theta_feedback(model_w_bm):
+    def _create_AVS(self):
+        self.avs = AVS1_kp(kp=self.kp, params={'K_act':self.params.K_act, \
+                                               'p_act1':self.params.p_act1, \
+                                               'k_spring':self.params.k_spring, \
+                                               'c_spring':self.params.c_spring}, \
+                        maxsize=ms, \
+                        symname='Uact_tfb', \
+                        symlabel='act_tfb', \
+                        unknownparams=['K_act','p_act1','k_spring','c_spring'])
+
+
+    def __init__(self, pkl_path=None, kp=1.0):
+        self.kp = kp
+        self.maxsize = ms
+        self.pkl_path = pkl_path
+        self.params = self._load_params(pkl_path)
+        self._create_AVS()
+        self._create_base_mass()
+        self._create_clamp_spring()
+        self._create_beam()
+        self._create_accel_mass()
+        self._create_beam2()
+        self._set_accel_ind()
+        #self.b2_ind = self.base_mass
+        self.b2_ind = self.avs
+        self.list = [self.avs, self.base_mass, \
+                     self.clamp_spring, \
+                     self.beam, self.accel, self.beam2]
+        self._create_bode_outs()
+        TMM.TMMSystem.ClampedFreeTMMSystem.__init__(self, \
+                                                    self.list, \
+                                                    bodeouts=[self.bodeout1, \
+                                                              self.bodeout2])
+
+
+
+
 class Rigid_Actuator_Model(SFLR_TMM_OL_model_v4):
     """Model for the SFLR with only the AVS and Beam (i.e. the
     actuator cannot be back-driven)."""

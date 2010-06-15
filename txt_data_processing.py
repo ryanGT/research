@@ -233,12 +233,16 @@ class Data_Set(object):
     variable, so that each column of each matrix represents a
     different experimental test.
 
-    If pattern is None, no attempt will be made to load the data.
-    This is useful only if you are loading a saved data set from a
-    module, otherwise, you want pattern to be a glob pattern for your
-    txt files."""
+    If pattern is None, you may instead pass in paths which should be
+    a list of files to overlay.  pattern must be None if you are going
+    to pass in a list of paths.
+
+    If pattern and paths are both None, no attempt will be made to
+    load the data.  This is useful only if you are loading a saved
+    data set from a module, otherwise, you want pattern to be a glob
+    pattern for your txt files."""
     def __init__(self, pattern=None, time_col=0, time_label='t', \
-                 col_map={}, title_dict={}, \
+                 col_map={}, title_dict={}, paths=None, \
                  delim='\t', skiprows=None):
         self.pattern = pattern
         self.time_col = time_col
@@ -247,12 +251,18 @@ class Data_Set(object):
         self.title_dict = title_dict
         self.delim = delim
         self.skiprows = skiprows
+        call_load = False
         if pattern is not None:
             self.filepaths = glob.glob(pattern)
             self.filepaths.sort()
             assert len(self.filepaths) > 0, \
                    "Could not find any files matching pattern: %s" % \
                    pattern
+            call_load =  True
+        elif paths is not None:
+            self.filepaths = paths
+            call_load = True
+        if call_load:
             self.folder, filename = os.path.split(self.filepaths[0])
             self.Load_Data()
 
