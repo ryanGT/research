@@ -140,6 +140,17 @@ class Sympy_TSD_Element(Sympy_TMM_Element):
         self.U = S
         return S
 
+
+class Sympy_TSD_Generic_Element(Sympy_TMM_Element):
+    def Get_Mat(self, s):
+        D_s = self.params['D_s']
+        S = Matrix([[1.0, 0, 0, 0],\
+                    [0, 1.0, 1.0/D_s, 0],\
+                    [0, 0, 1.0, 0],\
+                    [0, 0, 0, 1.0]])
+        self.U = S
+        return S
+
 class Sympy_Rigid_Mass_Element(Sympy_TMM_Element):
     def Get_Mat(self, s):
         L = self.params['L']
@@ -195,6 +206,32 @@ class Sympy_AVS1_Element(Sympy_AVS_Element):
         #m2 = abs(s1+p_act2)
         num = K_act*m1#*m2
         U[1,self.N] = num/(s*(s+p_act1))
+        self.augU = U
+        return U
+
+
+class Sympy_AVS1N_Element(Sympy_AVS_Element):
+    def Get_Aug_Mat(self, s):
+        #K_act = self.params['K_act']
+        N = self.params['num_act']
+        p_act1 = self.params['p_act1']
+        #p_act2 = self.params['p_act2']
+        U = eye(self.N+1)
+##         s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
+##                         #changes in p's
+##         m1 = abs(s1+p_act1)
+##         #m2 = abs(s1+p_act2)
+##         num = K_act*m1#*m2
+##         U[1,self.N] = num/(s*(s+p_act1))
+        U[1,self.N] = N/(s*(s+p_act1))
+        self.augU = U
+        return U
+
+class Sympy_AVS_Generic_Element(Sympy_AVS_Element):
+    def Get_Aug_Mat(self, s):
+        G_act = self.params['G_act']
+        U = eye(self.N+1)
+        U[1,self.N] = G_act
         self.augU = U
         return U
 
