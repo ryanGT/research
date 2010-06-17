@@ -2033,6 +2033,13 @@ class TMMSystem:
                 matout[r,c]=U[curri,curci]
         return matout, vectout
 
+
+    def FindAugSubmatDet(self, s):
+        subU, vect=self.FindAugSubmat(s)
+        det = scipy.linalg.det(subU)
+        return det
+    
+
     def BaseVectBode(self, wvect):
         if isinstance(wvect,list):
             wvect=array(wvect)

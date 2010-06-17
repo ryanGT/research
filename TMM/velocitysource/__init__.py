@@ -1,16 +1,19 @@
 from __future__ import division
-from scipy import cos, cosh, sin, sinh, array, r_, c_, exp, pi, dot, real, imag, zeros, eye, shape, atleast_1d
+from scipy import cos, cosh, sin, sinh, array, r_, c_, exp, pi, \
+     dot, real, imag, zeros, eye, shape, atleast_1d
 #import MLab
 import scipy
 from scipy.linalg import det
 import copy
 #import pdb
 from  IPython.Debugger import Pdb
-from TMM.TMMElement import TMMElement, HT4, TMMElementLHT
+from TMM.TMMElement import TMMElement, HT4, TMMElementLHT, \
+     TMMElementIHT
 import rwkmisc
 from rwkmisc import symstr, SymstrMattoMaxima
+#Note: replaced all TMMElementLHT's with TMMElementIHT 06/17/10 rwk
 
-class AngularVelocitySource(TMMElementLHT):
+class AngularVelocitySource(TMMElementIHT):#TMMElementLHT):
     """This class models an angular velocity source.  This class is
     used to model rotary hydraulic actuators."""
     def __init__(self,params={},**kwargs):
@@ -32,7 +35,7 @@ class AngularVelocitySource(TMMElementLHT):
                 params['tau']=params['tau'][0]
             if params['tau']<=0:
                 params.pop('tau')
-        TMMElementLHT.__init__(self,'avs',params,**kwargs)
+        TMMElementIHT.__init__(self,'avs',params,**kwargs)
 
     def GetMat(self, s, sym=False):
         """Return the element transfer matrix for the
@@ -140,7 +143,7 @@ class AngularVelocitySource(TMMElementLHT):
     def GetMaximaLatexString(self,name=None,label=None,wrap=0,N=None,intro=None,aug=0):#omit
         if intro is None:
             intro='The transfer matrix for an angular velocity source element is given by'
-        return TMMElementLHT.GetMaximaLatexString(self,name=name,label=label,wrap=wrap,N=N,intro=intro,aug=aug)
+        return TMMElementIHT.GetMaximaLatexString(self,name=name,label=label,wrap=wrap,N=N,intro=intro,aug=aug)
 
 
 class AVS1(AngularVelocitySource):
@@ -167,7 +170,7 @@ class AVS1(AngularVelocitySource):
         self.params = params
         if not params.has_key('num_act'):
             self._calc_num_act()
-        TMMElementLHT.__init__(self,'avs',params,**kwargs)
+        TMMElementIHT.__init__(self,'avs',params,**kwargs)
 
 
     def GetAugMat(self, s, sym=False):
@@ -218,7 +221,7 @@ class AVS1_ol(AVS1):
         function of the actuator will be tau/(s*(s+tau))."""
         self.params = params
         self.Gact_func = Gact_func
-        TMMElementLHT.__init__(self,'avs',params,**kwargs)
+        TMMElementIHT.__init__(self,'avs',params,**kwargs)
 
 
         def GetAugMat(self, s, sym=False):
@@ -252,7 +255,7 @@ class AVS1_kp(AVS1_ol):
         self.params = params
         self.kp = kp
         self.Gact_func = Gact_func
-        TMMElementLHT.__init__(self,'avs',params,**kwargs)
+        TMMElementIHT.__init__(self,'avs',params,**kwargs)
 
 
     def GetAugMat(self, s, sym=False):
@@ -293,7 +296,7 @@ class AVS1_Gth_comp(AVS1_kp):
         self.params = params
         self.Gth = Gth
         self.Gact_func = Gact_func
-        TMMElementLHT.__init__(self,'avs',params,**kwargs)
+        TMMElementIHT.__init__(self,'avs',params,**kwargs)
 
 
     def GetAugMat(self, s, sym=False):
@@ -324,7 +327,7 @@ class AVS1_Gth_comp(AVS1_kp):
         return matout
 
 
-class AVSwThetaFB(TMMElementLHT):
+class AVSwThetaFB(TMMElementIHT):
     """This class models the closed-loop response of an angular
     velocity source with compliance and relative theta feedback."""
     def __init__(self,params={}, **kwargs):
@@ -352,7 +355,7 @@ class AVSwThetaFB(TMMElementLHT):
         if params.has_key('tau'):
             if shape(params['tau']):
                 params['tau']=params['tau'][0]
-        TMMElementLHT.__init__(self,'avsthfb',params,**kwargs)
+        TMMElementIHT.__init__(self,'avsthfb',params,**kwargs)
 
     def GetMat(self,s):
         """Return the element transfer matrix for the AVSwThetaFB
@@ -475,7 +478,7 @@ class AVSwThetaFB(TMMElementLHT):
             else:
                 label='avsfb'
                 self.symlabel=label
-        maxlines, myname,defs,params,dummylabel=TMMElementLHT.GetAugMaximaString(self,name,label,N)
+        maxlines, myname,defs,params,dummylabel=TMMElementIHT.GetAugMaximaString(self,name,label,N)
         if N is None:
             N=self.maxsize
         Np1str=str(N+1)
@@ -535,7 +538,7 @@ class AVSwArbFB(AVSwThetaFB):#omit
         if params.has_key('tau'):
             if shape(params['tau']):
                 params['tau']=params['tau'][0]
-        TMMElementLHT.__init__(self,'avsthfb',params,maxsize=maxsize,label=label)
+        TMMElementIHT.__init__(self,'avsthfb',params,maxsize=maxsize,label=label)
 
     def GetAugMat(self,s):
         N=self.maxsize
@@ -622,7 +625,7 @@ class AVSwArbFB(AVSwThetaFB):#omit
 
     def GetAugMaximaString(self,name=None,label=None,N=None,subGp=False):
         print('subGp='+str(subGp))
-        maxlines, myname,defs,params,dummylabel=TMMElementLHT.GetAugMaximaString(self,name,label,N)
+        maxlines, myname,defs,params,dummylabel=TMMElementIHT.GetAugMaximaString(self,name,label,N)
         if N is None:
             N=self.maxsize
         Np1str=str(N+1)
