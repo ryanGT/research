@@ -1,7 +1,11 @@
 from __future__ import division
 import TMM
 reload(TMM)
-from scipy import pi, sqrt, arange, vectorize, exp, c_, array, transpose, real, imag, rand, cos, sin, sinh, cosh, argmax, arange, eye, zeros, shape, poly1d
+import TMM.TMMSystem
+reload(TMM.TMMSystem)
+from scipy import pi, sqrt, arange, vectorize, exp, c_, array, \
+     transpose, real, imag, rand, cos, sin, sinh, cosh, argmax, \
+     arange, eye, zeros, shape, poly1d, row_stack, squeeze
 import pylab
 import scipy
 import pdb
@@ -702,8 +706,20 @@ class model_w_bm(SFLR_TMM_OL_model_v4):
                                                               self.bodeout2])
 
 
+    def extract_mode_values_for_ROM(self, eig):
+        disp, angles, modedict = self.FindModeShape(eig)
+        spring = modedict.bodies[2]
+        accel = modedict.bodies[6]
+        x_accel = accel['disps']
+        x_ddot = x_accel*eig**2
+        theta = spring['angles']
+        c = row_stack([x_ddot, theta])
+        return c
+
+
     def find_symbolic_bodes(self, save=1):
-        """This is copied from the sympy model, don't call this method."""
+        """This is copied from the sympy model, don't call this
+        method."""
         U0 = AVS.Get_Aug_Mat(s)
         U1 = TSD.Get_Aug_Mat(s)
         U2 = Base_Mass.Get_Aug_Mat(s)

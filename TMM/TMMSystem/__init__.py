@@ -1,11 +1,16 @@
 from __future__ import division
-from scipy import cos, cosh, sin, sinh, array, r_, c_, exp, pi, real, imag, zeros, eye, alltrue, shape, atleast_1d, dot, vstack, isscalar
+from scipy import cos, cosh, sin, sinh, array, r_, c_, exp, pi, \
+     real, imag, zeros, eye, alltrue, shape, atleast_1d, dot, \
+     vstack, isscalar, squeeze
 from scipy.linalg import inv as inverse
+from scipy.linalg import inv
 import scipy.optimize
 from scipy.io import save
 #import MLab
 import scipy
+import numpy
 from scipy.linalg import det
+from scipy import linalg
 import copy, os, sys
 import pdb
 from rref import rrefnull
@@ -2069,6 +2074,99 @@ class TMMSystem:
         argsout=[defaults[key] for key in keylist]
         return argsout
 
+
+    def extract_mode_values_for_ROM(self, eig):
+        """This method needs to be over-written for systems that call
+        the Reduced_Order_Model method.  It is a helper method for
+        describing how to calculate the sensor modal response for the
+        eigenvalue eig."""
+        raise NotImplementedError
+
+
+    def Reduced_Order_Model(self, act_eigs, ods_freqs, sys_eigs, ffit):
+        """This method attempts to automate the creation of a reduced
+        order model (ROM) based on the method of Book and Majette
+        combined with my approach for handling actuator eigenvalues
+        using operating deflection shapes.
+
+        act_eigs are the system eigenvalues (s values in radians/second)
+
+        ods_freqs are the frequency values in Hz for calculating the
+        operating deflection shapes
+
+        sys_eigs are the system eigenvalues (also s values in
+        radians/second)
+
+        ffit is the vector of frequencies in Hz used to do the least
+        squares curve-fit to find B."""
+        M = len(self.bodeouts)
+        N_act = len(act_eigs)
+        N_sys = len(sys_eigs)
+        lam = numpy.append(act_eigs, sys_eigs)
+        self.lam = lam
+        N = len(lam)
+        self.N_rom = N
+        A = numpy.diag(lam)
+        bodelist = self.BodeResponse(ods_freqs)
+        C = zeros((M,N),dtype='D')
+        B = zeros(N, dtype='D')
+        
+        for i, bode in enumerate(bodelist):
+            C[i,0:N_act] = bode.ToComp()
+
+        for j, eig in enumerate(sys_eigs):
+            curC = self.extract_mode_values_for_ROM(eig)
+            C[:,N_act+j] = squeeze(curC)
+            
+        self.A = A
+        self.C = C
+
+        #Find B from least squares
+        sfit = 2.0j*pi*ffit
+        bodelist_fit = self.BodeResponse(ffit)
+        q = len(ffit)
+        bode_mat = zeros((q,M), dtype='D')
+        for i, bode in enumerate(bodelist_fit):
+            bode_mat[:,i] = bode.ToComp()
+        G_tmm = bode_mat.flatten()
+
+        I = eye(N)
+        X = zeros((q*M,N), dtype='D')
+        for x, curs in enumerate(sfit):
+            tempmat = dot(C,inv(curs*I-A))
+            X[2*x:2*x+2,:] = tempmat#[0,:]
+
+        B_fit = linalg.basic.lstsq(X,G_tmm)
+        B = B_fit[0]
+
+        self.B = B
+        
+        return A, B, C
+
+    def _freq_resp_one_s(self, s):
+        N = self.N_rom
+        I = eye(N)
+        Q = s*I-self.A
+        Qi = inv(Q)
+        temp = dot(Qi,self.B)
+        out = dot(self.C,temp)
+        return squeeze(out)
+
+
+    def FreqResp_ROM(self, f):
+        """Find the frequency response of the reduced order model.
+
+        f is a vector of frequencies in Hz."""
+        s = 2.0j*pi*f
+        M = len(self.bodeouts)
+        y = zeros((len(f),M), dtype='D')
+        for i, s_i in enumerate(s):
+            y_i = self._freq_resp_one_s(s_i)
+            y[i,:] = y_i
+        self.y_rom = y
+        return y
+
+        
 class ClampedFreeTMMSystem(TMMSystem):
     def __init__(self,elemlist,bcend='free',bcbase='fixed',bodeouts=[]):
         TMMSystem.__init__(self,elemlist,bcend=bcend,bcbase=bcbase,bodeouts=bodeouts)
