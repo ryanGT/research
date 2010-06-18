@@ -696,7 +696,9 @@ def _inccount():
     ax=gca()
     ax._get_lines.count+=1
     
-def _PlotMatrixvsF(freqvect,matin,linetype='',linewidth=None, semilogx=True, allsolid=False, axis=None):
+def _PlotMatrixvsF(freqvect, matin, linetype='', \
+                   linewidth=None, semilogx=True, \
+                   allsolid=False, axis=None, label=None):
     mykwargs={}
     usepylab = False
     if axis is None:
@@ -710,7 +712,9 @@ def _PlotMatrixvsF(freqvect,matin,linetype='',linewidth=None, semilogx=True, all
         else:
             mykwargs.update(_getlinetype(axis))
         if linewidth:
-            mykwargs['linewidth']=linewidth
+            mykwargs['linewidth'] = linewidth
+        if label is not None:
+           mykwargs['label'] = label
         if semilogx:
             curline,=axis.semilogx(*myargs,**mykwargs)
         else:
@@ -727,6 +731,8 @@ def _PlotMatrixvsF(freqvect,matin,linetype='',linewidth=None, semilogx=True, all
                 mykwargs.update(_getlinetype(axis))
             if linewidth:
                 mykwargs['linewidth']=linewidth
+            if label is not None:
+               mykwargs['label'] = label
             if semilogx:
                 curline,=axis.semilogx(*myargs,**mykwargs)
             else:
@@ -736,18 +742,24 @@ def _PlotMatrixvsF(freqvect,matin,linetype='',linewidth=None, semilogx=True, all
     return mylines
 
 
-def _PlotMag(freqvect,bodein,linetype='',linewidth=0, axis=None):
+def _PlotMag(freqvect,bodein,linetype='',linewidth=0, \
+             axis=None, label=None):
     if callable(bodein.dBmag):
         myvect=bodein.dBmag()
     else:
         myvect=bodein.dBmag
-    return _PlotMatrixvsF(freqvect, myvect, linetype=linetype, linewidth=linewidth, axis=axis)
+    return _PlotMatrixvsF(freqvect, myvect, linetype=linetype, \
+                          linewidth=linewidth, axis=axis, label=label)
 
-def _PlotPhase(freqvect,bodein,linetype='',linewidth=0, axis=None):
-    return _PlotMatrixvsF(freqvect,bodein.phase,linetype=linetype,linewidth=linewidth, axis=axis)
+def _PlotPhase(freqvect,bodein,linetype='',linewidth=0, axis=None, \
+               label=None):
+    return _PlotMatrixvsF(freqvect,bodein.phase,linetype=linetype, \
+                          linewidth=linewidth, axis=axis, label=label)
 
-def _PlotCoh(freqvect,bodein,linetype='',linewidth=0, axis=None):
-    return _PlotMatrixvsF(freqvect,bodein.coh,linetype=linetype,linewidth=linewidth, axis=axis)
+def _PlotCoh(freqvect,bodein,linetype='',linewidth=0, axis=None, \
+             label=None):
+    return _PlotMatrixvsF(freqvect,bodein.coh, linetype=linetype, \
+                          linewidth=linewidth, axis=axis, label=label)
 
 #ttttttttttttttttttttttttttttttttttttttttttt
 #
@@ -872,7 +884,7 @@ def GenBodePlot(fignum, freqvect, bodein, clear=True, \
     
     if type(bodein)==type(arange(0,1,0.01)):
         bodein=rwkbode(compin=bodein)
-    myargs=['linetype','colors','linewidth']
+    myargs=['linetype','colors','linewidth','label']
     subkwargs={}
     for key in myargs:
         if kwargs.has_key(key):
