@@ -267,6 +267,12 @@ class Data_Set(object):
             self.Load_Data()
 
 
+    def _get_fig(self, fignum=1, size=None):
+        from pylab import figure
+        fig = figure(fignum, size)
+        return fig
+            
+
     def _get_list_of_figs(self, N, fignum=1, size=None):
         from pylab import figure
         figs = []
@@ -731,6 +737,24 @@ class Bode_Data_Set(Data_Set):
             if (item.output == output_label) and (item.input == input_label):
                 return item
 
+
+    def Plot_One_Ave_Bode(self, fignum, output, input, trunc=True, \
+                          clear=False, label=None, \
+                          func=rwkbode.GenBodePlot, linetype='-', \
+                          **kwargs):
+        if trunc:
+            search_attr = 'trunc_avebodes'
+            f = self.trunc_f
+        else:
+            search_attr = 'avebodes'
+            f = self.f
+        bode = self.find_bode(output, input, attr=search_attr)
+        func(fignum, f, bode, clear=clear, label=label, \
+             linetype=linetype, **kwargs)
+        fig = self._get_fig(fignum)
+        mplutil.set_Bode_opts(fig, bode, coh=False)
+        return bode
+        
 
     def Bode_Plot2(self, attr='avebodes', f_attr='f', \
                    figs=None, fignum=1, size=None, \

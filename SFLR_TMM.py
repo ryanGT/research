@@ -633,24 +633,47 @@ class SFLR_TMM_OL_model_v4(TMM.TMMSystem.ClampedFreeTMMSystem):
         self.accel_theta_bode = a_th_bode
         return theta_v_bode, accel_v_bode, a_th_bode
 
-    def plot_bodes(self, startfi=1, clear=False, **kwargs):
+
+    def plot_bodes(self, startfi=1, clear=False, \
+                   plot_accel_v_theta=True, **kwargs):
         f = self.fvect
         rwkbode.GenBodePlot(startfi, f, self.theta_v_bode, clear=clear, \
                             **kwargs)
         rwkbode.GenBodePlot(startfi+1, f, self.accel_v_bode, \
                             clear=clear, **kwargs)
-        rwkbode.GenBodePlot(startfi+2, f, self.accel_theta_bode, \
-                            clear=clear, **kwargs)
+        if plot_accel_v_theta:
+            rwkbode.GenBodePlot(startfi+2, f, self.accel_theta_bode, \
+                                clear=clear, **kwargs)
 
-    def calc_and_plot_bodes(self, fvect, startfi=1, clear=False, **kwargs):
+    def calc_and_plot_bodes(self, fvect, startfi=1, clear=False, \
+                            plot_accel_v_theta=True, **kwargs):
         t1 = time.time()
         self.calc_bodes(fvect)
         t2 = time.time()
         print('self.BodeResponse time='+str(t2-t1))
-        self.plot_bodes(startfi, clear=clear, **kwargs)
+        self.plot_bodes(startfi, clear=clear, \
+                        plot_accel_v_theta=plot_accel_v_theta, \
+                        **kwargs)
 
 
 class model_w_bm(SFLR_TMM_OL_model_v4):
+    def calc_and_plot_bodes(self, fvect, startfi=1, clear=False, \
+                            plot_accel_v_theta=False, **kwargs):
+        SFLR_TMM_OL_model_v4.calc_and_plot_bodes(self, fvect, \
+                                                 startfi=startfi, \
+                                                 clear=clear, \
+                                                 plot_accel_v_theta=plot_accel_v_theta, \
+                                                 **kwargs)
+
+    def plot_bodes(self, startfi=1, clear=False, \
+                   plot_accel_v_theta=False, **kwargs):
+        SFLR_TMM_OL_model_v4.plot_bodes(self, \
+                                        startfi=startfi, \
+                                        clear=clear, \
+                                        plot_accel_v_theta=plot_accel_v_theta, \
+                                        **kwargs)
+
+
     def _create_AVS(self):
         self.avs = AVS1_ol(params={'K_act':self.params.K_act, \
                                    'p_act1':self.params.p_act1, \
@@ -686,6 +709,7 @@ class model_w_bm(SFLR_TMM_OL_model_v4):
         self.maxsize = ms
         self.pkl_path = pkl_path
         self.params = self._load_params(pkl_path)
+        self.params.a_gain *= 2.0
         self._create_AVS()
         self._create_spring()
         self._create_base_mass()
