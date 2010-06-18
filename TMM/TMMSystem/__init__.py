@@ -2083,6 +2083,11 @@ class TMMSystem:
         raise NotImplementedError
 
 
+    def tweak_C_ROM(self, C):
+        """This is a band aid method for dealing with rigid body modes
+        in the Reduced Order Model."""
+        return C#do nothing in the default case
+
     def Reduced_Order_Model(self, act_eigs, ods_freqs, sys_eigs, ffit):
         """This method attempts to automate the creation of a reduced
         order model (ROM) based on the method of Book and Majette
@@ -2106,6 +2111,8 @@ class TMMSystem:
         self.lam = lam
         N = len(lam)
         self.N_rom = N
+        self.N_act = N_act
+        self.N_sys = N_sys
         A = numpy.diag(lam)
         bodelist = self.BodeResponse(ods_freqs)
         C = zeros((M,N),dtype='D')
@@ -2119,6 +2126,7 @@ class TMMSystem:
             C[:,N_act+j] = squeeze(curC)
             
         self.A = A
+        C = self.tweak_C_ROM(C)
         self.C = C
 
         #Find B from least squares
@@ -2134,13 +2142,14 @@ class TMMSystem:
         X = zeros((q*M,N), dtype='D')
         for x, curs in enumerate(sfit):
             tempmat = dot(C,inv(curs*I-A))
-            X[2*x:2*x+2,:] = tempmat#[0,:]
+            X[M*x:M*x+M,:] = tempmat#[0,:]
 
         B_fit = linalg.basic.lstsq(X,G_tmm)
         B = B_fit[0]
 
         self.B = B
-        
+        self.G_tmm = G_tmm
+        self.X_rom = X
         return A, B, C
 
     def _freq_resp_one_s(self, s):
