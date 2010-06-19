@@ -623,7 +623,7 @@ class SFLR_TMM_OL_model_v4(TMM.TMMSystem.ClampedFreeTMMSystem):
         accel_v_bode = phase_shift(accel_v_bode)
 
         a_th_bode = accel_v_bode.__div__(theta_v_bode)
-        a_th_bode.seedfreq = 10.0
+        a_th_bode.seedfreq = 9.0
         a_th_bode.seedphase = 0.0
         a_th_bode.PhaseMassage(fvect)
         a_th_bode = a_massage(a_th_bode, fvect)
