@@ -520,6 +520,19 @@ def phase_shift(bode, max_phase=120):
     return bode
 
 class SFLR_TMM_OL_model_v4(TMM.TMMSystem.ClampedFreeTMMSystem):
+    def find_bode(self, bode_opt):
+        assert hasattr(self, 'bodes'), 'You must calculate the bodes before trying to find one.'
+        found = False
+        for bode in self.bodes:
+            if bode.input == bode_opt.input_label and \
+               bode.output == bode_opt.output_label:
+                found = True
+                return bode
+        if not found:
+            print('could not find bode with input %s and output %s' % \
+                  (bode.input, bode.output))
+                  
+        
     def _build_beam_params_dict(self, params=None, Lparam='L'):
         if params is None:
             params = self.params
@@ -657,6 +670,26 @@ class SFLR_TMM_OL_model_v4(TMM.TMMSystem.ClampedFreeTMMSystem):
 
 
 class model_w_bm(SFLR_TMM_OL_model_v4):
+    def _create_bode_outs(self):
+        """Note that self.list and self.b2_ind must be defined before
+        self._create_bode_outs is called.  self.b2_ind is the index of
+        the element just before the encoder measurement.  If the
+        actuator is rigid, self.b2_ind should probably be set to
+        self.avs.  If there is flexibility in the actuator,
+        self.b2_ind should probaby be set to the torsional
+        spring/damper following the avs."""
+        self._set_accel_ind()
+        a_gain = self.params.a_gain
+        bodeout1={'input':'v', 'output':'a', 'type':'abs', \
+                  'ind':self.accel_ind, 'post':'accel', 'dof':0, \
+                  'gain':a_gain,'gainknown':False}
+        bodeout2={'input':'v', 'output':'theta', 'type':'abs', \
+                  'ind':self.b2_ind, 'post':'', 'dof':1, \
+                  'gain':180.0/pi*1024.0/360.0}
+        self.bodeout1=bodeout(**bodeout1)
+        self.bodeout2=bodeout(**bodeout2)
+
+
     def calc_and_plot_bodes(self, fvect, startfi=1, clear=False, \
                             plot_accel_v_theta=False, **kwargs):
         SFLR_TMM_OL_model_v4.calc_and_plot_bodes(self, fvect, \
@@ -777,7 +810,7 @@ class model_w_bm_with_theta_feedback(model_w_bm):
         spring/damper following the avs."""
         self._set_accel_ind()
         a_gain = self.params.a_gain
-        bodeout1={'input':'u', 'output':'atip', 'type':'abs', \
+        bodeout1={'input':'u', 'output':'a', 'type':'abs', \
                   'ind':self.accel_ind, 'post':'accel', 'dof':0, \
                   'gain':a_gain*2.0,'gainknown':False}#the *2.0
                                                       #accounts for
@@ -785,7 +818,7 @@ class model_w_bm_with_theta_feedback(model_w_bm):
                                                       #vs. 9 when the
                                                       #curve fitting
                                                       #was done
-        bodeout2={'input':'u', 'output':'th', 'type':'abs', \
+        bodeout2={'input':'u', 'output':'theta', 'type':'abs', \
                   'ind':self.b2_ind, 'post':'', 'dof':1, \
                   'gain':self.params.H}
         self.bodeout1=bodeout(**bodeout1)

@@ -738,7 +738,7 @@ class Bode_Data_Set(Data_Set):
                 return item
 
 
-    def Plot_One_Ave_Bode(self, fignum, output, input, trunc=True, \
+    def Plot_One_Ave_Bode(self, fignum, bode_opt, trunc=True, \
                           clear=False, label=None, \
                           func=rwkbode.GenBodePlot, linetype='-', \
                           **kwargs):
@@ -748,11 +748,13 @@ class Bode_Data_Set(Data_Set):
         else:
             search_attr = 'avebodes'
             f = self.f
-        bode = self.find_bode(output, input, attr=search_attr)
+        bode = self.find_bode(bode_opt.output_label, \
+                              bode_opt.input_label, \
+                              attr=search_attr)
         func(fignum, f, bode, clear=clear, label=label, \
              linetype=linetype, **kwargs)
         fig = self._get_fig(fignum)
-        mplutil.set_Bode_opts(fig, bode, coh=False)
+        mplutil.set_Bode_opts(fig, bode_opt, coh=False)
         return bode
         
 
