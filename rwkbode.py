@@ -179,10 +179,13 @@ class rwkbode:
         return outbode
 
     def dB_Phase_Error_sum(self,other, phaseweight=0.1):
-        """Subtract two bodes dBmag and phase and return the sum of the squared error."""
-        phaseerror=(squeeze(self.phase)-squeeze(other.phase)).sum()
-        dBmagerror=(self.dBmag()-other.dBmag()).sum()
-        return dBmagerror+phaseerror*phaseweight
+        """Subtract two bodes dBmag and phase and return the sum of
+        the squared error."""
+        phaseerror = squeeze(self.phase)-squeeze(other.phase)
+        e_phase = (phaseerror**2).sum()
+        dBmagerror = self.dBmag()-other.dBmag()
+        e_dB = (dBmagerror**2).sum()
+        return e_dB + e_phase*phaseweight
        
     def __mul__(self,other):
         """Multiply two bodes."""
@@ -1063,3 +1066,5 @@ def FindMatch(bodelist, output, input):
         return bodeout
     else:
         raise IndexError, 'Could not find bode with output='+output +' and input='+input
+
+   
