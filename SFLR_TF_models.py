@@ -25,7 +25,6 @@ reload(SFLR_TMM)
 import bode_plot_overlayer as BPO
 reload(BPO)
 
-import bode_options
 
 def notch_tf(C):
     wz = C[0]
