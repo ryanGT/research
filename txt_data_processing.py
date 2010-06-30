@@ -195,19 +195,44 @@ class Data_File(object):
         for ind, attr in self.col_map.iteritems():
             setattr(self, attr, data[:,ind])
 
-
-    def get_time_axis(self, fignum):
+    def get_figure(self, fignum):
         from pylab import figure
         fig = figure(fignum)
+        return fig
+
+    def get_time_axis(self, fignum):
+        fig = self.get_figure(fignum)
         ax = fig.add_subplot(111)
         return ax
-    
+
+
+    def _build_plot_filename(self, basename, labels=None, fig_dir=''):
+        fig_name = basename+'_time_plot'
+        fig_name += '_%s' % '_'.join(labels)
+        fig_path = os.path.join(fig_dir, fig_name)
+        return fig_path
+
+
+    def Save_Time_Plot(self, basename, labels=None, \
+                       fignum=1, fig_dir='', \
+                       ext='.png'):
+        if labels is None:
+            labels = filter(filterx, self.labels)
+        fig_path = self._build_plot_filename(basename, \
+                                             labels=labels, \
+                                             fig_dir=fig_dir)
+        fig = self.get_figure(fignum)
+        mplutil.mysave(fig_path, fig, ext=ext)
+        return fig_path
+        
+        
         
     def Time_Plot(self, labels=None, ax=None, fignum=1,
-                  clear=True, legloc=4, legend_dict={}, \
+                  clear=True, legloc=None, legend_dict={}, \
                   ylabel='Voltage (counts)', \
                   basename=None, save=False, \
-                  ext='.png', fig_dir='', **plot_opts):                  
+                  ext='.png', fig_dir='', title=None, \
+                  **plot_opts):                  
         if ax is None:
             ax = self.get_time_axis(fignum)
         if clear:
@@ -216,14 +241,21 @@ class Data_File(object):
             labels = filter(filterx, self.labels)
         for label in labels:
             curvect = getattr(self, label)
+            if legend_dict.has_key(label):
+                curlabel = legend_dict[label]
+            else:
+                curlabel = label
             mplutil.plot_vect(ax, self.t, curvect, clear=False, \
-                              ylabel=ylabel, **plot_opts)
-        #ax.legend(labels, loc=legloc)
-##         if basename and savefigs:
-##             fig_name = basename+'_time_plot'
-##             fig_name += '_%s' % '_'.join(labels)
-##             fig_path = os.path.join(fig_dir, fig_name)
-##             mplutil.mysave(fig_path, fig, ext=ext)
+                              ylabel=ylabel, labels=[curlabel],
+                              **plot_opts)
+        if legloc is not None:
+            ax.legend(loc=legloc)
+        if title is not None:
+            ax.set_title(title)
+        if basename and save:
+            self.Save_Time_Plot(basename, labels=labels, \
+                       fignum=fignum, fig_dir=fig_dir, \
+                                ext=ext)
         return ax
 
 
