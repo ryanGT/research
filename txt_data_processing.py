@@ -110,18 +110,20 @@ class Data_File(object):
 
     (the code actually uses setattr(self, key, data[:,ind])).
     """
-    def __init__(self, path, col_map={}, delim='\t', skiprows=None):
+    def __init__(self, path, col_map={}, delim='\t', skiprows=None, \
+                 check_n=True):
         self.path = path
         self.col_map = col_map
         self.delim = delim
         self.skiprows = skiprows
         if os.path.exists(self.path):
             self.Load_Data()
-            res = self.check_n()
-            if res:
-                self.fix_n()
-                res2 = self.check_n()
-                assert res2 is False, "Unwrapping of the n vector failed."
+            if check_n:
+                res = self.check_n()
+                if res:
+                    self.fix_n()
+                    res2 = self.check_n()
+                    assert res2 is False, "Unwrapping of the n vector failed."
 
 
 
