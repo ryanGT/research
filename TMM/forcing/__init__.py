@@ -20,7 +20,7 @@ class ForcingElement(TMMElementIHT):#TMMElementLHT <-- no idea why
         """Initialize the ForcingElement.  params is a dictionary with
         only one key: 'fv', whose value is a column vector of the
         elements of the augmented column of the transfer matrix.  It
-        should have only N element (the bottom 1 is assumed)."""
+        should have only N elements (the bottom 1 is assumed)."""
         TMMElementIHT.__init__(self,'forcing',params,**kwargs)
         for n, ent  in enumerate(self.params['fv']):
             if ent == 0:
@@ -113,3 +113,9 @@ class ForcingElement(TMMElementIHT):#TMMElementLHT <-- no idea why
 #    def GetHT(self):
 #        return HT4()
 
+class InputForce(ForcingElement):
+    """Model an external lateral force input."""
+    def __init__(self,params={'fv':[0,0,0,1]},maxsize=4, **kwargs):
+        ForcingElement.__init__(self, params, \
+                                maxsize=maxsize, \
+                                **kwargs)
