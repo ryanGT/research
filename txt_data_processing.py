@@ -90,9 +90,56 @@ def filterx(label):
         return False
     else:
         return True
+
+
+class object_with_n_vector(object):
+    def _find_n_diff(self):
+        """This is part of a set of functions used to unwrap n when
+        there are issues with Two's Complement or exceeding the
+        possible values for a 16-bit integer."""
+        n1 = self.n[1:]
+        n2 = self.n[0:-1]
+        diff = n1-n2
+        self.ndiff = diff
+        return diff
+
+
+    def fix_n(self):
+        """Undo the jumps in n caused by Two's Complement and 16-bit
+        wrapping issues."""
+        if not hasattr(self, 'njump_inds'):
+            self.check_n()
+        for ind in self.njump_inds:
+            self.n[ind+1:] += 65536
+        if hasattr(self, 'dt'):
+            dt = self.dt
+        else:
+            dt = self.t[1]-self.t[0]
+        self.t = self.n*dt
+
+
+    def check_n(self, max_num=10):
+        """Because n is used to make sure no data packets were lost
+        during serial communication with the PSoC, I want to make sure
+        that the only jumps in n are from Two's Complement and 16-bit
+        wrapping issues."""
+        self._find_n_diff()
+        jump_inds = where(self.ndiff != 1)[0]
+        self.njump_inds = jump_inds
+        if len(jump_inds) == 0:
+            return False
+        else:
+            jumps = self.ndiff[jump_inds]
+            mybool = jumps == -65535
+            msg = "There where %i jumps in n.\n" + \
+                  "You specified a maximum of %i"
+            assert len(jump_inds) < max_num, msg % (len(jump_inds), max_num)
+            assert mybool.all(), "Not all the jumps where equal to -65535: " + str(jumps)
+            self.njumps = jumps
+            return True
     
     
-class Data_File(object):
+class Data_File(object_with_n_vector):
     """A class for representing one txt data file assumed to be
     composed of data in columns with a certain number of initial rows
     at the top of the file that should be skipped.
@@ -110,13 +157,13 @@ class Data_File(object):
 
     (the code actually uses setattr(self, key, data[:,ind])).
     """
-    def __init__(self, path, col_map={}, delim='\t', skiprows=None, \
+    def __init__(self, path=None, col_map={}, delim='\t', skiprows=None, \
                  check_n=True):
         self.path = path
         self.col_map = col_map
         self.delim = delim
         self.skiprows = skiprows
-        if os.path.exists(self.path):
+        if (path is not None) and os.path.exists(self.path):
             self.Load_Data()
             if check_n:
                 res = self.check_n()
@@ -233,52 +280,6 @@ class Data_File(object):
         mplutil.mysave(fig_path, fig, ext=ext)
         return fig_path
 
-
-    def _find_n_diff(self):
-        """This is part of a set of functions used to unwrap n when
-        there are issues with Two's Complement or exceeding the
-        possible values for a 16-bit integer."""
-        n1 = self.n[1:]
-        n2 = self.n[0:-1]
-        diff = n1-n2
-        self.ndiff = diff
-        return diff
-
-
-    def fix_n(self):
-        """Undo the jumps in n caused by Two's Complement and 16-bit
-        wrapping issues."""
-        if not hasattr(self, 'njump_inds'):
-            self.check_n()
-        for ind in self.njump_inds:
-            self.n[ind+1:] += 65536
-        dt = self.t[1]-self.t[0]
-        self.t = self.n*dt
-        
-
-    def check_n(self, max_num=10):
-        """Because n is used to make sure no data packets were lost
-        during serial communication with the PSoC, I want to make sure
-        that the only jumps in n are from Two's Complement and 16-bit
-        wrapping issues."""
-        self._find_n_diff()
-        jump_inds = where(self.ndiff != 1)[0]
-        self.njump_inds = jump_inds
-        if len(jump_inds) == 0:
-            return False
-        else:
-            jumps = self.ndiff[jump_inds]
-            mybool = jumps == -65535
-            msg = "There where %i jumps in n.\n" + \
-                  "You specified a maximum of %i"
-            assert len(jump_inds) < max_num, msg % (len(jump_inds), max_num)
-            assert mybool.all(), "Not all the jumps where equal to -65535: " + str(jumps)
-            self.njumps = jumps
-            return True
-
-        
-
-        
         
     def Time_Plot(self, labels=None, ax=None, fignum=1,
                   clear=True, legloc=None, legend_dict={}, \
@@ -1087,7 +1088,14 @@ class Bode_Data_Set(Data_Set):
         setattr(self, attr_out, bodes)
         return varinds, varmask, fvarlog
 
-        
+
+    def list_bodes(self, attr='avebodes'):
+        bode_list = getattr(self, attr)
+        msg = '%i: %s/%s'
+        for i, bode in enumerate(bode_list):
+            print(msg % (i, bode.output, bode.input))
+            
+
     
 allkeys = ['delim', \
            'trunc_avebodes', \

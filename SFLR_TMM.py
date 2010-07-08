@@ -108,7 +108,8 @@ class SFLR_params(object):
                  b_L=0.011125, \
                  b_r=0.005556, \
                  b_I=7.0627e-7, \
-                 H=180.0/pi*1024.0/360.0):
+                 H=180.0/pi*1024.0/360.0, \
+                 num_act=None):#num_act is ignored and recalculated
         self.K_act = K_act
         self.p_act1 = p_act1
         self.p_act2 = p_act2

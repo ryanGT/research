@@ -2,7 +2,7 @@
 from pylab import *
 from scipy import *
 
-import os, pdb#, re
+import os, pdb, sys#, re
 
 import txt_data_processing
 #reload(txt_data_processing)
@@ -44,6 +44,10 @@ if __name__ == '__main__':
 
     (options, args) = parser.parse_args()
 
+    curdir = os.getcwd()
+    if curdir not in sys.path:
+        sys.path.insert(1, curdir)
+        
     print('options='+str(options))
     print('args='+str(args))
 
