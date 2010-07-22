@@ -25,6 +25,7 @@ reload(SFLR_TMM)
 import bode_plot_overlayer as BPO
 reload(BPO)
 
+#import bode_options
 
 def notch_tf(C):
     wz = C[0]
@@ -160,7 +161,15 @@ class Rigid_Acuator_TF_Model(object):
         self.build_TFs()
         self.calc_bodes(self.ffit)
         return X_opt
-        
+
+
+    def load_exp_time_file(self, filepath, \
+                           col_map={0:'t', 1:'n', 2:'u', \
+                                    3:'v', 4:'theta', 5:'a'}):
+        self.data_file = TDP.Data_File(path=filepath, \
+                                       col_map=col_map)
+        self.t = self.data_file.t
+
 
 
 class Second_Order_Rigid_Act_Model(Rigid_Acuator_TF_Model):
@@ -315,6 +324,49 @@ class Accel_w_two_notches(SO_Act_w_two_notches):
         self.G_a_v = self.G_act*self.G_a_th
 
 
+    def lsim(self, u, t):
+        self.theta = self.G_act.lsim(u, t)
+        self.accel = self.G_a_th.lsim(self.theta, t)
+        return self.theta, self.accel
+
+    def create_ax(self, fi=1, clear=True):
+        fig = figure(fi)
+        if clear:
+            fig.clf()
+        self.ax = fig.add_subplot(1,1,1)
+        return self.ax
+        
+    def plot_exp_time_data(self):
+        ax = self.ax
+        t = self.t
+        u = self.data_file.u
+        ax.plot(t, u, label='$u$')
+        ax.plot(t, self.data_file.v, label='$v_{exp}$')
+        ax.plot(t, self.data_file.theta, label='$\\theta_{exp}$')
+        ax.plot(t, self.data_file.a, label='$\\ddot{x}_{exp}$')
+
+
+    def plot_model_data(self):
+        ax = self.ax
+        t = self.t
+        ax.plot(t, self.theta, label='$\\theta_{model}$')
+        ax.plot(t, self.accel, label='$\\ddot{x}_{model}$')
+        ax.set_xlabel('Time (sec)')
+        ax.set_ylabel('Signal Amplitude (counts)')
+
+        
+    def lsim_from_exp_file(self, filepath, fi=1, plot=True, \
+                           clear=True):
+        self.load_exp_time_file(filepath)
+        u = self.data_file.u
+        t = self.data_file.t
+        self.lsim(u, t)
+        if plot:
+            self.create_ax(fi=fi, clear=clear)
+            self.plot_exp_time_data()
+            self.plot_model_data()
+            
+    
     def calc_bodes(self, f):
         bode1 = BPO.tf_to_Bode(self.G_act, f, \
                                self.bode_opts[0], PhaseMassage=True)
@@ -411,4 +463,94 @@ class G_th_comp_Theta_FB(Accel_w_two_notches):
                                      label=label, \
                                      params=params)
 
+def sat(vin, mymax=200):
+    """The PSoC can only ouput voltages in the range +/- 2.5V.  With a
+    9-bit digital to analog converter, this corresponds to +/- 255
+    counts.  It is slightly nonlinear above +/- 200."""
+    vmax = mymax
+    vmin = -1*mymax
+    if vin > vmax:
+        return vmax
+    elif vin < vmin:
+        return vmin
+    else:
+        return vin
+
     
+class G_th_comp_Theta_FB_dig_w_sat(G_th_comp_Theta_FB):
+    def __init__(self, bode_opts, unknown_params, \
+                 TMM_model, \
+                 Gth=Gth_comp, \
+                 ffit=None, \
+                 label='ROM', \
+                 params=accel_params, \
+                 dt=1.0/500, \
+                 ):
+        G_th_comp_Theta_FB.__init__(self, bode_opts, \
+                                    unknown_params, \
+                                    TMM_model, \
+                                    Gth=Gth, \
+                                    ffit=ffit, \
+                                    label=label, \
+                                    params=params)
+        self.dt = dt
+        self.Gth_num, self.Gth_den = self.Gth.c2d_tustin(dt=self.dt)
+        self.Gth_z = controls.Digital_Compensator(self.Gth_num, self.Gth_den)
+
+
+    def plot_model_vvect(self):
+        ax = self.ax
+        ax.plot(self.t, self.vvect, label='$v_{model}')
+
+
+    def Run_Sim(self, u, t):
+        """Simulate the response of open-loop transfer function G to input
+        u.  vfunc specifes how the input voltage is calculated.
+
+        You could just find the closed-loop transfer function and simulate
+        its response to u, as long as the voltage doesn't saturate."""
+        N = len(u)
+        self.evect = zeros((N,), dtype='int32')
+        self.vvect = zeros((N,), dtype='float64')
+        self.v_int = zeros((N,), dtype='int32')
+        self.theta = zeros((N,), dtype='float64')
+        self.accel = zeros((N,), dtype='float64')
+
+        self.Gth_z.input = self.evect
+        self.Gth_z.output = self.vvect
+
+        dt = self.dt
+
+        prevx = None
+
+        for i in range(1,N):
+            self.evect[i] = u[i] - self.theta[i-1]
+            vtemp = self.Gth_z.calc_out(i)
+            self.vvect[i] = sat(vtemp)
+            self.v_int[i] = int(self.vvect[i])
+
+            t1 = (i-1)*dt
+            t2 = i*dt
+            t_i, y_i, x_i = self.G_act_ol.lsim([self.v_int[i],self.v_int[i]], \
+                                               [t1,t2], returnall=True, X0=prevx)
+            prevx = x_i[-1]
+            self.theta[i] = y_i[-1]
+
+        self.accel = self.G_a_th.lsim(self.theta, t)
+
+
+        return self.theta, self.accel, self.vvect
+    
+
+    def Run_Sim_from_exp_file(self, filepath, fi=1, plot=True, \
+                              clear=True):
+        self.load_exp_time_file(filepath)
+        u = self.data_file.u
+        t = self.data_file.t
+        self.Run_Sim(u, t)
+        if plot:
+            self.create_ax(fi=fi, clear=clear)
+            self.plot_exp_time_data()
+            self.plot_model_data()
+            self.plot_model_vvect()
+            
