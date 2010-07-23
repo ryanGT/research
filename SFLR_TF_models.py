@@ -6,7 +6,7 @@ import pylab_util as PU
 reload(PU)
 import os, sys
 
-import rwkos, rwkbode
+import rwkos, rwkbode, rwkmisc
 
 import txt_data_processing as TDP
 reload(TDP)
@@ -152,6 +152,12 @@ class Rigid_Acuator_TF_Model(object):
             setattr(self, attr, val)
 
 
+    def set_params_from_dict(self, dictin):
+        """Set the parameters from a dictionary of key, value pairs."""
+        for attr, val in dictin.iteritems():
+            setattr(self, attr, val)
+
+
     def fit(self):
         ig = self.get_ig()
         self.calc_TMM_bode()
@@ -207,6 +213,15 @@ class Rigid_Acuator_TF_Model(object):
         ax.set_xlabel('Time (sec)')
         ax.set_ylabel('Signal Amplitude (counts)')        
 
+
+    def plot_time_domain_exp_vs_model(self, fi=1, legloc=5):
+        self.create_ax(fi=fi)
+        self.plot_exp_time_data()
+        self.plot_model_data()
+        self.label_time_domain_plot()
+        self.ax.legend(loc=legloc)
+        
+        
     def lsim_from_exp_file(self, filepath, fi=1, plot=True, \
                            clear=True):
         self.load_exp_time_file(filepath)
@@ -219,6 +234,7 @@ class Rigid_Acuator_TF_Model(object):
             self.plot_model_data()
             self.label_time_domain_plot()
 
+
     def fit_time_domain(self, filepath):
         self.load_exp_time_file(filepath)#sets self.data_file
         ig = self.get_ig()
@@ -227,6 +243,7 @@ class Rigid_Acuator_TF_Model(object):
         self.set_params(X_opt)
         self.build_TFs()
         self.lsim(self.data_file.u, self.data_file.t)
+        self.plot_time_domain_exp_vs_model()
         return X_opt
 
 
@@ -241,6 +258,16 @@ class Rigid_Acuator_TF_Model(object):
         return cost
 
 
+    def save_fit_results(self, filepath):
+        self.fit_res_dict = dict(zip(self.unknown_params, self.X_opt))
+        rwkmisc.SavePickle(self.fit_res_dict, filepath)
+
+
+    def load_fit_results(self, filepath):
+        self.fit_res_dict = rwkmisc.LoadPickle(filepath)
+        self.set_params_from_dict(self.fit_res_dict)
+        self.build_TFs()
+        
 
 class Second_Order_Rigid_Act_Model(Rigid_Acuator_TF_Model):
     def build_act_iso(self):
