@@ -171,6 +171,76 @@ class Rigid_Acuator_TF_Model(object):
         self.t = self.data_file.t
 
 
+    def lsim(self, u, t):
+        self.theta = self.G_act.lsim(u, t)
+        #self.accel = self.G_a_th.lsim(self.theta, t)
+        return self.theta#, self.accel
+
+
+    def create_ax(self, fi=1, clear=True):
+        fig = figure(fi)
+        if clear:
+            fig.clf()
+        self.ax = fig.add_subplot(1,1,1)
+        return self.ax
+
+    def plot_exp_time_data(self, accel=False):
+        ax = self.ax
+        t = self.t
+        u = self.data_file.u
+        ax.plot(t, u, label='$u$')
+        ax.plot(t, self.data_file.v, label='$v_{exp}$')
+        ax.plot(t, self.data_file.theta, label='$\\theta_{exp}$')
+        if accel:
+            ax.plot(t, self.data_file.a, label='$\\ddot{x}_{exp}$')
+
+
+    def plot_model_data(self, accel=False):
+        ax = self.ax
+        t = self.t
+        ax.plot(t, self.theta, label='$\\theta_{model}$')
+        if accel:
+            ax.plot(t, self.accel, label='$\\ddot{x}_{model}$')
+
+    def label_time_domain_plot(self):
+        ax = self.ax
+        ax.set_xlabel('Time (sec)')
+        ax.set_ylabel('Signal Amplitude (counts)')        
+
+    def lsim_from_exp_file(self, filepath, fi=1, plot=True, \
+                           clear=True):
+        self.load_exp_time_file(filepath)
+        u = self.data_file.u
+        t = self.data_file.t
+        self.lsim(u, t)
+        if plot:
+            self.create_ax(fi=fi, clear=clear)
+            self.plot_exp_time_data()
+            self.plot_model_data()
+            self.label_time_domain_plot()
+
+    def fit_time_domain(self, filepath):
+        self.load_exp_time_file(filepath)#sets self.data_file
+        ig = self.get_ig()
+        X_opt = optimize.fmin(self.time_domain_cost, ig)
+        self.X_opt = X_opt
+        self.set_params(X_opt)
+        self.build_TFs()
+        self.lsim(self.data_file.u, self.data_file.t)
+        return X_opt
+
+
+    def time_domain_cost(self, C):
+        self.set_params(C)
+        self.build_TFs()
+        self.lsim(self.data_file.u, self.data_file.t)
+        e_theta = self.theta - self.data_file.theta
+        #e_accel = self.accel - self.data_file.a
+        cost = sum(e_theta**2)# + sum(e_accel**2)
+        #cost += self.negative_params_check()
+        return cost
+
+
 
 class Second_Order_Rigid_Act_Model(Rigid_Acuator_TF_Model):
     def build_act_iso(self):
@@ -328,45 +398,26 @@ class Accel_w_two_notches(SO_Act_w_two_notches):
         self.theta = self.G_act.lsim(u, t)
         self.accel = self.G_a_th.lsim(self.theta, t)
         return self.theta, self.accel
-
-    def create_ax(self, fi=1, clear=True):
-        fig = figure(fi)
-        if clear:
-            fig.clf()
-        self.ax = fig.add_subplot(1,1,1)
-        return self.ax
         
     def plot_exp_time_data(self):
-        ax = self.ax
-        t = self.t
-        u = self.data_file.u
-        ax.plot(t, u, label='$u$')
-        ax.plot(t, self.data_file.v, label='$v_{exp}$')
-        ax.plot(t, self.data_file.theta, label='$\\theta_{exp}$')
-        ax.plot(t, self.data_file.a, label='$\\ddot{x}_{exp}$')
+        SO_Act_w_two_notches.plot_exp_time_data(self, accel=True)
 
 
     def plot_model_data(self):
-        ax = self.ax
-        t = self.t
-        ax.plot(t, self.theta, label='$\\theta_{model}$')
-        ax.plot(t, self.accel, label='$\\ddot{x}_{model}$')
-        ax.set_xlabel('Time (sec)')
-        ax.set_ylabel('Signal Amplitude (counts)')
+        SO_Act_w_two_notches.plot_model_data(self, accel=True)
 
-        
-    def lsim_from_exp_file(self, filepath, fi=1, plot=True, \
-                           clear=True):
-        self.load_exp_time_file(filepath)
-        u = self.data_file.u
-        t = self.data_file.t
-        self.lsim(u, t)
-        if plot:
-            self.create_ax(fi=fi, clear=clear)
-            self.plot_exp_time_data()
-            self.plot_model_data()
-            
-    
+
+    def time_domain_cost(self, C):
+        self.set_params(C)
+        self.build_TFs()
+        self.lsim(self.data_file.u, self.data_file.t)
+        e_theta = self.theta - self.data_file.theta
+        e_accel = self.accel - self.data_file.a
+        cost = sum(e_theta**2) + sum(e_accel**2)
+        #cost += self.negative_params_check()
+        return cost
+
+
     def calc_bodes(self, f):
         bode1 = BPO.tf_to_Bode(self.G_act, f, \
                                self.bode_opts[0], PhaseMassage=True)
@@ -463,6 +514,31 @@ class G_th_comp_Theta_FB(Accel_w_two_notches):
                                      label=label, \
                                      params=params)
 
+
+class G_th_comp_Theta_FB_no_accel(G_th_comp_Theta_FB):
+    def lsim(self, u, t):
+        self.theta = self.G_act.lsim(u, t)
+        #self.accel = self.G_a_th.lsim(self.theta, t)
+        return self.theta#, self.accel
+    
+    def time_domain_cost(self, C):
+        self.set_params(C)
+        self.build_TFs()
+        self.lsim(self.data_file.u, self.data_file.t)
+        e_theta = self.theta - self.data_file.theta
+        #e_accel = self.accel - self.data_file.a
+        cost = sum(e_theta**2)# + sum(e_accel**2)
+        #cost += self.negative_params_check()
+        return cost
+
+    def plot_exp_time_data(self):
+        SO_Act_w_two_notches.plot_exp_time_data(self, accel=False)
+
+
+    def plot_model_data(self):
+        SO_Act_w_two_notches.plot_model_data(self, accel=False)
+
+    
 def sat(vin, mymax=200):
     """The PSoC can only ouput voltages in the range +/- 2.5V.  With a
     9-bit digital to analog converter, this corresponds to +/- 255
@@ -553,4 +629,4 @@ class G_th_comp_Theta_FB_dig_w_sat(G_th_comp_Theta_FB):
             self.plot_exp_time_data()
             self.plot_model_data()
             self.plot_model_vvect()
-            
+            self.label_time_domain_plot()
