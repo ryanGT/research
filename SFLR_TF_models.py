@@ -267,6 +267,11 @@ class Rigid_Acuator_TF_Model(object):
         self.fit_res_dict = rwkmisc.LoadPickle(filepath)
         self.set_params_from_dict(self.fit_res_dict)
         self.build_TFs()
+
+
+    def save_params(self, filepath):
+        rwkmisc.SavePickle(self.params, filepath)
+
         
 
 class Second_Order_Rigid_Act_Model(Rigid_Acuator_TF_Model):
