@@ -37,7 +37,71 @@ def notch_tf(C):
     return notch
 
 
-class Rigid_Acuator_TF_Model(object):
+class SFLR_Time_File_Mixin(object):
+    def load_exp_time_file(self, filepath, \
+                           col_map={0:'t', 1:'n', 2:'u', \
+                                    3:'v', 4:'theta', 5:'a'}):
+        self.data_file = TDP.Data_File(path=filepath, \
+                                       col_map=col_map)
+        self.t = self.data_file.t
+
+
+    def create_ax(self, fi=1, clear=True):
+        fig = figure(fi)
+        if clear:
+            fig.clf()
+        self.ax = fig.add_subplot(1,1,1)
+        return self.ax
+
+
+    def plot_exp_time_data(self, accel=False):
+        ax = self.ax
+        t = self.t
+        u = self.data_file.u
+        ax.plot(t, u, label='$u$')
+        ax.plot(t, self.data_file.v, label='$v_{exp}$')
+        ax.plot(t, self.data_file.theta, label='$\\theta_{exp}$')
+        if accel:
+            ax.plot(t, self.data_file.a, label='$\\ddot{x}_{exp}$')
+
+
+    def plot_model_data(self, accel=False):
+        ax = self.ax
+        t = self.t
+        ax.plot(t, self.theta, label='$\\theta_{model}$')
+        if accel:
+            ax.plot(t, self.accel, label='$\\ddot{x}_{model}$')
+
+
+    def label_time_domain_plot(self):
+        ax = self.ax
+        ax.set_xlabel('Time (sec)')
+        ax.set_ylabel('Signal Amplitude (counts)')        
+
+
+    def plot_time_domain_exp_vs_model(self, fi=1, legloc=5):
+        self.create_ax(fi=fi)
+        self.plot_exp_time_data()
+        self.plot_model_data()
+        self.label_time_domain_plot()
+        self.ax.legend(loc=legloc)
+
+
+    def lsim_from_exp_file(self, filepath, fi=1, plot=True, \
+                           clear=True):
+        self.load_exp_time_file(filepath)
+        u = self.data_file.u
+        t = self.data_file.t
+        self.lsim(u, t)
+        if plot:
+            self.create_ax(fi=fi, clear=clear)
+            self.plot_exp_time_data()
+            self.plot_model_data()
+            self.label_time_domain_plot()
+
+
+
+class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
     def find_bode(self, output, input):
         """This method is called by plot_bodes"""
         found = 0
@@ -169,70 +233,11 @@ class Rigid_Acuator_TF_Model(object):
         return X_opt
 
 
-    def load_exp_time_file(self, filepath, \
-                           col_map={0:'t', 1:'n', 2:'u', \
-                                    3:'v', 4:'theta', 5:'a'}):
-        self.data_file = TDP.Data_File(path=filepath, \
-                                       col_map=col_map)
-        self.t = self.data_file.t
-
-
     def lsim(self, u, t):
         self.theta = self.G_act.lsim(u, t)
         #self.accel = self.G_a_th.lsim(self.theta, t)
         return self.theta#, self.accel
 
-
-    def create_ax(self, fi=1, clear=True):
-        fig = figure(fi)
-        if clear:
-            fig.clf()
-        self.ax = fig.add_subplot(1,1,1)
-        return self.ax
-
-    def plot_exp_time_data(self, accel=False):
-        ax = self.ax
-        t = self.t
-        u = self.data_file.u
-        ax.plot(t, u, label='$u$')
-        ax.plot(t, self.data_file.v, label='$v_{exp}$')
-        ax.plot(t, self.data_file.theta, label='$\\theta_{exp}$')
-        if accel:
-            ax.plot(t, self.data_file.a, label='$\\ddot{x}_{exp}$')
-
-
-    def plot_model_data(self, accel=False):
-        ax = self.ax
-        t = self.t
-        ax.plot(t, self.theta, label='$\\theta_{model}$')
-        if accel:
-            ax.plot(t, self.accel, label='$\\ddot{x}_{model}$')
-
-    def label_time_domain_plot(self):
-        ax = self.ax
-        ax.set_xlabel('Time (sec)')
-        ax.set_ylabel('Signal Amplitude (counts)')        
-
-
-    def plot_time_domain_exp_vs_model(self, fi=1, legloc=5):
-        self.create_ax(fi=fi)
-        self.plot_exp_time_data()
-        self.plot_model_data()
-        self.label_time_domain_plot()
-        self.ax.legend(loc=legloc)
-        
-        
-    def lsim_from_exp_file(self, filepath, fi=1, plot=True, \
-                           clear=True):
-        self.load_exp_time_file(filepath)
-        u = self.data_file.u
-        t = self.data_file.t
-        self.lsim(u, t)
-        if plot:
-            self.create_ax(fi=fi, clear=clear)
-            self.plot_exp_time_data()
-            self.plot_model_data()
-            self.label_time_domain_plot()
 
 
     def fit_time_domain(self, filepath):

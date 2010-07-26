@@ -56,6 +56,18 @@ def plot_bode_TMM(TMM_model, bode_opt, f, fignum=1, clear=False, \
                **kwargs)
 
 
+def plot_bode_SS(SS_model, bode_opt, f, fignum=1, clear=False, \
+                 PhaseMassage=False, **kwargs):
+    if not hasattr(SS_model, 'bodes'):
+        print('calculating bodes')
+        SS_model.calc_bodes(f)
+    bode = SS_model.find_bode(bode_opt)
+    if PhaseMassage:
+        _PhaseMassage(bode, bode_opt, f)
+    _plot_bode(bode, bode_opt, f, fignum=fignum, clear=clear, \
+               **kwargs)
+
+
 def plot_exp_bode(exp_mod, bode_opt, f=None, fignum=1, clear=False, \
                   trunc=True, PhaseMassage=False, **kwargs):
     if trunc:
@@ -230,6 +242,15 @@ class OL_TF_bode_object(exp_bode_object):
             _plot_bode(bode, opt, f, fignum=fignum,
                        clear=clear, **kwargs)
 
+
+class SS_bode_object(TMM_bode_object):
+    def __init__(self, SS_model, bode_opts, label='SS'):
+        self.model = SS_model
+        self.bode_opts = bode_opts
+        self.bode_attr = self.model
+        self.func = plot_bode_SS
+        self.label = label
+        
 
 class single_TF_bode_object(OL_TF_bode_object):
     def __init__(self, G, bode_opts, label='TF'):

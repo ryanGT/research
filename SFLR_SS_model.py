@@ -1,19 +1,27 @@
 from pylab import *
 from scipy import *
+from scipy import linalg, signal
 
 import controls
 
+import rwkmisc, rwkbode
 
-import rwkmisc
+from IPython.Debugger import Pdb
+
+import copy
+
+import SFLR_TF_models
+reload(SFLR_TF_models)
 
 
-class SS_model(object):
+class SS_model(SFLR_TF_models.SFLR_Time_File_Mixin):
     def calc_num(self):
-        p_act = self.p_act1
+        p_act1 = self.p_act1
+        p_act2 = self.p_act2
         K_act = self.K_act
         H = self.H
         s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
-        m1 = abs(s1*(s1+p_act))
+        m1 = abs(s1*(s1+p_act1)*(s1+p_act2))
         self.num = K_act*m1#*m2
 
         
@@ -85,9 +93,16 @@ class SS_model(object):
             b_a_i = getattr(self, b_a_i_str)
             self.C[1,i] = b_a_i
 
-            
 
-    def __init__(self, pklname, N=7):
+    def create_LTI(self):
+        B2 = rwkmisc.colwise(self.B)
+        nr, nc = self.C.shape
+        self.lti1 = signal.lti(self.A, B2, self.C[0,:], 0)
+        self.lti2 = signal.lti(self.A, B2, self.C[1,:], 0)
+
+        
+
+    def __init__(self, pklname, bode_opts=None, N=7):
         mydict = rwkmisc.LoadPickle(pklname)
         for key, value in mydict.iteritems():
             setattr(self, key, value)
@@ -99,12 +114,132 @@ class SS_model(object):
         self.set_zero_coeffs('b_a')
         self.build_matrices()
         self.I = eye(N)
+        self.bode_opts = bode_opts
+        self.create_LTI()
 
 
     def calc_freq_resp_one_s(self, s_i):
         mat = s_i*self.I - self.A
-        mati = 
+        mati = linalg.inv(mat)
+        M = dot(mati, self.B)
+        comp = dot(self.C,M)
+        return comp
+
         
     def calc_freq_resp(self, f):
+        svect = 2.0j*pi*f
+        comp_mat = zeros((2, len(svect)), dtype='complex128')
+
+        for i, s_i in enumerate(svect):
+            comp_i = self.calc_freq_resp_one_s(s_i)
+            comp_mat[:,i] = comp_i
+        self.comp_mat = comp_mat
+        return comp_mat
+
+
+    def find_opt(self, output, input):
+        found = 0
+        for opt in self.bode_opts:
+            if (opt.output_label == output) and \
+               (opt.input_label == input):
+                found = 1
+                return opt
+        #if we got this far, we didn't find a match
+        assert found, "Did not find a bode with output %s and input %s." % \
+               (output, input)
+
+
+    def find_bode(self, bodeopt):
+        output = bodeopt.output_label
+        input = bodeopt.input_label
+        found = 0
+        for bode in self.bodes:
+            if (bode.output == output) and \
+                   (bode.input == input):
+                found = 1
+                return bode
+        #if we got this far, we didn't find a match
+        assert found, "Did not find a bode with output %s and input %s." % \
+               (output, input)
+
+
+    def calc_bodes(self, f):
+        comp_mat = self.calc_freq_resp(f)
+        th_v_comp = comp_mat[0,:]
+        a_v_comp = comp_mat[1,:]
+        th_v_opts = self.find_opt('theta','v')
+        self.th_v_bode = rwkbode.rwkbode(output='theta', \
+                                         input='v', \
+                                         compin=th_v_comp, \
+                                         seedfreq=th_v_opts.seedfreq, \
+                                         seedphase=th_v_opts.seedphase)
+        self.th_v_bode.PhaseMassage(f)
+
+        a_v_opts = self.find_opt('a','v')        
+        self.a_v_bode = rwkbode.rwkbode(output='a', \
+                                        input='v', \
+                                        compin=a_v_comp, \
+                                        seedfreq=a_v_opts.seedfreq, \
+                                        seedphase=a_v_opts.seedphase)
+        self.a_v_bode.PhaseMassage(f)
+        self.bodes = [self.th_v_bode, self.a_v_bode]
         
 #    def FreqResp(self, 
+
+
+class closed_loop_SS_model(SS_model):
+    def calc_feeback_matrices(self, K, E=1.0):
+        self.A_ol = copy.copy(self.A)
+        B_temp = copy.copy(self.B)
+        self.B_ol = rwkmisc.colwise(B_temp)
+        self.K = rwkmisc.rowwise(K)
+        self.E = E
+
+        self.A = self.A_ol + dot(self.B_ol, self.K)
+        if isscalar(E):
+            self.B = self.B*E
+        else:
+            self.B = dot(self.B, E)
+        return self.A, self.B
+        
+
+    def lsim(self, u,t, interp=0, returnall=False, X0=None, hmax=None):
+        """Find the response of the TransferFunction to the input u
+        with time vector t.  Uses signal.lsim.
+
+        return y the response of the system."""
+        try:
+            out = signal.lsim(self, u, t, interp=interp, X0=X0)
+        except LinAlgError:
+            #if the system has a pure integrator, lsim won't work.
+            #Call lsim2.
+            out = self.lsim2(u, t, X0=X0, returnall=True, hmax=hmax)
+                #override returnall because it is handled below
+        if returnall:#most users will just want the system output y,
+            #but some will need the (t, y, x) tuple that
+            #signal.lsim returns
+            return out
+        else:
+            return out[1]
+
+        
+    def calc_bodes(self, f):
+        comp_mat = self.calc_freq_resp(f)
+        th_u_comp = comp_mat[0,:]
+        a_u_comp = comp_mat[1,:]
+        th_u_opts = self.find_opt('theta','u')
+        self.th_u_bode = rwkbode.rwkbode(output='theta', \
+                                         input='u', \
+                                         compin=th_u_comp, \
+                                         seedfreq=th_u_opts.seedfreq, \
+                                         seedphase=th_u_opts.seedphase)
+        self.th_u_bode.PhaseMassage(f)
+
+        a_u_opts = self.find_opt('a','u')        
+        self.a_u_bode = rwkbode.rwkbode(output='a', \
+                                        input='u', \
+                                        compin=a_u_comp, \
+                                        seedfreq=a_u_opts.seedfreq, \
+                                        seedphase=a_u_opts.seedphase)
+        self.a_u_bode.PhaseMassage(f)
+        self.bodes = [self.th_u_bode, self.a_u_bode]
