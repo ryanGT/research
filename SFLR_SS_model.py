@@ -13,8 +13,82 @@ import copy
 import SFLR_TF_models
 reload(SFLR_TF_models)
 
+class SS_model(object):
+    def __init__(self, A, B, C, D=0.0):
+        self.A = A
+        self.B = B
+        self.C = C
+        self.D = D
+        nr,nc = A.shape
+        self.N = nr
 
-class SS_model(SFLR_TF_models.SFLR_Time_File_Mixin):
+    def check_pole_locations(self, K):
+        """Find the pole locations that would result from using
+        feedback vector K."""
+        Atemp = self.A + dot(rwkmisc.colwise(self.B), K)
+        poles = linalg.eigvals(Atemp)
+        return poles
+
+
+    def find_poles(self):
+        return linalg.eigvals(self.A)
+
+
+    def phi_des_of_A(self, descoeffs):
+        """Evalute the charcteristic polynominal using
+        descoeffs[0]*A**n+descoeffs[1]*A**(n-1)"""
+        N = len(descoeffs)-1
+        assert N == self.N, "bad length of descoeffs"
+        for n in range(N+1):
+            a_n = descoeffs[N-n]
+            if n == 0:
+                phi = eye(N)*a_n
+            else:
+                if n == 1:
+                    An = self.A
+                else:
+                    An = dot(An,self.A)
+                phi += An*a_n
+        return phi
+
+
+    def controlability(self):
+        N = self.N
+        for n in range(N):
+            if n == 0:
+                collist = [self.B]
+            else:
+                if n == 1:
+                    An = self.A
+                else:
+                    An = dot(An,self.A)
+                curcol = dot(An, self.B)
+                collist.append(curcol)
+        self.P = column_stack(collist)
+        return self.P
+
+
+    def acker(self, despoles):
+        descoeffs = poly(despoles)
+        phi = self.phi_des_of_A(descoeffs)
+        P = self.controlability()
+        Pinv = linalg.inv(P)
+        en = zeros((1, self.N))
+        en[0,-1] = 1.0
+        M = dot(Pinv, phi)
+        K = -1.0*dot(en, M)
+        self.K = K
+        return K
+
+
+class SFLR_SS_model(SFLR_TF_models.SFLR_Time_File_Mixin_w_accel, SS_model):        
+    def plot_model_data(self):
+        SFLR_TF_models.SFLR_Time_File_Mixin_w_accel.plot_model_data(self)
+        ax = self.ax
+        t = self.t
+        ax.plot(t, self.v, label='$v_{model}$')
+
+    
     def calc_num(self):
         p_act1 = self.p_act1
         p_act2 = self.p_act2
@@ -187,7 +261,7 @@ class SS_model(SFLR_TF_models.SFLR_Time_File_Mixin):
 #    def FreqResp(self, 
 
 
-class closed_loop_SS_model(SS_model):
+class closed_loop_SS_model(SFLR_SS_model):
     def calc_feeback_matrices(self, K, E=1.0):
         self.A_ol = copy.copy(self.A)
         B_temp = copy.copy(self.B)
@@ -200,27 +274,113 @@ class closed_loop_SS_model(SS_model):
             self.B = self.B*E
         else:
             self.B = dot(self.B, E)
-        return self.A, self.B
-        
 
-    def lsim(self, u,t, interp=0, returnall=False, X0=None, hmax=None):
+        self.create_LTI()
+        
+        return self.A, self.B
+
+
+    def lsim2(self, U, T, X0=None, returnall=False, hmax=None):
+        """Simulate output of a continuous-time linear system, using ODE solver.
+
+        Inputs:
+
+            system -- an instance of the LTI class or a tuple describing the
+            system.  The following gives the number of elements in
+            the tuple and the interpretation.
+            2 (num, den)
+            3 (zeros, poles, gain)
+            4 (A, B, C, D)
+        U -- an input array describing the input at each time T
+            (linear interpolation is assumed between given times).
+            If there are multiple inputs, then each column of the
+            rank-2 array represents an input.
+        T -- the time steps at which the input is defined and at which
+            the output is desired.
+        X0 -- (optional, default=0) the initial conditions on the state vector.
+
+        Outputs: (T, yout, xout)
+
+        T -- the time values for the output.
+        yout -- the response of the system.
+        xout -- the time-evolution of the state-vector.
+        """
+        # system is an lti system or a sequence
+        #  with 2 (num, den)
+        #       3 (zeros, poles, gain)
+        #       4 (A, B, C, D)
+        #  describing the system
+        #  U is an input vector at times T
+        #   if system describes multiple outputs
+        #   then U can be a rank-2 array with the number of columns
+        #   being the number of inputs
+
+        # rather than use lsim, use direct integration and matrix-exponential.
+        if hmax is None:
+            hmax = T[1]-T[0]
+        U = atleast_1d(U)
+        T = atleast_1d(T)
+        if len(U.shape) == 1:
+            U = U.reshape((U.shape[0],1))
+        sU = U.shape
+        if len(T.shape) != 1:
+            raise ValueError, "T must be a rank-1 array."
+        if sU[0] != len(T):
+            raise ValueError, "U must have the same number of rows as elements in T."
+        if sU[1] != self.inputs:
+            raise ValueError, "System does not define that many inputs."
+
+        if X0 is None:
+            X0 = zeros(self.B.shape[0],self.A.dtype)
+
+        # for each output point directly integrate assume zero-order hold
+        #   or linear interpolation.
+
+        ufunc = interpolate.interp1d(T, U, kind='linear', axis=0, \
+                                     bounds_error=False)
+
+        def fprime(x, t, self, ufunc):
+            return dot(self.A,x) + squeeze(dot(self.B,nan_to_num(ufunc([t]))))
+
+        xout = integrate.odeint(fprime, X0, T, args=(self, ufunc), hmax=hmax)
+        yout = dot(self.C,transpose(xout)) + dot(self.D,transpose(U))
+        if returnall:
+            return T, squeeze(transpose(yout)), xout
+        else:
+            return squeeze(transpose(yout))
+
+
+
+    def lsim(self, u, t, interp=0, \
+             returnall=False, X0=None, hmax=None):
         """Find the response of the TransferFunction to the input u
         with time vector t.  Uses signal.lsim.
 
         return y the response of the system."""
         try:
-            out = signal.lsim(self, u, t, interp=interp, X0=X0)
+            out1 = signal.lsim(self.lti1, u, t, interp=interp, X0=X0)
+            out2 = signal.lsim(self.lti2, u, t, interp=interp, X0=X0)
         except LinAlgError:
             #if the system has a pure integrator, lsim won't work.
             #Call lsim2.
-            out = self.lsim2(u, t, X0=X0, returnall=True, hmax=hmax)
+            yout = self.lsim2(u, t, X0=X0, returnall=True, hmax=hmax)
+            out1 = yout[:,0]
+            out2 = yout[:,1]
                 #override returnall because it is handled below
+        self.theta = out1[1]
+        self.accel = out2[1]
+        self.x_theta = out1[2]
+        self.x_accel = out2[2]
+
+        self.v = squeeze(self.E*u + dot(self.K, self.x_theta.T))
+        
+        
         if returnall:#most users will just want the system output y,
             #but some will need the (t, y, x) tuple that
             #signal.lsim returns
-            return out
+            return out1, out2
         else:
-            return out[1]
+            return out1[1], out2[1]
 
         
     def calc_bodes(self, f):

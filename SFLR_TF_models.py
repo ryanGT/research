@@ -100,7 +100,15 @@ class SFLR_Time_File_Mixin(object):
             self.label_time_domain_plot()
 
 
+class SFLR_Time_File_Mixin_w_accel(SFLR_Time_File_Mixin):
+    def plot_exp_time_data(self):
+        SFLR_Time_File_Mixin.plot_exp_time_data(self, accel=True)
 
+
+    def plot_model_data(self):
+        SFLR_Time_File_Mixin.plot_model_data(self, accel=True)
+
+    
 class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
     def find_bode(self, output, input):
         """This method is called by plot_bodes"""
