@@ -1,6 +1,6 @@
 from pylab import *
 from scipy import *
-from scipy import linalg, signal
+from scipy import linalg, signal, integrate
 
 import controls
 
@@ -21,8 +21,33 @@ class SS_model(object):
         self.D = D
         nr,nc = A.shape
         self.N = nr
+        self.use_dig = False
 
 
+    def discretize(self, T):
+        self.G = linalg.expm(self.A*T)
+
+        def Hprime(t, i):
+            M = linalg.expm(self.A*t)
+            H = dot(M, self.B)
+            return H[i]
+
+        self.H = zeros((self.N,1))
+        for i in range(self.N):
+            out = integrate.quad(Hprime, 0, T, args=(i,))
+            self.H[i] = out[0]
+        return self.G, self.H
+
+    def _get_A_and_B(self):
+        if self.use_dig:
+            A = self.G
+            B = self.H
+        else:
+            A = self.A
+            B = self.B
+        return A, B
+            
+        
     def create_ax(self, fi=1, clear=True):
         fig = figure(fi)
         if clear:
@@ -34,13 +59,15 @@ class SS_model(object):
     def check_pole_locations(self, K):
         """Find the pole locations that would result from using
         feedback vector K."""
-        Atemp = self.A + dot(rwkmisc.colwise(self.B), K)
+        A, B = self._get_A_and_B()
+        Atemp = A + dot(rwkmisc.colwise(B), K)
         poles = linalg.eigvals(Atemp)
         return poles
 
 
     def find_poles(self):
-        self.poles = linalg.eigvals(self.A)
+        A, B = self._get_A_and_B()
+        self.poles = linalg.eigvals(A)
         return self.poles
 
 
@@ -56,6 +83,7 @@ class SS_model(object):
     def phi_des_of_A(self, descoeffs):
         """Evalute the charcteristic polynominal using
         descoeffs[0]*A**n+descoeffs[1]*A**(n-1)"""
+        A, B = self._get_A_and_B()
         N = len(descoeffs)-1
         assert N == self.N, "bad length of descoeffs"
         for n in range(N+1):
@@ -64,31 +92,39 @@ class SS_model(object):
                 phi = eye(N)*a_n
             else:
                 if n == 1:
-                    An = self.A
+                    An = A
                 else:
-                    An = dot(An,self.A)
+                    An = dot(An, A)
                 phi += An*a_n
         return phi
 
 
     def controlability(self):
+        A, B = self._get_A_and_B()
         N = self.N
         for n in range(N):
             if n == 0:
-                collist = [self.B]
+                collist = [B]
             else:
                 if n == 1:
-                    An = self.A
+                    An = A
                 else:
-                    An = dot(An,self.A)
-                curcol = dot(An, self.B)
+                    An = dot(An, A)
+                curcol = dot(An, B)
                 collist.append(curcol)
         self.P = column_stack(collist)
         return self.P
 
 
-    def acker(self, despoles):
-        descoeffs = poly(despoles)
+    def acker(self, despoles, discretize=True):
+        if self.use_dig:
+            if discretize:
+                z_poles = [exp(s*self.T) for s in despoles]
+            else:
+                z_poles = despoles
+            descoeffs = poly(z_poles)
+        else:
+            descoeffs = poly(despoles)
         phi = self.phi_des_of_A(descoeffs)
         P = self.controlability()
         Pinv = linalg.inv(P)
@@ -98,6 +134,45 @@ class SS_model(object):
         K = -1.0*dot(en, M)
         self.K = K
         return K
+
+
+    def digital_lsim(self, u, X0=None):
+        if X0 is None:
+            X0 = zeros((self.N,1))
+        N2 = len(u)
+        X = zeros((self.N, N2))
+        X[:,0] = squeeze(X0)
+
+        G = self.G
+        H = self.H
+        C = self.C
+
+        Ny, Nx = self.C.shape
+        Y = zeros((Ny, N2))
+        Y[:,0] = squeeze(dot(C, X0))
+        
+        prev_x = X0
+        for k in range(1,N2):
+            next_x = dot(G, prev_x) + H*u[k-1]
+            Y[:,k] = squeeze(dot(C, next_x))
+            X[:,k] = squeeze(next_x)
+            prev_x = next_x
+
+        self.X_dig = X
+        self.Y_dig = Y
+        return self.Y_dig
+        
+        
+class digital_SS_model(SS_model):
+    def __init__(self, G, H, C, D=0.0, T=1.0/500):
+        self.G = G
+        self.H = H
+        self.C = C
+        self.D = D
+        self.T = T
+        nr,nc = G.shape
+        self.N = nr
+        self.use_dig = True
 
 
 class SFLR_SS_model(SFLR_TF_models.SFLR_Time_File_Mixin_w_accel, SS_model):        
@@ -282,23 +357,48 @@ class SFLR_SS_model(SFLR_TF_models.SFLR_Time_File_Mixin_w_accel, SS_model):
 
 class closed_loop_SS_model(SFLR_SS_model):
     def calc_feeback_matrices(self, K, E=1.0):
-        if not hasattr(self, 'A_ol'):
-            self.A_ol = copy.copy(self.A)
-        if not hasattr(self, 'B_ol'):
-            B_temp = copy.copy(self.B)
-            self.B_ol = rwkmisc.colwise(B_temp)
+        """Calculate feedback matrices for A and B or G and H
+        depending on whether or not self.use_dig is True."""
+        if self.use_dig:
+            A = self.G
+            B = self.H
+            if not hasattr(self, 'G_ol'):
+                self.G_ol = copy.copy(A)
+            if not hasattr(self, 'H_ol'):
+                B_temp = copy.copy(B)
+                self.H_ol = rwkmisc.colwise(B_temp)
+            A_ol = self.G_ol
+            B_ol = self.H_ol
+        else:
+            A = self.A
+            B = self.B
+            if not hasattr(self, 'A_ol'):
+                self.A_ol = copy.copy(A)
+            if not hasattr(self, 'B_ol'):
+                B_temp = copy.copy(B)
+                self.B_ol = rwkmisc.colwise(B_temp)
+            A_ol = self.A_ol
+            B_ol = self.B_ol
+                
+                
         self.K = rwkmisc.rowwise(K)
         self.E = E
 
-        self.A = self.A_ol + dot(self.B_ol, self.K)
+        A = A_ol + dot(B_ol, self.K)
         if isscalar(E):
-            self.B = self.B*E
+            B = B_ol*E
         else:
-            self.B = dot(self.B, E)
+            B = dot(B_ol, E)
 
-        self.create_LTI()
-        
-        return self.A, self.B
+        if self.use_dig:
+            self.G = A
+            self.H = B
+        else:
+            self.A = A
+            self.B = B
+            self.create_LTI()
+            
+        return A, B
 
 
     def lsim2(self, U, T, X0=None, returnall=False, hmax=None):
@@ -424,3 +524,30 @@ class closed_loop_SS_model(SFLR_SS_model):
                                         seedphase=a_u_opts.seedphase)
         self.a_u_bode.PhaseMassage(f)
         self.bodes = [self.th_u_bode, self.a_u_bode]
+
+
+
+class discretized_closed_loop_SS_model(closed_loop_SS_model):
+    def __init__(self, pklname, bode_opts=None, N=7, \
+                 T=1.0/500):
+        closed_loop_SS_model.__init__(self, pklname, \
+                                      bode_opts=bode_opts, \
+                                      N=N)
+        self.use_dig = True
+        self.discretize(T)
+
+
+    def lsim_from_exp_file(self, filepath, fi=1, plot=True, \
+                           clear=True):
+        self.load_exp_time_file(filepath)
+        u = self.data_file.u
+        t = self.data_file.t
+        self.digital_lsim(u)
+
+
+    def digital_lsim(self, u, X0=None):
+        closed_loop_SS_model.digital_lsim(self, u, X0=X0)
+        self.v = squeeze(self.E*u + dot(self.K, self.X_dig))
+        self.theta = squeeze(self.Y_dig[0,:])
+        self.accel = squeeze(self.Y_dig[1,:])
+
