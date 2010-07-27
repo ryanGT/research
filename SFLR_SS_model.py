@@ -22,6 +22,15 @@ class SS_model(object):
         nr,nc = A.shape
         self.N = nr
 
+
+    def create_ax(self, fi=1, clear=True):
+        fig = figure(fi)
+        if clear:
+            fig.clf()
+        self.ax = fig.add_subplot(1,1,1)
+        return self.ax
+
+
     def check_pole_locations(self, K):
         """Find the pole locations that would result from using
         feedback vector K."""
@@ -31,7 +40,17 @@ class SS_model(object):
 
 
     def find_poles(self):
-        return linalg.eigvals(self.A)
+        self.poles = linalg.eigvals(self.A)
+        return self.poles
+
+
+    def plot_poles(self, lt='bo', fi=1, clear=True, label=None):
+        if not hasattr(self, 'ax'):
+            self.create_ax(fi=fi, clear=clear)
+        if not hasattr(self, 'poles'):
+            self.find_poles()
+        self.ax.plot(real(self.poles), imag(self.poles), \
+                     lt, label=label)
 
 
     def phi_des_of_A(self, descoeffs):
@@ -263,9 +282,11 @@ class SFLR_SS_model(SFLR_TF_models.SFLR_Time_File_Mixin_w_accel, SS_model):
 
 class closed_loop_SS_model(SFLR_SS_model):
     def calc_feeback_matrices(self, K, E=1.0):
-        self.A_ol = copy.copy(self.A)
-        B_temp = copy.copy(self.B)
-        self.B_ol = rwkmisc.colwise(B_temp)
+        if not hasattr(self, 'A_ol'):
+            self.A_ol = copy.copy(self.A)
+        if not hasattr(self, 'B_ol'):
+            B_temp = copy.copy(self.B)
+            self.B_ol = rwkmisc.colwise(B_temp)
         self.K = rwkmisc.rowwise(K)
         self.E = E
 
