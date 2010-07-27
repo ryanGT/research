@@ -5,7 +5,7 @@ from scipy import linalg, signal, integrate
 import controls
 
 import rwkmisc, rwkbode
-
+from rwkmisc import colwise
 from IPython.Debugger import Pdb
 
 import copy
@@ -116,7 +116,29 @@ class SS_model(object):
         return self.P
 
 
-    def acker(self, despoles, discretize=True):
+    def observability(self):
+        A, B = self._get_A_and_B()
+        C = self.C
+        N = self.N
+        for n in range(N):
+            if n == 0:
+                rowlist = [C]
+            else:
+                if n == 1:
+                    CAn = dot(C, A)
+                else:
+                    CAn = dot(CAn, A)
+                currow = CAn
+                rowlist.append(currow)
+        self.Q = row_stack(rowlist)
+        return self.Q
+
+
+    def acker(self, despoles, discretize=True, \
+              obs=False):
+        """obs True means find the observer gain vector L and is used
+        in observer design.  obs False means find the state-feedback
+        gain vector used in pole-placement control design."""
         if self.use_dig:
             if discretize:
                 z_poles = [exp(s*self.T) for s in despoles]
@@ -126,13 +148,22 @@ class SS_model(object):
         else:
             descoeffs = poly(despoles)
         phi = self.phi_des_of_A(descoeffs)
-        P = self.controlability()
-        Pinv = linalg.inv(P)
-        en = zeros((1, self.N))
-        en[0,-1] = 1.0
-        M = dot(Pinv, phi)
-        K = -1.0*dot(en, M)
-        self.K = K
+        if obs:
+            Q = self.observability()
+            Qinv = linalg.inv(Q)
+            en = zeros((self.N,1))
+            en[-1,0] = 1.0
+            M = dot(Qinv, en)
+            K = -1.0*dot(phi, M)
+            self.L = K
+        else:
+            P = self.controlability()
+            Pinv = linalg.inv(P)
+            en = zeros((1, self.N))
+            en[0,-1] = 1.0
+            M = dot(Pinv, phi)
+            K = -1.0*dot(en, M)
+            self.K = K
         return K
 
 
@@ -160,8 +191,98 @@ class SS_model(object):
 
         self.X_dig = X
         self.Y_dig = Y
+        self.v = squeeze(self.E*u + dot(self.K, self.X_dig))
         return self.Y_dig
+
         
+    def calc_feeback_matrices(self, K, E=1.0):
+        """Calculate feedback matrices for A and B or G and H
+        depending on whether or not self.use_dig is True."""
+        if self.use_dig:
+            A = self.G
+            B = self.H
+            if not hasattr(self, 'G_ol'):
+                self.G_ol = copy.copy(A)
+            if not hasattr(self, 'H_ol'):
+                B_temp = copy.copy(B)
+                self.H_ol = rwkmisc.colwise(B_temp)
+            A_ol = self.G_ol
+            B_ol = self.H_ol
+        else:
+            A = self.A
+            B = self.B
+            if not hasattr(self, 'A_ol'):
+                self.A_ol = copy.copy(A)
+            if not hasattr(self, 'B_ol'):
+                B_temp = copy.copy(B)
+                self.B_ol = rwkmisc.colwise(B_temp)
+            A_ol = self.A_ol
+            B_ol = self.B_ol
+
+
+        self.K = rwkmisc.rowwise(K)
+        self.E = E
+
+        A = A_ol + dot(B_ol, self.K)
+        if isscalar(E):
+            B = B_ol*E
+        else:
+            B = dot(B_ol, E)
+
+        if self.use_dig:
+            self.G = A
+            self.H = B
+        else:
+            self.A = A
+            self.B = B
+            self.create_LTI()
+
+        return A, B
+
+
+    def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None):
+        if X0 is None:
+            X0 = zeros((self.N,1))
+        if X0_tilde is None:
+            X0_tilde = zeros((self.N,1))
+        N2 = len(r)
+        V = zeros_like(r)
+        X = zeros((self.N, N2))
+        X_tilde = zeros((self.N, N2))
+        X[:,0] = squeeze(X0)
+        X_tilde[:,0] = squeeze(X0_tilde)
+
+        G = self.G_ol
+        H = self.H_ol
+        C = self.C
+        L = self.L
+        K = self.K
+
+        Ny, Nx = self.C.shape
+        Y = zeros((Ny, N2))
+        Y[:,0] = squeeze(dot(C, X0))
+
+        FO = G + dot(L,C)
+        prev_x = X0
+        prev_x_tilde = X0_tilde
+        for k in range(1,N2):
+            V[k] = r[k] + dot(K, prev_x_tilde)
+            next_x_tilde = dot(FO, prev_x_tilde) + H*V[k] - \
+                           colwise(dot(L, Y[:,k-1]))
+            next_x = dot(G, prev_x) + H*V[k]
+            Y[:,k] = squeeze(dot(C, next_x))
+            X[:,k] = squeeze(next_x)
+            X_tilde[:,k] = squeeze(next_x_tilde)
+            prev_x = next_x
+            prev_x_tilde = next_x_tilde
+
+        self.X_dig = X
+        self.X_tilde = X_tilde
+        self.Y_dig = Y
+        #self.v = squeeze(self.E*u + dot(self.K, self.X_dig))
+        self.v = V
+        return self.Y_dig
+
         
 class digital_SS_model(SS_model):
     def __init__(self, G, H, C, D=0.0, T=1.0/500):
@@ -356,51 +477,6 @@ class SFLR_SS_model(SFLR_TF_models.SFLR_Time_File_Mixin_w_accel, SS_model):
 
 
 class closed_loop_SS_model(SFLR_SS_model):
-    def calc_feeback_matrices(self, K, E=1.0):
-        """Calculate feedback matrices for A and B or G and H
-        depending on whether or not self.use_dig is True."""
-        if self.use_dig:
-            A = self.G
-            B = self.H
-            if not hasattr(self, 'G_ol'):
-                self.G_ol = copy.copy(A)
-            if not hasattr(self, 'H_ol'):
-                B_temp = copy.copy(B)
-                self.H_ol = rwkmisc.colwise(B_temp)
-            A_ol = self.G_ol
-            B_ol = self.H_ol
-        else:
-            A = self.A
-            B = self.B
-            if not hasattr(self, 'A_ol'):
-                self.A_ol = copy.copy(A)
-            if not hasattr(self, 'B_ol'):
-                B_temp = copy.copy(B)
-                self.B_ol = rwkmisc.colwise(B_temp)
-            A_ol = self.A_ol
-            B_ol = self.B_ol
-                
-                
-        self.K = rwkmisc.rowwise(K)
-        self.E = E
-
-        A = A_ol + dot(B_ol, self.K)
-        if isscalar(E):
-            B = B_ol*E
-        else:
-            B = dot(B_ol, E)
-
-        if self.use_dig:
-            self.G = A
-            self.H = B
-        else:
-            self.A = A
-            self.B = B
-            self.create_LTI()
-            
-        return A, B
-
-
     def lsim2(self, U, T, X0=None, returnall=False, hmax=None):
         """Simulate output of a continuous-time linear system, using ODE solver.
 
@@ -547,7 +623,6 @@ class discretized_closed_loop_SS_model(closed_loop_SS_model):
 
     def digital_lsim(self, u, X0=None):
         closed_loop_SS_model.digital_lsim(self, u, X0=X0)
-        self.v = squeeze(self.E*u + dot(self.K, self.X_dig))
         self.theta = squeeze(self.Y_dig[0,:])
         self.accel = squeeze(self.Y_dig[1,:])
 
