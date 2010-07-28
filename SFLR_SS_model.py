@@ -5,7 +5,7 @@ from scipy import linalg, signal, integrate
 import controls
 
 import rwkmisc, rwkbode
-from rwkmisc import colwise
+from rwkmisc import colwise, rowwise
 from IPython.Debugger import Pdb
 
 import copy
@@ -23,6 +23,14 @@ class SS_model(object):
         self.N = nr
         self.use_dig = False
 
+
+    def save_params(self, pklpath, attrlist):
+        mydict = {}
+        for key in attrlist:
+            val = getattr(self, key)
+            mydict[key] = val
+        rwkmisc.SavePickle(mydict, pklpath)
+        
 
     def discretize(self, T):
         self.G = linalg.expm(self.A*T)
@@ -154,15 +162,15 @@ class SS_model(object):
             en = zeros((self.N,1))
             en[-1,0] = 1.0
             M = dot(Qinv, en)
-            K = -1.0*dot(phi, M)
-            self.L = K
+            K = dot(phi, M)
+            self.Ke = K
         else:
             P = self.controlability()
             Pinv = linalg.inv(P)
             en = zeros((1, self.N))
             en[0,-1] = 1.0
             M = dot(Pinv, phi)
-            K = -1.0*dot(en, M)
+            K = dot(en, M)
             self.K = K
         return K
 
@@ -191,7 +199,7 @@ class SS_model(object):
 
         self.X_dig = X
         self.Y_dig = Y
-        self.v = squeeze(self.E*u + dot(self.K, self.X_dig))
+        self.v = squeeze(self.E*u - dot(self.K, self.X_dig))
         return self.Y_dig
 
         
@@ -223,7 +231,7 @@ class SS_model(object):
         self.K = rwkmisc.rowwise(K)
         self.E = E
 
-        A = A_ol + dot(B_ol, self.K)
+        A = A_ol - dot(B_ol, self.K)
         if isscalar(E):
             B = B_ol*E
         else:
@@ -255,20 +263,20 @@ class SS_model(object):
         G = self.G_ol
         H = self.H_ol
         C = self.C
-        L = self.L
+        Ke = self.Ke
         K = self.K
 
         Ny, Nx = self.C.shape
         Y = zeros((Ny, N2))
         Y[:,0] = squeeze(dot(C, X0))
 
-        FO = G + dot(L,C)
+        FO = G - dot(Ke,C)
         prev_x = X0
         prev_x_tilde = X0_tilde
         for k in range(1,N2):
-            V[k] = r[k] + dot(K, prev_x_tilde)
-            next_x_tilde = dot(FO, prev_x_tilde) + H*V[k] - \
-                           colwise(dot(L, Y[:,k-1]))
+            V[k] = self.E*r[k] - squeeze(dot(K, prev_x_tilde))
+            next_x_tilde = dot(FO, prev_x_tilde) + H*V[k] + \
+                           colwise(dot(Ke, Y[:,k-1]))
             next_x = dot(G, prev_x) + H*V[k]
             Y[:,k] = squeeze(dot(C, next_x))
             X[:,k] = squeeze(next_x)
@@ -626,3 +634,22 @@ class discretized_closed_loop_SS_model(closed_loop_SS_model):
         self.theta = squeeze(self.Y_dig[0,:])
         self.accel = squeeze(self.Y_dig[1,:])
 
+
+
+class discretized_closed_loop_SS_model_theta_only(discretized_closed_loop_SS_model):
+    def __init__(self, pklname, bode_opts=None, N=7, \
+                 T=1.0/500):
+        discretized_closed_loop_SS_model.__init__(self, pklname, \
+                                                  bode_opts=bode_opts, \
+                                                  N=N, \
+                                                  T=T)
+        self.C = rowwise(self.C[0,:])
+            
+    
+    def digital_lsim(self, u, X0=None):
+        closed_loop_SS_model.digital_lsim(self, u, X0=X0)
+        self.theta = squeeze(self.Y_dig[0,:])
+
+
+    def plot_model_data(self):
+        SFLR_TF_models.SFLR_Time_File_Mixin.plot_model_data(self, accel=False)
