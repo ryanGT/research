@@ -284,7 +284,14 @@ class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
 
     def save_params(self, filepath):
         rwkmisc.SavePickle(self.params, filepath)
+        return self.params
 
+    
+    def load_params(self, filepath):
+        mydict = rwkmisc.LoadPickle(filepath)
+        self.set_params_from_dict(mydict)
+        self.build_TFs()
+        return mydict
         
 
 class Second_Order_Rigid_Act_Model(Rigid_Acuator_TF_Model):
@@ -314,9 +321,9 @@ class Second_Order_Rigid_Act_Model(Rigid_Acuator_TF_Model):
                                         TMM_model, ffit=ffit, \
                                         label=label, \
                                         params=params)
-    
 
-class SO_Act_w_one_notch(Second_Order_Rigid_Act_Model):
+
+class model_w_notch(object):
     def _build_notch_TF(self, wp, zp, wz, zz):
         """Create a second order notch filter.  This is a generic
         notch filter method called by build_notch1_TF and
@@ -332,8 +339,36 @@ class SO_Act_w_one_notch(Second_Order_Rigid_Act_Model):
         wz1 = self.wz1
         zz1 = self.zz1
         self.notch1 = self._build_notch_TF(wp1, zp1, wz1, zz1)
-        
-        
+
+    
+class FO_Act_w_one_notch(model_w_notch,Rigid_Acuator_TF_Model):
+    def build_TFs(self):
+        self.build_act_iso()
+        self.build_notch1_TF()
+        self.G_act = self.G_act_iso*self.notch1
+
+
+    def __init__(self, bode_opts, unknown_params, \
+                 TMM_model, \
+                 ffit=None, \
+                 label='FO 1 notch', \
+                 params = {'K_act':1.12347211e-02, \
+                           'H':180.0/pi*1024/360.0, \
+                           'p_act1':1.38053790e+02, \
+                           'wp1':1.77094515e+01, \
+                           'zp1':4.14416466e-01, \
+                           'wz1':1.55761111e+01, \
+                           'zz1':5.10606176e-03}, \
+                 ):
+        Rigid_Acuator_TF_Model.__init__(self, bode_opts, \
+                                        unknown_params, \
+                                        TMM_model, ffit=ffit, \
+                                        label=label, \
+                                        params=params)
+
+    
+
+class SO_Act_w_one_notch(Second_Order_Rigid_Act_Model,model_w_notch):
     def build_TFs(self):
         self.build_act_iso()
         self.build_notch1_TF()
@@ -413,7 +448,97 @@ accel_dict['a_gain'] = 1.55990124
 accel_params = copy.copy(SO2N_params)
 accel_params.update(accel_dict)
 
-class Accel_w_two_notches(SO_Act_w_two_notches):
+FO_accel_params = copy.copy(accel_params)
+pop_params = ['p_act2','wp2','zp2','wz2','zz2','B2']
+for item in pop_params:
+    FO_accel_params.pop(item)
+    
+
+class TF_w_accel(object):
+    def lsim(self, u, t):
+        self.theta = self.G_act.lsim(u, t)
+        self.accel = self.G_a_th.lsim(self.theta, t)
+        return self.theta, self.accel
+
+
+    def plot_exp_time_data(self):
+        Rigid_Acuator_TF_Model.plot_exp_time_data(self, accel=True)
+
+
+    def plot_model_data(self):
+        Rigid_Acuator_TF_Model.plot_model_data(self, accel=True)
+
+
+    def time_domain_cost(self, C):
+        self.set_params(C)
+        self.build_TFs()
+        self.lsim(self.data_file.u, self.data_file.t)
+        e_theta = self.theta - self.data_file.theta
+        e_accel = self.accel - self.data_file.a
+        cost = sum(e_theta**2) + sum(e_accel**2)
+        #cost += self.negative_params_check()
+        return cost
+
+
+    def calc_bodes(self, f):
+        bode1 = BPO.tf_to_Bode(self.G_act, f, \
+                               self.bode_opts[0], PhaseMassage=True)
+        bode2 = BPO.tf_to_Bode(self.G_a_v, f, \
+                               self.bode_opts[1], PhaseMassage=True)
+
+        self.bodes = [bode1, bode2]
+        self.G_act_bode = bode1
+        self.G_a_v_bode = bode2
+
+
+    def calc_TMM_bode(self):
+        self.TMM_model.calc_bodes(self.ffit)
+        self.TMM_act_bode = self.TMM_model.find_bode(self.bode_opts[0])
+        self.TMM_accel_v_bode = self.TMM_model.find_bode(self.bode_opts[1])
+
+
+    def accel_v_cost(self, C):
+        self.set_params(C)
+        self.build_TFs()
+        self.calc_bodes(self.ffit)
+        cost = self.G_a_v_bode.dB_Phase_Error_sum(self.TMM_accel_v_bode)
+        #cost += self.negative_params_check()
+        return cost
+
+
+class FO_1_notch_w_accel(TF_w_accel,FO_Act_w_one_notch):
+    def build_a_theta_TF(self):
+        wpa1 = self.wpa1
+        zpa1 = self.zpa1
+        B1 = self.B1
+        mode1 = TF([B1,0,0],\
+                   [1,2*zpa1*wpa1,wpa1**2])
+        self.G_a_th = (mode1)*self.a_gain
+
+
+    def build_TFs(self):
+        self.build_act_iso()
+        self.build_notch1_TF()
+        self.build_a_theta_TF()
+        self.G_act = self.G_act_iso*self.notch1
+        self.G_a_v = self.G_act*self.G_a_th
+
+
+    def __init__(self, bode_opts, unknown_params, \
+                 TMM_model, \
+                 ffit=None, \
+                 label='FO 1 notch', \
+                 params=FO_accel_params, \
+                 ):
+        Rigid_Acuator_TF_Model.__init__(self, bode_opts, \
+                                        unknown_params, \
+                                        TMM_model, ffit=ffit, \
+                                        label=label, \
+                                        params=params)
+        self.my_cost = self.accel_v_cost
+    
+    
+class Accel_w_two_notches(TF_w_accel,SO_Act_w_two_notches):
     """This model builds on SO_Act_w_two_notches by adding the
     accelerometer output."""
     def build_a_theta_TF(self):
@@ -437,56 +562,6 @@ class Accel_w_two_notches(SO_Act_w_two_notches):
         self.build_a_theta_TF()
         self.G_act = self.G_act_iso*self.notch1*self.notch2
         self.G_a_v = self.G_act*self.G_a_th
-
-
-    def lsim(self, u, t):
-        self.theta = self.G_act.lsim(u, t)
-        self.accel = self.G_a_th.lsim(self.theta, t)
-        return self.theta, self.accel
-        
-    def plot_exp_time_data(self):
-        SO_Act_w_two_notches.plot_exp_time_data(self, accel=True)
-
-
-    def plot_model_data(self):
-        SO_Act_w_two_notches.plot_model_data(self, accel=True)
-
-
-    def time_domain_cost(self, C):
-        self.set_params(C)
-        self.build_TFs()
-        self.lsim(self.data_file.u, self.data_file.t)
-        e_theta = self.theta - self.data_file.theta
-        e_accel = self.accel - self.data_file.a
-        cost = sum(e_theta**2) + sum(e_accel**2)
-        #cost += self.negative_params_check()
-        return cost
-
-
-    def calc_bodes(self, f):
-        bode1 = BPO.tf_to_Bode(self.G_act, f, \
-                               self.bode_opts[0], PhaseMassage=True)
-        bode2 = BPO.tf_to_Bode(self.G_a_v, f, \
-                               self.bode_opts[1], PhaseMassage=True)
-        
-        self.bodes = [bode1, bode2]
-        self.G_act_bode = bode1
-        self.G_a_v_bode = bode2
-
-
-    def calc_TMM_bode(self):
-        self.TMM_model.calc_bodes(self.ffit)
-        self.TMM_act_bode = self.TMM_model.find_bode(self.bode_opts[0])
-        self.TMM_accel_v_bode = self.TMM_model.find_bode(self.bode_opts[1])
-
-
-    def accel_v_cost(self, C):
-        self.set_params(C)
-        self.build_TFs()
-        self.calc_bodes(self.ffit)
-        cost = self.G_a_v_bode.dB_Phase_Error_sum(self.TMM_accel_v_bode)
-        #cost += self.negative_params_check()
-        return cost
 
 
     def __init__(self, bode_opts, unknown_params, \
