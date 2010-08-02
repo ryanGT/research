@@ -430,6 +430,8 @@ def bendmatz_comp(s, params, EIstr='EI2', symlabel='', \
     L = params['L']
     if not params.has_key('c'):
         c = 0.0#no damping
+    elif params['c'] == 0.0:
+        c = 0.0
     else:
         w = imag(s)
         c = params['c']/w
@@ -470,7 +472,7 @@ class BeamElement_v2(BeamElement):
         matrix of strings will be returned.  Otherwise, 's' is a
         numeric value (probably complex) and the matrix returned will
         be complex."""
-#        Pdb().set_trace()
+        #Pdb().set_trace()
         if sym:
             myparams=self.symparams
         else:

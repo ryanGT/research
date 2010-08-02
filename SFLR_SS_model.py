@@ -337,8 +337,9 @@ class CCF_SS_Model_from_poles_and_zeros(SS_model):
                 self.C_coeffs = [poly(myzeros)]
                 nr = 1
             else:
-                myzeros = array(myzeros)
-                nr, nc = myzeros.shape
+                #myzeros = array(myzeros)
+                #nr, nc = myzeros.shape
+                nr = len(myzeros)#assume a list of lists
                 #self.C_coeffs = numpy.zeros((nr, self.N+1))
                 clist = []
                 for row in myzeros:

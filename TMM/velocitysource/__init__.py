@@ -224,25 +224,25 @@ class AVS1_ol(AVS1):
         TMMElementIHT.__init__(self,'avs',params,**kwargs)
 
 
-        def GetAugMat(self, s, sym=False):
-            """Return the augmented element transfer matrix for the
-            AngularVelocitySource element, which includes the velocity
-            source portion of 1/s in the augmentend column for theta.  If
-            sym=True, 's' must be a symbolic string and a matrix of
-            strings will be returned.  Otherwise, 's' is a numeric value
-            (probably complex) and the matrix returned will be complex."""
-            N=self.maxsize
-            if sym:
-                myparams=self.symparams
-                matout=eye(N+1,dtype='f')
-                matout=matout.astype('S30')
-            else:
-                matout=eye(N+1,dtype='D')
-                myparams=self.params
-            myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
-            act_out = self.Gact_func(s, self.params)
-            matout[myrow,N] = act_out
-            return matout
+    def GetAugMat(self, s, sym=False):
+        """Return the augmented element transfer matrix for the
+        AngularVelocitySource element, which includes the velocity
+        source portion of 1/s in the augmentend column for theta.  If
+        sym=True, 's' must be a symbolic string and a matrix of
+        strings will be returned.  Otherwise, 's' is a numeric value
+        (probably complex) and the matrix returned will be complex."""
+        N=self.maxsize
+        if sym:
+            myparams=self.symparams
+            matout=eye(N+1,dtype='f')
+            matout=matout.astype('S30')
+        else:
+            matout=eye(N+1,dtype='D')
+            myparams=self.params
+        myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+        act_out = self.Gact_func(s, self.params)
+        matout[myrow,N] = act_out
+        return matout
 
 
 class AVS1_kp(AVS1_ol):
