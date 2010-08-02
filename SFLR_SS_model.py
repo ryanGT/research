@@ -1,6 +1,7 @@
 from pylab import *
 from scipy import *
-from scipy import linalg, signal, integrate
+from scipy import linalg, signal, integrate, optimize
+import numpy
 
 import controls
 
@@ -21,7 +22,30 @@ class SS_model(object):
         self.D = D
         nr,nc = A.shape
         self.N = nr
+        nrC, ncC = C.shape
+        self.M = nrC
+        self.I = eye(self.N)
         self.use_dig = False
+
+
+
+    def calc_freq_resp_one_s(self, s_i):
+        mat = s_i*self.I - self.A
+        mati = linalg.inv(mat)
+        M = dot(mati, self.B)
+        comp = dot(self.C,M)
+        return comp
+
+
+    def calc_freq_resp(self, f):
+        svect = 2.0j*pi*f
+        comp_mat = zeros((self.M, len(svect)), dtype='complex128')
+
+        for i, s_i in enumerate(svect):
+            comp_i = self.calc_freq_resp_one_s(s_i)
+            comp_mat[:,i] = squeeze(comp_i)
+        self.comp_mat = comp_mat
+        return comp_mat
 
 
     def save_params(self, pklpath, attrlist):
@@ -45,6 +69,7 @@ class SS_model(object):
             out = integrate.quad(Hprime, 0, T, args=(i,))
             self.H[i] = out[0]
         return self.G, self.H
+
 
     def _get_A_and_B(self):
         if self.use_dig:
@@ -291,7 +316,148 @@ class SS_model(object):
         self.v = V
         return self.Y_dig
 
+
+class CCF_SS_Model_from_poles_and_zeros(SS_model):
+    def _build_A(self):
+        self.A = zeros((self.N,self.N))
+        for i in range(self.N-1):
+            self.A[i, i+1] = 1.0#ones on super-diagonal
+
+        for i in range(self.N):
+            self.A[-1,i] = -1.0*self.coeffs[self.N-i]
+
+
+    def _build_C(self):
+        myzeros = self.zeros_in
+        if myzeros is None:
+            self.C_coeffs = [array([1.0])]
+            nr = 1
+        else:
+            if isscalar(myzeros[0]):#there is only one output
+                self.C_coeffs = [poly(myzeros)]
+                nr = 1
+            else:
+                myzeros = array(myzeros)
+                nr, nc = myzeros.shape
+                #self.C_coeffs = numpy.zeros((nr, self.N+1))
+                clist = []
+                for row in myzeros:
+                    coeffs = poly(row)
+                    clist.append(coeffs)
+                self.C_coeffs = clist
+        self.C = numpy.zeros((nr, self.N))
+        for r, row in enumerate(self.C_coeffs):
+            N = len(row)-1
+            for i, val in enumerate(row):
+                self.C[r,N-i] = val
+
+                
+    def __init__(self, poles, zeros=None):
+        self.poles_in = poles
+        self.zeros_in = zeros
+        coeffs = poly(poles)
+        an = coeffs[0]
+        self.coeffs = coeffs/an#force an to equal 1
+        self.N = len(coeffs) - 1
+        self._build_A()
+        self.B = numpy.zeros((self.N,1))
+        self.B[-1] = 1.0
+        self._build_C()
+        self.C_hat = copy.copy(self.C)#save values before scaling self.C
+        nrC, junk = self.C.shape
+        self.M = nrC
+        self.I = eye(self.N)
+                
         
+
+class SFLR_model_w_bodes:
+    def find_opt(self, output, input):
+        found = 0
+        for opt in self.bode_opts:
+            if (opt.output_label == output) and \
+               (opt.input_label == input):
+                found = 1
+                return opt
+        #if we got this far, we didn't find a match
+        assert found, "Did not find a bode with output %s and input %s." % \
+               (output, input)
+
+
+    def find_bode(self, bodeopt):
+        output = bodeopt.output_label
+        input = bodeopt.input_label
+        found = 0
+        for bode in self.bodes:
+            if (bode.output == output) and \
+                   (bode.input == input):
+                found = 1
+                return bode
+        #if we got this far, we didn't find a match
+        assert found, "Did not find a bode with output %s and input %s." % \
+               (output, input)
+
+
+    def calc_bodes(self, f):
+        comp_mat = self.calc_freq_resp(f)
+        th_v_comp = comp_mat[0,:]
+        a_v_comp = comp_mat[1,:]
+        th_v_opts = self.find_opt('theta','v')
+        self.th_v_bode = rwkbode.rwkbode(output='theta', \
+                                         input='v', \
+                                         compin=th_v_comp, \
+                                         seedfreq=th_v_opts.seedfreq, \
+                                         seedphase=th_v_opts.seedphase)
+        self.th_v_bode.PhaseMassage(f)
+
+        a_v_opts = self.find_opt('a','v')        
+        self.a_v_bode = rwkbode.rwkbode(output='a', \
+                                        input='v', \
+                                        compin=a_v_comp, \
+                                        seedfreq=a_v_opts.seedfreq, \
+                                        seedphase=a_v_opts.seedphase)
+        self.a_v_bode.PhaseMassage(f)
+        self.bodes = [self.th_v_bode, self.a_v_bode]
+
+    
+    
+
+class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
+                     SFLR_model_w_bodes):
+    def __init__(self, poles, zeros=None, bode_opts=None):
+        CCF_SS_Model_from_poles_and_zeros.__init__(self, poles, \
+                                                   zeros=zeros)
+        self.bode_opts = bode_opts
+
+
+    def find_fit_bode(self, bode, fitbodes):
+        for curfit in fitbodes:
+            if curfit.input == bode.input and \
+                   curfit.output == bode.output:
+                return curfit
+
+        
+    def find_C_gains(self, fitbodes, ffit):
+        """Find the best gain to use for each output (i.e. a scaling
+        factor for each row of C), by comparing the model bode
+        magnitudes with the corresponding ones from fitbodes.
+
+        This method assumes that bode[i] corresponds to row i of
+        self.C"""
+        self.calc_bodes(ffit)
+        for i, bode in enumerate(self.bodes):
+            fit_bode = self.find_fit_bode(bode, fitbodes)
+            ig = fit_bode.mag/bode.mag
+
+            def my_cost(C):
+                X = C[0]
+                evect = fit_bode.mag-bode.mag*X
+                return sum(evect**2)
+
+            C_opt = optimize.fmin(my_cost, [ig])
+            C_i = C_opt[0]
+            self.C[i,:] *= C_i
+            
+
 class digital_SS_model(SS_model):
     def __init__(self, G, H, C, D=0.0, T=1.0/500):
         self.G = G
@@ -304,7 +470,9 @@ class digital_SS_model(SS_model):
         self.use_dig = True
 
 
-class SFLR_SS_model(SFLR_TF_models.SFLR_Time_File_Mixin_w_accel, SS_model):        
+class SFLR_SS_model(SFLR_model_w_bodes, \
+                    SFLR_TF_models.SFLR_Time_File_Mixin_w_accel, \
+                    SS_model):        
     def plot_model_data(self):
         SFLR_TF_models.SFLR_Time_File_Mixin_w_accel.plot_model_data(self)
         ax = self.ax
@@ -415,73 +583,25 @@ class SFLR_SS_model(SFLR_TF_models.SFLR_Time_File_Mixin_w_accel, SS_model):
         self.create_LTI()
 
 
-    def calc_freq_resp_one_s(self, s_i):
-        mat = s_i*self.I - self.A
-        mati = linalg.inv(mat)
-        M = dot(mati, self.B)
-        comp = dot(self.C,M)
-        return comp
+    ## def calc_freq_resp_one_s(self, s_i):
+    ##     mat = s_i*self.I - self.A
+    ##     mati = linalg.inv(mat)
+    ##     M = dot(mati, self.B)
+    ##     comp = dot(self.C,M)
+    ##     return comp
 
         
-    def calc_freq_resp(self, f):
-        svect = 2.0j*pi*f
-        comp_mat = zeros((2, len(svect)), dtype='complex128')
+    ## def calc_freq_resp(self, f):
+    ##     svect = 2.0j*pi*f
+    ##     comp_mat = zeros((2, len(svect)), dtype='complex128')
 
-        for i, s_i in enumerate(svect):
-            comp_i = self.calc_freq_resp_one_s(s_i)
-            comp_mat[:,i] = comp_i
-        self.comp_mat = comp_mat
-        return comp_mat
-
-
-    def find_opt(self, output, input):
-        found = 0
-        for opt in self.bode_opts:
-            if (opt.output_label == output) and \
-               (opt.input_label == input):
-                found = 1
-                return opt
-        #if we got this far, we didn't find a match
-        assert found, "Did not find a bode with output %s and input %s." % \
-               (output, input)
+    ##     for i, s_i in enumerate(svect):
+    ##         comp_i = self.calc_freq_resp_one_s(s_i)
+    ##         comp_mat[:,i] = comp_i
+    ##     self.comp_mat = comp_mat
+    ##     return comp_mat
 
 
-    def find_bode(self, bodeopt):
-        output = bodeopt.output_label
-        input = bodeopt.input_label
-        found = 0
-        for bode in self.bodes:
-            if (bode.output == output) and \
-                   (bode.input == input):
-                found = 1
-                return bode
-        #if we got this far, we didn't find a match
-        assert found, "Did not find a bode with output %s and input %s." % \
-               (output, input)
-
-
-    def calc_bodes(self, f):
-        comp_mat = self.calc_freq_resp(f)
-        th_v_comp = comp_mat[0,:]
-        a_v_comp = comp_mat[1,:]
-        th_v_opts = self.find_opt('theta','v')
-        self.th_v_bode = rwkbode.rwkbode(output='theta', \
-                                         input='v', \
-                                         compin=th_v_comp, \
-                                         seedfreq=th_v_opts.seedfreq, \
-                                         seedphase=th_v_opts.seedphase)
-        self.th_v_bode.PhaseMassage(f)
-
-        a_v_opts = self.find_opt('a','v')        
-        self.a_v_bode = rwkbode.rwkbode(output='a', \
-                                        input='v', \
-                                        compin=a_v_comp, \
-                                        seedfreq=a_v_opts.seedfreq, \
-                                        seedphase=a_v_opts.seedphase)
-        self.a_v_bode.PhaseMassage(f)
-        self.bodes = [self.th_v_bode, self.a_v_bode]
-        
-#    def FreqResp(self, 
 
 
 class closed_loop_SS_model(SFLR_SS_model):

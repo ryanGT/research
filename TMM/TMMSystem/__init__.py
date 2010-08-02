@@ -100,6 +100,13 @@ class TMMSystem:
             else:
                 curout.pind=myouts
 
+        #size of augmented matrices
+        aug_N = self.maxsize
+        if not aug_N % 2:
+            aug_N += 1
+        self.aug_N = aug_N
+
+
     def PreparePythonFiles(self, filenames,chardetnames=[],ratmx=False,curvefit=True):
         """Similar to PrepareFortranFiles, but this function generates
         python files instead of FORTRAN files.  The input is a list of
@@ -1861,7 +1868,146 @@ class TMMSystem:
                 basevect[curind,c]=curns#insert non-zero values into the boundary condition vector at the base of the beam
         return basevect
 
-    def BodeResponse(self,fvect):
+
+    def _calc_z_vectors_one_s(self, s):
+        """Calculate the state vectors at each location in the model
+        at Bode input value of s (complex, radians/sec).
+
+        This is one function in my attempt to break BodeResponse into
+        smaller functions.  I intend to use these smaller functions in
+        the new function FindZero."""
+        U = scipy.eye(self.aug_N, dtype='D')
+        bv = self.FindAugBaseVect(s)
+        for x, curelem in enumerate(self.elemlist):
+            tempU = curelem.GetAugMat(s)
+            U = scipy.dot(tempU,U)
+            curz = dot(U,bv)
+            curz = curz.squeeze()
+            if x == 0:
+                outlist = [curz]
+            else:
+                outlist.append(curz)
+        return outlist
+        
+
+    def _assign_raw_bodes_from_z_vectors(self, r, outlist, \
+                                         bodeind=None):
+        """This fuction is intended to be called after
+        _calc_z_vectors_one_s.  If takes pulls the appropriate values
+        out of the z vectors and stores them in self.rawbodeouts[r].
+
+        If bodeind is not None, do this only for the one bode output
+        whose ind is bodeind.
+
+        This is one function in my attempt to break BodeResponse into
+        smaller functions.  I intend to use these smaller functions in
+        the new function FindZero."""
+        if bodeind is not None:
+            bodeouts = [self.rawbodeouts[bodeind]]
+        else:
+            bodeouts = self.rawbodeouts
+            
+        for curraw in bodeouts:
+            my_z = outlist[curraw.pind]
+            curraw.compvect[r] = my_z[curraw.dof]
+
+
+    def _find_bode_comp_from_raw(self, bodeind, svect):
+        """Find the complex vector associated with on bode ind."""
+        bodedict = self.bodeouts[bodeind]
+
+        if bodedict.type.lower() == 'diff':
+            col1 = self.FindRawBodeout(bodedict.pind[0],bodedict.dof)
+            col2 = self.FindRawBodeout(bodedict.pind[1],bodedict.dof)
+            tempcomp = col1-col2
+        else:
+            tempcomp = self.FindRawBodeout(bodedict.pind,bodedict.dof)
+        if bodedict.post.lower() == 'accel':
+            tempcomp = tempcomp*svect**2
+        elif bodedict.post.lower() == 'vel':
+            tempcomp = tempcomp*svect
+        tempcomp = tempcomp*bodedict.gain
+
+        return tempcomp
+    
+
+    def _find_one_bode_from_raw(self, bodeind, svect):
+        """Find one bode output from self.rawbodeouts.  Do this only
+        for the Bode corresponding to bodeind.  Use svect for finding
+        velocity or acceleration.
+
+        This is one function in my attempt to break BodeResponse into
+        smaller functions.  I intend to use these smaller functions in
+        the new function FindZero.
+        """
+        tempcomp = self._find_bode_comp_from_raw(bodeind, svect)
+        bodedict = self.bodeouts[bodeind]
+        mybode = rwkbode.rwkbode(bodedict.output, \
+                                 bodedict.input, \
+                                 compin=tempcomp, \
+                                 seedfreq=bodedict.seedfreq, \
+                                 seedphase=bodedict.seedphase)
+        return mybode
+
+
+    def _find_bodes_from_raw(self, svect):
+        for x in range(len(self.bodeouts)):
+            curbode = self._find_one_bode_from_raw(x, svect)
+            if x == 0:
+                bodes = [curbode]
+            else:
+                bodes.append(curbode)
+        return bodes
+
+
+    def Find_Bode_Abs_one_s(self, sguess, bodeind=0):
+        if not isscalar(sguess):
+            assert(len(sguess)==2), "not sure what to do with non-scalar sguess of length "+str(len(sguess))
+            sguess = sguess[0] + 1.0j*sguess[1]
+        svect = array([sguess])
+        self._zero_compvects(svect)
+
+        z_list = self._calc_z_vectors_one_s(sguess)
+        self._assign_raw_bodes_from_z_vectors(0, z_list, \
+                                              bodeind=bodeind)
+        tempcomp = self._find_bode_comp_from_raw(bodeind, svect)
+        return abs(tempcomp)
+
+    
+    def FindZero(self, sguess, bodeind=0):
+        """Search for a zero in the frequency response of the bode
+        output bodeind near the s value of sguess."""
+        X0 = array([real(sguess), imag(sguess)])
+        s_opt = scipy.optimize.fmin(self.Find_Bode_Abs_one_s, \
+                                    X0, args=(bodeind,))
+        z = s_opt[0] + 1.0j*s_opt[1]
+        return z
+
+
+    def _zero_compvects(self, svect):
+        """Set the compvects of each rawbode output to an
+        appropriately sized matrix of zeros."""
+        N = len(svect)
+        for curraw in self.rawbodeouts:
+            curraw.compvect = zeros((N,), dtype='D')
+        
+
+    def BodeResponse_v2(self, fvect):
+        """This is an update created on Aug. 2, 2010 for BodeResponse.
+        I am breaking it into smaller functions so that I can use
+        those functions in FindZero."""
+        svect = 2.0j*pi*array(fvect)
+        self._zero_compvects(svect)
+        
+        for r, s in enumerate(svect):
+            z_list = self._calc_z_vectors_one_s(s)
+            self._assign_raw_bodes_from_z_vectors(r, z_list)
+
+        bodes = self._find_bodes_from_raw(svect)
+        return bodes
+    
+            
+    def BodeResponse(self, fvect):
         """Calculate the Bode response at system locations
         specified by self.bodeouts (specified during __init__
         of the TMMSystem).  fvect is a vector of frequencies
@@ -1871,7 +2017,7 @@ class TMMSystem:
 #        outmat=zeros((len(fvect),Nout),'d')
 #        rawvect=zeros((len(fvect),Nout),'d')
 #        outmat=outmat+0.j
-        N=self.maxsize
+        N = self.maxsize
 #        rawbodedict={}
         for curitem in self.rawbodeouts:
             curitem.compvect=zeros(len(fvect),dtype='D')
@@ -1919,11 +2065,13 @@ class TMMSystem:
             bodes.append(rwkbode.rwkbode(bodedict.output,bodedict.input,compin=tempcomp,seedfreq=bodedict.seedfreq,seedphase=bodedict.seedphase))
         return bodes
 
+
     def FindRawBodeout(self,pind,dof):
         for curraw in self.rawbodeouts:
             if curraw.pind==pind and curraw.dof==dof:
                 return curraw.compvect
         return -1
+
 
     def FindAugBaseVect(self,s):
         submat,augcol=self.FindAugSubmat(s)
@@ -2088,13 +2236,14 @@ class TMMSystem:
         in the Reduced Order Model."""
         return C#do nothing in the default case
 
+
     def Reduced_Order_Model(self, act_eigs, ods_freqs, sys_eigs, ffit):
         """This method attempts to automate the creation of a reduced
         order model (ROM) based on the method of Book and Majette
         combined with my approach for handling actuator eigenvalues
         using operating deflection shapes.
 
-        act_eigs are the system eigenvalues (s values in radians/second)
+        act_eigs are the actuator eigenvalues (s values in radians/second)
 
         ods_freqs are the frequency values in Hz for calculating the
         operating deflection shapes
@@ -2151,6 +2300,7 @@ class TMMSystem:
         self.G_tmm = G_tmm
         self.X_rom = X
         return A, B, C
+
 
     def _freq_resp_one_s(self, s):
         N = self.N_rom
