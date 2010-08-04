@@ -313,8 +313,15 @@ class SS_model(plotting_mixin.item_that_plots):
         X[:,0] = squeeze(X0)
         X_tilde[:,0] = squeeze(X0_tilde)
 
-        G = self.G_ol
-        H = self.H_ol
+        if hasattr(self, 'G_ol'):
+            G = self.G_ol
+        else:
+            G = self.G
+
+        if hasattr(self, 'H_ol'):
+            H = self.H_ol
+        else:
+            H = self.H
         #C = self.C
         C = self._get_C()
         Ke = self.Ke
@@ -733,6 +740,14 @@ class digital_SFLR_SS_model(digital_SS_model, \
         self.digital_lsim(u)
 
 
+    def plot_time_domain_exp_vs_model(self, fi=1, legloc=5):
+        self.create_ax(fi=fi)
+        self.plot_exp_time_data()
+        self.plot_model_data()
+        self.label_time_domain_plot()
+        self.ax.legend(loc=legloc)
+
+
     def digital_lsim(self, u, X0=None):
         SS_model.digital_lsim(self, u, X0=X0)
         self.theta = squeeze(self.Y_dig[0,:])
@@ -762,8 +777,15 @@ class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
         X[:,0] = squeeze(X0)
         X_tilde[:,0] = squeeze(X0_tilde)
 
-        G = self.G_ol
-        H = self.H_ol
+        if hasattr(self, 'G_ol'):
+            G = self.G_ol
+        else:
+            G = self.G
+
+        if hasattr(self, 'H_ol'):
+            H = self.H_ol
+        else:
+            H = self.H
         #C = self.C
         C = self._get_C()
         Ke = self.Ke
@@ -792,7 +814,24 @@ class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
         self.Y_dig = Y
         #self.v = squeeze(self.E*u + dot(self.K, self.X_dig))
         self.v = V
+        self.theta = squeeze(self.Y_dig[0,:])
         return self.Y_dig
+
+
+    def digital_lsim(self, u, X0=None):
+        SS_model.digital_lsim(self, u, X0=X0)
+        self.theta = squeeze(self.Y_dig[0,:])
+
+
+    def plot_model_data(self):
+        SFLR_TF_models.SFLR_Time_File_Mixin.plot_model_data(self, \
+                                                            accel=False)
+        ax = self.ax
+        t = self.t
+        ax.plot(t, self.v, label='$v_{model}$')
+
+    ## def plot_model_data(self):
+    ##     SFLR_TF_models.SFLR_Time_File_Mixin.plot_model_data(self, accel=False)
 
     
 def digital_SFLR_model_from_pickle(pklpath):
