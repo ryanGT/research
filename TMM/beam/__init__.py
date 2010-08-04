@@ -423,6 +423,7 @@ def bendmatz_comp(s, params, EIstr='EI2', symlabel='', \
     z-axis.  This function is used for part of the GetMat function of
     an 8x8 or 12x12 beam.  It will be the entire 4x4 transfer matrix
     if usez=True for the beam element."""
+    s = complex(s)
     if debug>0:
         print('In bendmatz')
     EI = params[EIstr]

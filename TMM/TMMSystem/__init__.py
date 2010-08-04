@@ -1,7 +1,7 @@
 from __future__ import division
 from scipy import cos, cosh, sin, sinh, array, r_, c_, exp, pi, \
      real, imag, zeros, eye, alltrue, shape, atleast_1d, dot, \
-     vstack, isscalar, squeeze
+     vstack, isscalar, squeeze, complex128
 from scipy.linalg import inv as inverse
 from scipy.linalg import inv
 import scipy.optimize
@@ -1964,6 +1964,7 @@ class TMMSystem:
         if not isscalar(sguess):
             assert(len(sguess)==2), "not sure what to do with non-scalar sguess of length "+str(len(sguess))
             sguess = sguess[0] + 1.0j*sguess[1]
+        sguess = complex128(sguess)
         svect = array([sguess])
         self._zero_compvects(svect)
 

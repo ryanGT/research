@@ -9,7 +9,7 @@ import os, sys
 import rwkos, rwkbode, rwkmisc
 
 import txt_data_processing as TDP
-reload(TDP)
+#reload(TDP)
 
 import rwkbode, pylab_util, rwkos
 reload(rwkbode)

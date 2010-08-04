@@ -14,7 +14,9 @@ import copy
 import SFLR_TF_models
 reload(SFLR_TF_models)
 
-class SS_model(object):
+import plotting_mixin
+
+class SS_model(plotting_mixin.item_that_plots):
     def __init__(self, A, B, C, D=0.0):
         self.A = A
         self.B = B
@@ -26,6 +28,20 @@ class SS_model(object):
         self.M = nrC
         self.I = eye(self.N)
         self.use_dig = False
+
+
+    def plot_states_many_figs(self, fi=3, clear=True, \
+                              attr='X_dig'):
+        mat = getattr(self, attr)
+        mat = colwise(mat)
+        nr, nc = mat.shape
+        for n in range(nc):
+            cur_col = mat[:,n]
+            label = attr + '%i' % n
+            ax = self._prep_ax(fi=fi, clear=clear)                
+            ax.plot(self.t, cur_col, label=label)
+            ax.set_title(label)
+            fi += 1
 
 
 
@@ -149,9 +165,21 @@ class SS_model(object):
         return self.P
 
 
-    def observability(self):
+    def _get_C(self):
+        """For now, I am handling multiple output systems by using
+        just the first output.  So, this method just return self.C for
+        most systems, but grabs the first row of C for
+        systems deliberately ignoring the accel or other outputs."""
+        return self.C
+        
+
+    def observability(self, out_ind=0):
         A, B = self._get_A_and_B()
-        C = self.C
+        C = self._get_C()
+        #force using only first output for now
+        nrC, ncC = C.shape
+        if nrC > 1:
+            C = atleast_2d(C[0,:])
         N = self.N
         for n in range(N):
             if n == 0:
@@ -168,7 +196,7 @@ class SS_model(object):
 
 
     def acker(self, despoles, discretize=True, \
-              obs=False):
+              obs=False, out_ind=0):
         """obs True means find the observer gain vector L and is used
         in observer design.  obs False means find the state-feedback
         gain vector used in pole-placement control design."""
@@ -287,7 +315,8 @@ class SS_model(object):
 
         G = self.G_ol
         H = self.H_ol
-        C = self.C
+        #C = self.C
+        C = self._get_C()
         Ke = self.Ke
         K = self.K
 
@@ -316,6 +345,24 @@ class SS_model(object):
         self.v = V
         return self.Y_dig
 
+
+    def lsim_from_exp_file_w_obs(self, filepath, fi=1, plot=True, \
+                                 clear=True):
+        self.load_exp_time_file(filepath)
+        u = self.data_file.u
+        t = self.data_file.t
+        self.digital_lsim_with_obs(u)
+
+
+def model_from_pickle(pklpath, model_class=SS_model):
+    mydict = rwkmisc.LoadPickle(pklpath)
+    ss = model_class(**mydict)
+    return ss
+
+
+def SS_model_from_pickle(pklpath):
+    return model_from_pickle(pklpath, model_class=SS_model)
+    
 
 class CCF_SS_Model_from_poles_and_zeros(SS_model):
     def _build_A(self):
@@ -419,6 +466,7 @@ class SFLR_model_w_bodes:
         self.a_v_bode.PhaseMassage(f)
         self.bodes = [self.th_v_bode, self.a_v_bode]
 
+        return self.bodes
     
     
 
@@ -459,6 +507,192 @@ class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
             self.C[i,:] *= C_i
             
 
+class SFLR_CCF_model_theta_only(SFLR_CCF_model):
+    def __init__(self, poles, \
+                 theta_zeros=None, \
+                 bode_opts=None):
+        SFLR_CCF_model.__init__(self, poles, zeros=theta_zeros, \
+                                bode_opts=bode_opts)
+        self.C_theta = copy.copy(self.C)
+        self.C_theta_hat = copy.copy(self.C)
+
+
+class SFLR_CCF_model_w_accel_semi_Jordan(SFLR_CCF_model_theta_only):
+    def __init__(self, poles, \
+                 flex_pole1, \
+                 flex_pole2, \
+                 theta_zeros=None, \
+                 B1=1.0, B2=-1.0, \
+                 bode_opts=None):
+        SFLR_CCF_model_theta_only.__init__(self, poles, \
+                                           theta_zeros=theta_zeros, \
+                                           bode_opts=bode_opts)
+        self.flex_pole1 = flex_pole1
+        self.flex_pole2 = flex_pole2
+        self.B1 = B1
+        self.B2 = B2
+        self._build_accel_C()
+        self.M = 2
+
+
+    def find_theta_C_gain(self, fitbodes, ffit):
+        """This method assumes that the theva/v bode is self.bodes[0]."""
+        self.calc_bodes(ffit)
+        i = 0
+        bode = self.bodes[i]
+        fit_bode = self.find_fit_bode(bode, fitbodes)
+        ig = fit_bode.mag/bode.mag
+
+        def my_cost(C):
+            X = C[0]
+            evect = fit_bode.mag-bode.mag*X
+            return sum(evect**2)
+
+        C_opt = optimize.fmin(my_cost, [ig])
+        C_i = C_opt[0]
+        self.C[i,:] *= C_i
+        self.C_theta *= C_i
+        return C_i
+    
+
+    def find_accel_C_row(self, fitbodes, ffit):
+        """This method assumes that the accel/v bode is self.bodes[1]."""
+        self.calc_bodes(ffit)
+        i = 1
+        bode = self.bodes[i]
+        fit_bode = self.find_fit_bode(bode, fitbodes)
+        ig = [self.B1, self.B2]
+        
+        def my_cost(C):
+            self.B1 = C[0]
+            self.B2 = C[1]
+            self._build_accel_C()
+            self.calc_bodes(ffit)
+            evect = fit_bode.mag - self.bodes[i].mag
+            return sum(evect**2)
+
+        C_opt = optimize.fmin(my_cost, [ig])
+        self.B1 = C_opt[0]
+        self.B2 = C_opt[1]
+        self._build_accel_C()
+        return self.C[1,:]
+
+
+
+    def find_C_gains(self, fitbodes, ffit):
+        """Find the best gain to use for each output (i.e. a scaling
+        factor for each row of C), by comparing the model bode
+        magnitudes with the corresponding ones from fitbodes.
+
+        This method assumes that bode[i] corresponds to row i of
+        self.C"""
+        self.calc_bodes(ffit)
+        for i, bode in enumerate(self.bodes):
+            fit_bode = self.find_fit_bode(bode, fitbodes)
+            ig = fit_bode.mag/bode.mag
+
+            def my_cost(C):
+                X = C[0]
+                evect = fit_bode.mag-bode.mag*X
+                return sum(evect**2)
+
+            C_opt = optimize.fmin(my_cost, [ig])
+            C_i = C_opt[0]
+            self.C[i,:] *= C_i
+
+
+    def _build_accel_C(self):
+        term1 = self.B1*self.flex_pole2
+        term2 = self.B2*self.flex_pole1
+        bvect = term1+term2
+        self.a_term = copy.copy(bvect)
+        self.a_zeros = roots(self.a_term)
+        bvect = numpy.append(bvect, [0,0])
+        C_accel = zeros((1, self.N))
+        N = len(bvect)-1
+        for i, val in enumerate(bvect):
+            C_accel[0,N-i] = val
+        self.C_accel = C_accel
+        self.C = row_stack([self.C_theta, self.C_accel])
+        return self.C
+        
+
+    def find_accel_C_row(self, fitbodes, ffit):
+        """This method assumes that the accel/v bode is self.bodes[1]."""
+        self.calc_bodes(ffit)
+        i = 1
+        bode = self.bodes[i]
+        fit_bode = self.find_fit_bode(bode, fitbodes)
+        ig = [self.B1, self.B2]
+
+        def my_cost(C):
+            self.B1 = C[0]
+            self.B2 = C[1]
+            self._build_accel_C()
+            self.calc_bodes(ffit)
+            #evect = fit_bode.mag - self.bodes[i].mag
+            evect = fit_bode.dBmag() - self.bodes[i].dBmag()
+            return sum(evect**2)
+
+        C_opt = optimize.fmin(my_cost, [ig])
+        self.B1 = C_opt[0]
+        self.B2 = C_opt[1]
+        self._build_accel_C()
+        return self.C[1,:]
+
+        
+class SFLR_CCF_model_arb_accel(SFLR_CCF_model_w_accel_semi_Jordan):
+    def __init__(self, poles, \
+                 theta_zeros=None, \
+                 C_ig = [], \
+                 C_inds = [], \
+                 bode_opts=None, \
+                 phaseweight=0.0):
+        SFLR_CCF_model_theta_only.__init__(self, poles, \
+                                           theta_zeros=theta_zeros, \
+                                           bode_opts=bode_opts)
+        self.C_ig = C_ig
+        self.C_accel = copy.copy(C_ig)
+        self.C_inds = C_inds
+        self._build_accel_C()
+        self.M = 2
+        self.phaseweight = phaseweight
+
+
+    def _build_accel_C(self):
+        C_accel = zeros((1, self.N))
+        for ind, C_i in zip(self.C_inds, self.C_accel):
+            C_accel[0,ind] = C_i
+        self.C_accel = C_accel
+        self.C = row_stack([self.C_theta, self.C_accel])
+        return self.C
+
+
+    def find_accel_C_row(self, fitbodes, ffit):
+        """This method assumes that the accel/v bode is self.bodes[1]."""
+        self.calc_bodes(ffit)
+        i = 1
+        bode = self.bodes[i]
+        fit_bode = self.find_fit_bode(bode, fitbodes)
+        ig = self.C_ig
+
+        def my_cost(C):
+            self.C_accel = C
+            self._build_accel_C()
+            self.calc_bodes(ffit)
+            evect = fit_bode.dBmag() - self.bodes[i].dBmag()
+            e = sum(evect**2)
+            if self.phaseweight > 0.0:
+                ephase = fit_bode.phase - self.bodes[i].phase
+                e += sum(ephase**2)
+            return e
+
+        C_opt = optimize.fmin(my_cost, ig)
+        self.C_accel = C_opt
+        self._build_accel_C()
+        return self.C[1,:]
+
+        
 class digital_SS_model(SS_model):
     def __init__(self, G, H, C, D=0.0, T=1.0/500):
         self.G = G
@@ -469,6 +703,104 @@ class digital_SS_model(SS_model):
         nr,nc = G.shape
         self.N = nr
         self.use_dig = True
+
+
+def digital_SS_model_from_pickle(pklpath):
+    return model_from_pickle(pklpath, model_class=digital_SS_model)
+
+
+class digital_SFLR_SS_model(digital_SS_model, \
+                            SFLR_TF_models.SFLR_Time_File_Mixin_w_accel):
+    def __init__(self, G, H, C, D=0.0, K=None, Ke=None, E=1.0, T=1.0/500):
+        self.G = G
+        self.H = H
+        self.C = C
+        self.D = D
+        self.K = K
+        self.Ke = Ke
+        self.E = E
+        self.T = T
+        nr,nc = G.shape
+        self.N = nr
+        self.use_dig = True
+
+    
+    def lsim_from_exp_file(self, filepath, fi=1, plot=True, \
+                           clear=True):
+        self.load_exp_time_file(filepath)
+        u = self.data_file.u
+        t = self.data_file.t
+        self.digital_lsim(u)
+
+
+    def digital_lsim(self, u, X0=None):
+        SS_model.digital_lsim(self, u, X0=X0)
+        self.theta = squeeze(self.Y_dig[0,:])
+        self.accel = squeeze(self.Y_dig[1,:])
+
+
+class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
+    def _get_C(self):
+        """For now, I am handling multiple output systems by using
+        just the first output.  So, this method just return self.C for
+        systems with one output, but grabs the first row of C for
+        multiple output systems."""
+        temp = atleast_2d(self.C)[0,:]
+        C = atleast_2d(temp)
+        return C
+
+
+    def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None):
+        if X0 is None:
+            X0 = zeros((self.N,1))
+        if X0_tilde is None:
+            X0_tilde = zeros((self.N,1))
+        N2 = len(r)
+        V = zeros_like(r)
+        X = zeros((self.N, N2))
+        X_tilde = zeros((self.N, N2))
+        X[:,0] = squeeze(X0)
+        X_tilde[:,0] = squeeze(X0_tilde)
+
+        G = self.G_ol
+        H = self.H_ol
+        #C = self.C
+        C = self._get_C()
+        Ke = self.Ke
+        K = self.K
+
+        Ny, Nx = self.C.shape
+        Y = zeros((Ny, N2))
+        Y[:,0] = squeeze(dot(C, X0))
+
+        FO = G - dot(Ke,C)
+        prev_x = X0
+        prev_x_tilde = X0_tilde
+        for k in range(1,N2):
+            V[k] = self.E*r[k] - squeeze(dot(K, prev_x_tilde))
+            next_x_tilde = dot(FO, prev_x_tilde) + H*V[k] + \
+                           colwise(dot(Ke, Y[0,k-1]))
+            next_x = dot(G, prev_x) + H*V[k]
+            Y[:,k] = squeeze(dot(C, next_x))
+            X[:,k] = squeeze(next_x)
+            X_tilde[:,k] = squeeze(next_x_tilde)
+            prev_x = next_x
+            prev_x_tilde = next_x_tilde
+
+        self.X_dig = X
+        self.X_tilde = X_tilde
+        self.Y_dig = Y
+        #self.v = squeeze(self.E*u + dot(self.K, self.X_dig))
+        self.v = V
+        return self.Y_dig
+
+    
+def digital_SFLR_model_from_pickle(pklpath):
+    return model_from_pickle(pklpath, model_class=digital_SFLR_SS_model)
+    
+
+def digital_SFLR_model_from_pickle_ignore_accel(pklpath):
+    return model_from_pickle(pklpath, digital_SFLR_SS_model_ignoring_accel)
 
 
 class SFLR_SS_model(SFLR_model_w_bodes, \
