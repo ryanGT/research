@@ -336,8 +336,12 @@ class SS_model(plotting_mixin.item_that_plots):
         prev_x_tilde = X0_tilde
         for k in range(1,N2):
             V[k] = self.E*r[k] - squeeze(dot(K, prev_x_tilde))
-            next_x_tilde = dot(FO, prev_x_tilde) + H*V[k] + \
-                           colwise(dot(Ke, Y[:,k-1]))
+            term1 = dot(FO, prev_x_tilde)
+            term2 = H*V[k]
+            term3 = colwise(dot(Ke, Y[:,k-1]))
+            ## if term1.any() or term2.any() or term3.any():
+            ##     Pdb().set_trace()
+            next_x_tilde =  term1 + term2 + term3
             next_x = dot(G, prev_x) + H*V[k]
             Y[:,k] = squeeze(dot(C, next_x))
             X[:,k] = squeeze(next_x)
@@ -765,7 +769,42 @@ class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
         return C
 
 
+    def calc_v(self, k):
+        vtemp = self.E*self.r[k] - squeeze(dot(self.K, self.X_tilde[:,k]))
+        return vtemp
+
+
+    def plot_obs_terms_from_verification(self, fi=300, clear=True, \
+                                         ind=0, \
+                                         label_suffix=''):
+        keep_going = True
+        n = 1
+        while keep_going:
+            attr = 'term%i' % n
+            label_attr = attr + label_suffix
+            if hasattr(self, attr):
+                ax = self._prep_ax(fi=fi, clear=clear)                
+                vect = getattr(self, attr)
+                ax.plot(self.t, vect[ind,:], label=label_attr)
+                ax.set_title(attr)
+                self.label_axis()
+                n += 1
+                fi += 1
+            else:
+                keep_going = False
+                break
+        ax = self._prep_ax(fi=fi, clear=clear)                
+        #vect = self.term1[ind, :] + self.term2[ind,:] + self.term3[ind,:]
+        vect = self.term1[ind, :] + self.term3[ind,:]
+        ax.plot(self.t, vect, label='all terms '+label_suffix)
+        ax.plot(self.t, self.X_tilde[ind, :], label='X_tile_' + str(ind) + ' ' + label_suffix)
+
+
+        self.label_axis()
+        
+
     def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None):
+        self.r = r
         if X0 is None:
             X0 = zeros((self.N,1))
         if X0_tilde is None:
@@ -773,9 +812,13 @@ class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
         N2 = len(r)
         V = zeros_like(r)
         X = zeros((self.N, N2))
-        X_tilde = zeros((self.N, N2))
+        self.X_tilde = zeros((self.N, N2))
         X[:,0] = squeeze(X0)
-        X_tilde[:,0] = squeeze(X0_tilde)
+        self.X_tilde[:,0] = squeeze(X0_tilde)
+        self.term1 = zeros((self.N, N2))
+        self.term2 = zeros((self.N, N2))
+        self.term3 = zeros((self.N, N2))
+
 
         if hasattr(self, 'G_ol'):
             G = self.G_ol
@@ -792,26 +835,42 @@ class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
         K = self.K
 
         Ny, Nx = self.C.shape
-        Y = zeros((Ny, N2))
-        Y[:,0] = squeeze(dot(C, X0))
+        self.Y_dig = zeros((Ny, N2))
+        self.Y_dig[:,0] = squeeze(dot(C, X0))
 
         FO = G - dot(Ke,C)
         prev_x = X0
         prev_x_tilde = X0_tilde
+        debug_ind = 0
         for k in range(1,N2):
-            V[k] = self.E*r[k] - squeeze(dot(K, prev_x_tilde))
-            next_x_tilde = dot(FO, prev_x_tilde) + H*V[k] + \
-                           colwise(dot(Ke, Y[0,k-1]))
+            #V[k] = self.E*r[k] - squeeze(dot(K, prev_x_tilde))
+            V[k] = self.calc_v(k)
+            self.term1[:,k] = squeeze(dot(FO, prev_x_tilde))
+            self.term2[:,k] = squeeze(H*V[k-1])
+            self.term3[:,k] = squeeze(colwise(dot(Ke, self.Y_dig[0,k-3].astype(int))))
+            next_x_tilde =  self.term1[:,k] + self.term2[:,k] + self.term3[:,k]
+            ## if term1.any() or term2.any() or term3.any():
+            ##     if debug_ind < 2:
+            ##         print('k = '+str(k))
+            ##         print('term1 = ' + str(term1))
+            ##         print('term2 = ' + str(term2))
+            ##         print('term3 = ' + str(term3))
+            ##         print('next_x_tilde = ' + str(next_x_tilde))
+            ##         print('-'*20)
+            ##         debug_ind += 1
+                    
+            
+            ## next_x_tilde = dot(FO, prev_x_tilde) + H*V[k] + \
+            ##                colwise(dot(Ke, self.Y_dig[0,k-1]))
             next_x = dot(G, prev_x) + H*V[k]
-            Y[:,k] = squeeze(dot(C, next_x))
+            self.Y_dig[:,k] = squeeze(dot(C, next_x))
             X[:,k] = squeeze(next_x)
-            X_tilde[:,k] = squeeze(next_x_tilde)
+            self.X_tilde[:,k] = squeeze(next_x_tilde)
             prev_x = next_x
             prev_x_tilde = next_x_tilde
 
         self.X_dig = X
-        self.X_tilde = X_tilde
-        self.Y_dig = Y
+        #self.Y_dig = Y
         #self.v = squeeze(self.E*u + dot(self.K, self.X_dig))
         self.v = V
         self.theta = squeeze(self.Y_dig[0,:])
@@ -833,6 +892,12 @@ class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
     ## def plot_model_data(self):
     ##     SFLR_TF_models.SFLR_Time_File_Mixin.plot_model_data(self, accel=False)
 
+
+class digital_SFLR_SS_model_ignoring_accel_P_control(digital_SFLR_SS_model_ignoring_accel):
+    def calc_v(self, k):
+        vtemp = self.r[k] - self.Y_dig[0,k-1]
+        return vtemp
+
     
 def digital_SFLR_model_from_pickle(pklpath):
     return model_from_pickle(pklpath, model_class=digital_SFLR_SS_model)
@@ -840,6 +905,10 @@ def digital_SFLR_model_from_pickle(pklpath):
 
 def digital_SFLR_model_from_pickle_ignore_accel(pklpath):
     return model_from_pickle(pklpath, digital_SFLR_SS_model_ignoring_accel)
+
+
+def digital_SFLR_model_from_pickle_ignore_accel_P_control(pklpath):
+    return model_from_pickle(pklpath, digital_SFLR_SS_model_ignoring_accel_P_control)
 
 
 class SFLR_SS_model(SFLR_model_w_bodes, \

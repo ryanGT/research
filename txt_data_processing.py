@@ -215,6 +215,10 @@ class Data_File(object_with_n_vector):
                 skip += 1
 
 
+    def _get_header(self):
+        self.header = self.raw_list[0:self.skiprows]
+        
+
     def get_labels(self):
         """Read the labels from the data file, assuming they are in
         the row just above the data itself."""
@@ -232,6 +236,7 @@ class Data_File(object_with_n_vector):
         if self.skiprows is None:
             self.sniff()
         skip = self.skiprows
+        self._get_header()
         while skip < self.N:
             try:
                 self.data = loadtxt(self.path, delimiter=self.delim, \
@@ -253,6 +258,7 @@ class Data_File(object_with_n_vector):
         data = self._load_data()
         for ind, attr in self.col_map.iteritems():
             setattr(self, attr, data[:,ind])
+
 
     def get_figure(self, fignum):
         from pylab import figure
