@@ -28,6 +28,8 @@ class SS_model(plotting_mixin.item_that_plots):
         self.M = nrC
         self.I = eye(self.N)
         self.use_dig = False
+        self.mysat = 200.0
+        self.accel = False
 
 
     def plot_states_many_figs(self, fi=3, clear=True, \
@@ -64,15 +66,21 @@ class SS_model(plotting_mixin.item_that_plots):
         return comp_mat
 
 
-    def save_params(self, pklpath, attrlist):
+    def get_params(self, attrlist):
         mydict = {}
         for key in attrlist:
             val = getattr(self, key)
             mydict[key] = val
+        return mydict
+
+    
+    def save_params(self, pklpath, attrlist):
+        mydict = self.get_params(attrlist)
         rwkmisc.SavePickle(mydict, pklpath)
         
 
     def discretize(self, T):
+        self.T = T
         self.G = linalg.expm(self.A*T)
 
         def Hprime(t, i):
@@ -301,17 +309,40 @@ class SS_model(plotting_mixin.item_that_plots):
         return A, B
 
 
+    def sat(self, vin):
+        vmax = self.mysat
+        vmin = -1*self.mysat
+        if vin > vmax:
+            return vmax
+        elif vin < vmin:
+            return vmin
+        else:
+            return vin
+    
+
+    def calc_v(self, k):
+        vtemp = self.E*self.r[k] - squeeze(dot(self.K, self.X_tilde[:,k-1]))
+        return self.sat(vtemp)
+
+
+    def make_t(self):
+        N2 = len(self.r)
+        self.nvect = arange(N2)
+        self.t = self.nvect*self.T
+        
+
     def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None):
+        self.r = r
         if X0 is None:
             X0 = zeros((self.N,1))
         if X0_tilde is None:
             X0_tilde = zeros((self.N,1))
         N2 = len(r)
-        V = zeros_like(r)
-        X = zeros((self.N, N2))
-        X_tilde = zeros((self.N, N2))
-        X[:,0] = squeeze(X0)
-        X_tilde[:,0] = squeeze(X0_tilde)
+        self.v = zeros_like(r)
+        self.X_dig = zeros((self.N, N2))
+        self.X_tilde = zeros((self.N, N2))
+        self.X_dig[:,0] = squeeze(X0)
+        self.X_tilde[:,0] = squeeze(X0_tilde)
 
         if hasattr(self, 'G_ol'):
             G = self.G_ol
@@ -324,39 +355,55 @@ class SS_model(plotting_mixin.item_that_plots):
             H = self.H
         #C = self.C
         C = self._get_C()
-        Ke = self.Ke
-        K = self.K
+        #Ke = self.Ke
+        #K = self.K
 
         Ny, Nx = self.C.shape
-        Y = zeros((Ny, N2))
-        Y[:,0] = squeeze(dot(C, X0))
+        self.Y_dig = zeros((Ny, N2))
+        self.Y_dig[:,0] = squeeze(dot(C, X0))
 
-        FO = G - dot(Ke,C)
+        FO = G - dot(self.Ke,C)
         prev_x = X0
         prev_x_tilde = X0_tilde
         for k in range(1,N2):
-            V[k] = self.E*r[k] - squeeze(dot(K, prev_x_tilde))
+            self.v[k] = self.calc_v(k)
             term1 = dot(FO, prev_x_tilde)
-            term2 = H*V[k]
-            term3 = colwise(dot(Ke, Y[:,k-1]))
+            term2 = self.H*self.v[k]
+            term3 = colwise(dot(self.Ke, self.Y_dig[:,k-1]))
             ## if term1.any() or term2.any() or term3.any():
             ##     Pdb().set_trace()
             next_x_tilde =  term1 + term2 + term3
-            next_x = dot(G, prev_x) + H*V[k]
-            Y[:,k] = squeeze(dot(C, next_x))
-            X[:,k] = squeeze(next_x)
-            X_tilde[:,k] = squeeze(next_x_tilde)
+            next_x = dot(G, prev_x) + self.H*self.v[k]
+            self.Y_dig[:,k] = squeeze(dot(C, next_x))
+            self.X_dig[:,k] = squeeze(next_x)
+            self.X_tilde[:,k] = squeeze(next_x_tilde)
             prev_x = next_x
             prev_x_tilde = next_x_tilde
 
-        self.X_dig = X
-        self.X_tilde = X_tilde
-        self.Y_dig = Y
+        #self.X_dig = X
+        #self.X_tilde = X_tilde
+        #self.Y_dig = Y
         #self.v = squeeze(self.E*u + dot(self.K, self.X_dig))
-        self.v = V
+        #self.v = V
         return self.Y_dig
 
 
+    def plot_digital_lsim_results(self, fi=1, clear=True, \
+                                  legloc=5):
+        ax = self.create_ax(fi=fi, clear=clear)
+        self.make_t()
+        ax.plot(self.t, self.r, label='$r$')
+        for n, Yi in enumerate(self.Y_dig):
+            if self.M > 1:
+                label = '$y_{%i}$' % n
+            else:
+                label = '$y$'
+            ax.plot(self.t, Yi, label=label)
+        ax.plot(self.t, self.v, label='$v$')
+        self.label_axis()
+        self.ax.legend(loc=legloc)            
+        
+        
     def lsim_from_exp_file_w_obs(self, filepath, fi=1, plot=True, \
                                  clear=True):
         self.load_exp_time_file(filepath)
@@ -365,6 +412,33 @@ class SS_model(plotting_mixin.item_that_plots):
         self.digital_lsim_with_obs(u)
 
 
+class SFLR_Motor_Only_Model(SS_model, \
+                            SFLR_TF_models.SFLR_Time_File_Mixin):
+    def __init__(self, *args, **kwargs):
+        SS_model.__init__(self, *args, **kwargs)
+        self.accel = False
+        self.E = 1.0
+
+        
+    def load_exp_time_file(self, filepath, \
+                           col_map={0:'t', 1:'n', 2:'u', \
+                                    3:'v', 4:'theta'}):
+        SFLR_TF_models.SFLR_Time_File_Mixin.load_exp_time_file(self, \
+                                                               filepath, \
+                                                               col_map=col_map)
+        
+class SS_model_P_control(SS_model):
+    def calc_v(self, k):
+        vtemp = self.r[k] - self.Y_dig[0,k-1]
+        return self.sat(vtemp)
+
+
+class SFLR_Motor_Only_P_Control_Model(SS_model_P_control, SFLR_Motor_Only_Model):
+    pass
+
+    
+
+    
 def model_from_pickle(pklpath, model_class=SS_model):
     mydict = rwkmisc.LoadPickle(pklpath)
     ss = model_class(**mydict)
@@ -373,7 +447,19 @@ def model_from_pickle(pklpath, model_class=SS_model):
 
 def SS_model_from_pickle(pklpath):
     return model_from_pickle(pklpath, model_class=SS_model)
-    
+
+
+def SS_model_P_control_from_pickle(pklpath):
+    return model_from_pickle(pklpath, model_class=SS_model_P_control)
+
+
+def Motor_Only_P_control_model_from_pickle(pklpath):
+    return model_from_pickle(pklpath, model_class=SFLR_Motor_Only_P_Control_Model)
+
+
+def Motor_Only_model_from_pickle(pklpath):
+    return model_from_pickle(pklpath, model_class=SFLR_Motor_Only_Model)
+
 
 class CCF_SS_Model_from_poles_and_zeros(SS_model):
     def _build_A(self):

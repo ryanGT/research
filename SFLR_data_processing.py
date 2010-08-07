@@ -155,15 +155,19 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
         self.label_axis()
 
 
-    def plot_states_many_figs(self, fi=3, fig=None, clear=True):
+    def plot_states_many_figs(self, fi=3, fig=None, clear=True, \
+                              label_fmt=None):
+        if label_fmt is None:
+            label_fmt = 'X_tilde%i'
         keep_going = True
         n = 0
         while keep_going:
             attr = 'X_tilde%i' % n
+            label = label_fmt % n
             if hasattr(self, attr):
                 ax = self._prep_ax(fi=fi, fig=fig, clear=clear)                
                 vect = getattr(self, attr)
-                ax.plot(self.t, vect, label=attr)
+                ax.plot(self.t, vect, label=label)
                 ax.set_title(attr)
                 n += 1
                 fi += 1
@@ -229,8 +233,9 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
         self.term1[:,i] = squeeze(colwise(dot(self.G, self.X_tilde[:,i-1])))
         self.term2[:,i] = squeeze(colwise(self.H*self.vvect[i-1]))
         Y_tilde_float_i = squeeze(dot(self.C, self.X_tilde[:,i-1]))
-        Y_tilde_int_i = Y_tilde_float_i.astype(int)
-        self.term3[:,i] = squeeze(colwise(dot(self.Ke, self.Yvect[:,i]-Y_tilde_int_i)))
+        #Y_tilde_int_i = Y_tilde_float_i.astype(int)
+        #self.term3[:,i] = squeeze(colwise(dot(self.Ke, self.Yvect[:,i]-Y_tilde_int_i)))
+        self.term3[:,i] = squeeze(colwise(dot(self.Ke, self.Yvect[:,i-1]-Y_tilde_float_i)))
 
         ## if term1.any() or term2.any() or term3.any():
         ##     Pdb().set_trace()
