@@ -1,20 +1,22 @@
 from pylab import *
 from scipy import *
 from scipy import linalg, signal, integrate, optimize
+from scipy.linalg import eigvals
 import numpy
 
 import controls
 
-import rwkmisc, rwkbode
+import rwkmisc, rwkbode, txt_mixin
 from rwkmisc import colwise, rowwise
 from IPython.Debugger import Pdb
 
-import copy
+import copy, sys, os
 
 import SFLR_TF_models
 reload(SFLR_TF_models)
 
 import plotting_mixin
+
 
 class SS_model(plotting_mixin.item_that_plots):
     def __init__(self, A, B, C, D=0.0):
@@ -32,6 +34,50 @@ class SS_model(plotting_mixin.item_that_plots):
         self.accel = False
 
 
+    def calc_Ghat(self, K):
+        """Find the Ghat matrix that would correspond to using K for
+        feedback: Ghat = self.G - dot(self.B, K)"""
+        self.Ghat = self.G - dot(self.H, K)
+        return self.Ghat
+
+
+    def build_K(self, C, inds=[0]):
+        """Create a state feedback vector K by assigning the elements
+        of C to the elements of K that correspond to inds."""
+        K = zeros((1,self.N))
+        for ci, ind in zip(C, inds):
+            K[0,ind] = ci
+        return K
+
+
+    def find_Ghat_poles(self, K):
+        Ghat = self.calc_Ghat(K)
+        poles = eigvals(Ghat)
+        return poles
+
+    
+    def pole_cost(self, C, inds=[0]):
+        K = self.build_K(C, inds=inds)
+        Ghat = self.calc_Ghat(K)
+        poles = eigvals(Ghat)
+        real_ind = abs(imag(poles)) < 1e-8
+        real_poles = poles[real_ind]
+        imag_ind = abs(imag(poles)) > 1e-8
+        imag_poles = poles[imag_ind]
+        if len(imag_poles) > 2:
+            imag_poles.sort()
+            imag_poles = imag_poles[-2:]
+        #cost = abs_poles[-1] + abs_poles[-2]
+        cost = sum(abs(imag_poles))
+        if real_poles.any():
+            if abs(real_poles).max() > 0.95:
+                cost += 1e4
+        if any(abs(poles) > 1.0):
+            cost += 1e6
+        return cost
+
+        
+
     def plot_states_many_figs(self, fi=3, clear=True, \
                               attr='X_dig'):
         mat = getattr(self, attr)
@@ -45,7 +91,12 @@ class SS_model(plotting_mixin.item_that_plots):
             ax.set_title(label)
             fi += 1
 
-
+    def _ones_on_super(self):
+        mat = zeros((self.N,self.N))
+        for i in range(self.N-1):
+            mat[i, i+1] = 1.0#ones on super-diagonal
+        return mat
+        
 
     def calc_freq_resp_one_s(self, s_i):
         mat = s_i*self.I - self.A
@@ -56,6 +107,8 @@ class SS_model(plotting_mixin.item_that_plots):
 
 
     def calc_freq_resp(self, f):
+        if not hasattr(self, 'I'):
+            self.I = eye(self.N)
         svect = 2.0j*pi*f
         comp_mat = zeros((self.M, len(svect)), dtype='complex128')
 
@@ -310,6 +363,8 @@ class SS_model(plotting_mixin.item_that_plots):
 
 
     def sat(self, vin):
+        if not hasattr(self, 'mysat'):
+            self.mysat = 200
         vmax = self.mysat
         vmin = -1*self.mysat
         if vin > vmax:
@@ -331,7 +386,8 @@ class SS_model(plotting_mixin.item_that_plots):
         self.t = self.nvect*self.T
         
 
-    def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None):
+    def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None, \
+                              exp_Y=None):
         self.r = r
         if X0 is None:
             X0 = zeros((self.N,1))
@@ -359,8 +415,13 @@ class SS_model(plotting_mixin.item_that_plots):
         #K = self.K
 
         Ny, Nx = self.C.shape
-        self.Y_dig = zeros((Ny, N2))
-        self.Y_dig[:,0] = squeeze(dot(C, X0))
+        if exp_Y is not None:
+            use_exp_Y = True
+            self.Y_dig = exp_Y
+        else:
+            use_exp_Y = False
+            self.Y_dig = zeros((Ny, N2))
+            self.Y_dig[:,0] = squeeze(dot(C, X0))
 
         FO = G - dot(self.Ke,C)
         prev_x = X0
@@ -374,7 +435,8 @@ class SS_model(plotting_mixin.item_that_plots):
             ##     Pdb().set_trace()
             next_x_tilde =  term1 + term2 + term3
             next_x = dot(G, prev_x) + self.H*self.v[k]
-            self.Y_dig[:,k] = squeeze(dot(C, next_x))
+            if not use_exp_Y:
+                self.Y_dig[:,k] = squeeze(dot(C, next_x))
             self.X_dig[:,k] = squeeze(next_x)
             self.X_tilde[:,k] = squeeze(next_x_tilde)
             prev_x = next_x
@@ -387,6 +449,23 @@ class SS_model(plotting_mixin.item_that_plots):
         #self.v = V
         return self.Y_dig
 
+
+    def bodes_from_digital_lsim(self, attr='X_tilde'):
+        mat = rowwise(getattr(self, attr))
+        denom = fft(self.r)#self.r should be defined from running
+                           #digital_lsim_with_obs
+        self.lsim_bodes = []
+        for row in mat:
+            num = fft(row)
+            comp = num/denom
+            curbode = rwkbode.rwkbode(compin=comp)
+            self.lsim_bodes.append(curbode)
+
+        y_fft = fft(squeeze(self.Y_dig))
+        y_comp = y_fft/denom
+        self.lsim_Y_bode = rwkbode.rwkbode(compin=y_comp)
+        return self.lsim_bodes
+        
 
     def plot_digital_lsim_results(self, fi=1, clear=True, \
                                   legloc=5):
@@ -412,6 +491,54 @@ class SS_model(plotting_mixin.item_that_plots):
         self.digital_lsim_with_obs(u)
 
 
+    def _calc_next_P(self, P, Q, R):
+        mat1 = dot(self.G.T, dot(P,self.G))
+        mat2 = dot(self.G.T, dot(P,self.H))
+        mat3 = R + dot(self.H.T, dot(P,self.H))
+        mat3i = linalg.inv(mat3)
+        mat4 = dot(self.H.T, dot(P,self.G))
+        next_P = Q + mat1 - dot(mat2, dot(mat3i,mat4))
+        return next_P
+
+
+    def digital_Ricatti_P(self, Q, R, P0=None, \
+                          eps=1e-10, max_N=1e5):
+        if P0 is None:
+            P = zeros((self.N, self.N))
+        else:
+            P = P0
+        n = 0
+
+        while n < max_N:
+            next_P = self._calc_next_P(P, Q, R)
+            P_diff = next_P - P
+            P = next_P
+            if abs(P_diff).max() < eps:
+                break
+            else:
+                n += 1
+        if n > max_N - 1:
+            print('_calc_next_P failed to converge after %i iterations' % n)
+            print('current max of P_diff = ' + str(abs(P_diff).max()))
+        return P
+
+
+    def find_digital_optimal_K(self, Q=None, R=1.0, P0=None):
+        """Following the approach of Ogata 'Discrete-Time Control
+        Systems', Second Edition MATLAB Program 8-2 on pages 590-591,
+        find the steady-state optimal gain vector K based on the
+        solution P of the Ricatti equation."""
+        if Q is None:
+            Q = eye(self.N)
+        P = self.digital_Ricatti_P(Q, R, P0)
+        mat1 = R + dot(self.H.T, dot(P,self.H))
+        mat2 = dot(self.H.T, dot(P,self.G))
+        mat1i = linalg.inv(mat1)
+        K = dot(mat1i, mat2)
+        self.Ricatti_P = P
+        return K
+        
+        
 class SFLR_Motor_Only_Model(SS_model, \
                             SFLR_TF_models.SFLR_Time_File_Mixin):
     def __init__(self, *args, **kwargs):
@@ -426,12 +553,15 @@ class SFLR_Motor_Only_Model(SS_model, \
         SFLR_TF_models.SFLR_Time_File_Mixin.load_exp_time_file(self, \
                                                                filepath, \
                                                                col_map=col_map)
-        
-class SS_model_P_control(SS_model):
+
+class SS_P_control_mixin(object):
     def calc_v(self, k):
         vtemp = self.r[k] - self.Y_dig[0,k-1]
         return self.sat(vtemp)
 
+    
+class SS_model_P_control(SS_P_control_mixin, SS_model):
+    pass
 
 class SFLR_Motor_Only_P_Control_Model(SS_model_P_control, SFLR_Motor_Only_Model):
     pass
@@ -462,6 +592,35 @@ def Motor_Only_model_from_pickle(pklpath):
 
 
 class CCF_SS_Model_from_poles_and_zeros(SS_model):
+    def _vector_to_code_list(self, myvect, pat, \
+                             eps=1.0e-10):
+        mylist = []
+        for n in range(self.N):
+            curval = myvect[n]
+            if abs(curval) < eps:
+                curval = 0.0
+            curline = pat % (n, curval)
+            mylist.append(curline)
+        return mylist
+                          
+    def dump_params_to_file(self, pathout, a_prefix='a', \
+                            b_prefix_list=['bth','ba'], \
+                            fmt = '%0.12e', eps=1.0e-10):
+        a_pat = a_prefix + '%i = ' + fmt
+        avect = -1.0*self.A[self.N-1,:]
+        alist = self._vector_to_code_list(avect, a_pat, \
+                                          eps=eps)
+        big_list = alist + ['']
+        for r, label in enumerate(b_prefix_list):
+            b_pat = label + '%i = ' + fmt
+            bvect = self.C[r,:]
+            blist = self._vector_to_code_list(bvect, b_pat, \
+                                              eps=eps)
+            big_list.extend(blist)
+            big_list.append('')
+        txt_mixin.dump(pathout, big_list)
+        
+        
     def _build_A(self):
         self.A = zeros((self.N,self.N))
         for i in range(self.N-1):
@@ -513,8 +672,8 @@ class CCF_SS_Model_from_poles_and_zeros(SS_model):
         self.M = nrC
         self.I = eye(self.N)
                 
-        
-
+                
+    
 class SFLR_model_w_bodes:
     def find_opt(self, output, input):
         found = 0
@@ -564,8 +723,146 @@ class SFLR_model_w_bodes:
         self.bodes = [self.th_v_bode, self.a_v_bode]
 
         return self.bodes
+
     
     
+class CCF_SFLR_model_from_TF_coeffs(SS_P_control_mixin, \
+                                    CCF_SS_Model_from_poles_and_zeros, \
+                                    SFLR_model_w_bodes):
+    def __init__(self, params_mod_name, mod_folder, \
+                 b_prefixes=['bth','ba'], N=4, \
+                 bode_opts=None):
+        self.N = N
+        self.load_coeffs(mod_folder, params_mod_name, b_prefixes)
+        self.A = zeros((self.N,self.N))
+        self._build_A()
+        self.B = zeros((self.N, 1))
+        self.B[-1,0] = 1.0 
+        self.M = len(b_prefixes)
+        self.C = zeros((self.M, self.N))
+        for r, prefix in enumerate(b_prefixes):
+            attr = prefix + '_coeffs'
+            vect = getattr(self, attr)
+            self.C[r,:] = vect
+        self.C_all = copy.copy(self.C)
+        self.C = rowwise(self.C[0,:])
+        self.use_dig = False
+        self.bode_opts = bode_opts
+
+
+    def load_coeffs(self, mod_folder, \
+                    params_mod_name, \
+                    b_prefixes):
+        if mod_folder not in sys.path:
+            sys.path.insert(1, mod_folder)
+        TF_params = rwkmisc.my_import(params_mod_name)
+        #import params_mod_name as TF_params
+        reload(TF_params)
+        self.TF_params = TF_params
+        self.a_coeffs = self.build_coeff_list('a')        
+        for r, prefix in enumerate(b_prefixes):
+            attr = prefix + '_coeffs'
+            vect = self.build_coeff_list(prefix)
+            setattr(self, attr, vect)
+
+
+    def build_coeff_list(self, prefix):
+        vect = zeros((self.N,))
+        for n in range(self.N):
+            attr = prefix + str(n)
+            val = getattr(self.TF_params, attr)
+            vect[n] = val
+        return vect
+
+
+    def _build_A(self):
+        self.A = zeros((self.N,self.N))
+        for i in range(self.N-1):
+            self.A[i, i+1] = 1.0#ones on super-diagonal
+
+        for i in range(self.N):
+            self.A[-1,i] = -1.0*self.a_coeffs[i]
+
+
+    def calc_bodes(self, f):
+        comp_mat = self.calc_freq_resp(f)
+        th_v_comp = comp_mat[0,:]
+        #a_v_comp = comp_mat[1,:]
+        th_v_opts = self.find_opt('theta','v')
+        self.th_v_bode = rwkbode.rwkbode(output='theta', \
+                                         input='v', \
+                                         compin=th_v_comp, \
+                                         seedfreq=th_v_opts.seedfreq, \
+                                         seedphase=th_v_opts.seedphase)
+        self.th_v_bode.PhaseMassage(f)
+
+        ## a_v_opts = self.find_opt('a','v')        
+        ## self.a_v_bode = rwkbode.rwkbode(output='a', \
+        ##                                 input='v', \
+        ##                                 compin=a_v_comp, \
+        ##                                 seedfreq=a_v_opts.seedfreq, \
+        ##                                 seedphase=a_v_opts.seedphase)
+        ## self.a_v_bode.PhaseMassage(f)
+        ## self.bodes = [self.th_v_bode, self.a_v_bode]
+
+        self.bodes = [self.th_v_bode]
+
+        return self.bodes
+
+
+class OCF_SFLR_model_from_TF_coeffs(CCF_SFLR_model_from_TF_coeffs):
+    def __init__(self, params_mod_name, mod_folder, \
+                 b_prefixes=['bth'], N=4, \
+                 bode_opts=None):
+        self.bode_opts = bode_opts
+        self.N = N
+        self.M = len(b_prefixes)
+        self.load_coeffs(mod_folder, params_mod_name, b_prefixes)
+        self._build_A()
+        self._build_B()
+        self._build_C()
+        
+
+    def _build_A(self):
+        A = self._ones_on_super()
+        for i in range(self.N):
+            A[i,0] = -1.0*self.a_coeffs[self.N-1-i]
+        self.A = A
+        return self.A
+
+
+    def _build_B(self, prefix='bth'):
+        attr = prefix+'_coeffs'
+        vect = getattr(self, attr)
+        B = zeros((self.N,1))
+        for i in range(self.N):
+            B[i,0] = vect[self.N-1-i]
+        self.B = B
+        return self.B
+
+
+    def _build_C(self):
+        self.C = zeros((self.M, self.N))
+        self.C[0,0] = 1.0
+        return self.C
+
+
+class non_P_control_mixin:
+    def calc_v(self, k):
+        vtemp = self.E*self.r[k] - squeeze(dot(self.K, self.X_tilde[:,k-1]))
+        return self.sat(vtemp)
+
+    
+class CCF_from_TF_no_P_control(non_P_control_mixin, \
+                               CCF_SFLR_model_from_TF_coeffs):
+    pass
+
+    
+class OCF_from_TF_no_P_control(non_P_control_mixin, \
+                               OCF_SFLR_model_from_TF_coeffs):
+    pass
+    
+
 
 class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
                      SFLR_model_w_bodes):
