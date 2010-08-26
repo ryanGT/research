@@ -12,8 +12,10 @@ import sys, os, glob, time
 #from converters import blitz as cblitz
 #t2=time.time()
 #from scipy.io.mio import loadmat, savemat
-from scipy.io import save, loadmat, savemat
-from scipy import r_, c_, mat, shape, iscomplexobj, multiply, shape, atleast_2d , fft, pi, zeros, where, column_stack, arange, squeeze, array, fft
+from scipy.io import save_as_module, loadmat, savemat
+from scipy import r_, c_, mat, shape, iscomplexobj, multiply, \
+     shape, atleast_2d , fft, pi, zeros, where, column_stack, \
+     arange, squeeze, array, fft
 
 #from pylab import figure, cla, ion, ioff, show, plot, xlabel, ylabel, title, legend, semilogx, subplot
 import rwkmisc, copy
@@ -421,7 +423,7 @@ def TruneOneFile(filepath, signames, sigdict, truncsig='ce2', startcush=500, end
        os.mkdir(outfolder)
     outpath=os.path.join(outfolder, outname)
     #savemat(outpath,outdict)
-    save(outpath,outdict)
+    save_as_module(outpath,outdict)
     print('path='+outpath)
     return outdict
     
