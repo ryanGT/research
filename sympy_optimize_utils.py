@@ -25,7 +25,9 @@ from sympy_bode_analysis import calc_and_massage_Bodes
 #th_v_exp = exp_data.th_v_exp
 #a_v_exp = exp_data.a_v_exp
 #data_mod_name = 'swept_sine_amp_75_July_07_2009_log_downsampled'
-data_mod_name = 'swept_sine_kp_1_good_amp_75_maxf_20_duration_40000_log_downsampled'
+#data_mod_name = 'swept_sine_kp_1_good_amp_75_maxf_20_duration_40000_log_downsampled'
+data_mod_name = 'swept_sine_kp_1_after_beam_reattachment_amp_75_maxf_20_duration_40000_logdownsampled'
+
 
 import load_exp_data
 

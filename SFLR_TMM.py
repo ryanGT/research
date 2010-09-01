@@ -712,10 +712,10 @@ class model_w_bm(SFLR_TMM_OL_model_v4):
         self.avs = AVS1_ol(params={'K_act':self.params.K_act, \
                                    'p_act1':self.params.p_act1, \
                                    'num_act':self.params.num_act}, \
-                        maxsize=ms, \
-                        symname='Uact', \
-                        symlabel='act', \
-                        unknownparams=['K_act','p_act1'])
+                           maxsize=ms, \
+                           symname='Uact', \
+                           symlabel='act', \
+                           unknownparams=['K_act','p_act1'])
 
 
     def _load_params(self, pkl_path=None):
@@ -743,7 +743,7 @@ class model_w_bm(SFLR_TMM_OL_model_v4):
         self.maxsize = ms
         self.pkl_path = pkl_path
         self.params = self._load_params(pkl_path)
-        self.params.a_gain *= 2.0
+        #self.params.a_gain *= 2.0
         self._create_AVS()
         self._create_spring()
         self._create_base_mass()
@@ -813,12 +813,12 @@ class model_w_bm_with_theta_feedback(model_w_bm):
         a_gain = self.params.a_gain
         bodeout1={'input':'u', 'output':'a', 'type':'abs', \
                   'ind':self.accel_ind, 'post':'accel', 'dof':0, \
-                  'gain':a_gain*2.0,'gainknown':False}#the *2.0
-                                                      #accounts for
-                                                      #10-bit ADC
-                                                      #vs. 9 when the
-                                                      #curve fitting
-                                                      #was done
+                  'gain':a_gain,'gainknown':False}#the a_gain*2.0
+                                                  #accounts for
+                                                  #10-bit ADC
+                                                  #vs. 9 when the
+                                                  #curve fitting
+                                                  #was done
         bodeout2={'input':'u', 'output':'theta', 'type':'abs', \
                   'ind':self.b2_ind, 'post':'', 'dof':1, \
                   'gain':self.params.H}

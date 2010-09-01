@@ -253,6 +253,50 @@ class Sympy_AVS3_Element(Sympy_AVS_Element):
         return U
 
 
+class Sympy_AVS_ThetaFB_Element(Sympy_AVS_Element):
+    def __init__(self, params, Gth=None, label='', N=4):
+        Sympy_AVS_Element.__init__(self, params, label=label, N=N)
+        if Gth is None:
+            Gth = Symbol('Gth')
+        self.Gth = Gth
+
+
+    def Get_Aug_Mat(self, s):
+        ##--------------------------
+        ## From numeric TMM code:
+        ##--------------------------
+        ## Gact = self.Gact_func(s, self.params)
+        ## Gth = self.Gth(s)
+        ## k_spring = self.params['k_spring']
+        ## c_spring = self.params['c_spring']
+        ## H = self.params['H']
+        ## term1 = 1.0/((1.0 + Gact*Gth*H)*(k_spring + c_spring*s))
+        ## term2 = Gact*Gth/(1.0 + Gact*Gth*H)
+        ## matout[myrow,2] = term1
+        ## matout[myrow,N] = term2
+        ##--------------------------
+        K_act = self.params['K_act']
+        p_act1 = self.params['p_act1']
+        H = self.params['H']
+        k = self.params['k']
+        c = self.params['c']
+        #p_act2 = self.params['p_act2']
+        U = eye(self.N+1)
+        s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
+            #changes in p's
+        m1 = abs(s1+p_act1)
+        #m2 = abs(s1+p_act2)
+        num = K_act*m1#*m2
+        Gact = num/(s*(s+p_act1))
+        Gth = self.Gth
+        term1 = 1.0/((1.0 + Gact*Gth*H)*(k + c*s))
+        term2 = Gact*Gth/(1.0 + Gact*Gth*H)
+        U[1,2] = term1
+        U[1,self.N] = term2
+        self.augU = U
+        return U
+
+
 def find_submat(Uin):
     submat = Uin[2:4, 2:4]
     return submat
