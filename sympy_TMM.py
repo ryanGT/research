@@ -387,15 +387,23 @@ def cse_to_txtlist(expr_list, outlabels, ws=" "*4):
     return mylist
 
 def cse_to_file(expr_list, filename, outlabels, funcname, \
-                inputs=[], ws=' '*4, headerfile=None):
+                inputs=[], ws=' '*4, headerfile=None, \
+                replace_dict={}):
     line0 = 'from __future__ import division'
     line1 = 'from scipy import *'
     line2 = 'def '+funcname +'(' + ', '.join(inputs) + '):'
-    mylist = [line0, line1, '', line2]
+    preamble = [line0, line1, '', line2]
+    mylist = []
     if headerfile:
         headerlist = txt_mixin.read(headerfile)
         mylist.extend(headerlist)
     mylist.extend(cse_to_txtlist(expr_list, outlabels, ws=ws))
+    if replace_dict:
+        mylist = txt_mixin.txt_list(mylist)
+        for key, value in replace_dict.iteritems():
+            mylist.replaceall(key,value)
+    mylist = preamble + mylist#don't do the search and replace in the
+                              #preamble
     txt_mixin.dump(filename, mylist)
     
                   

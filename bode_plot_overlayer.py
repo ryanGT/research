@@ -44,6 +44,15 @@ def tf_to_Bode(G, f, bode_opt, PhaseMassage=True):
     return bode
 
 
+def comp_to_Bode(comp, f, bode_opt, PhaseMassage=True):
+    bode = rwkbode.rwkbode(compin=comp, \
+                           input=bode_opt.input_label, \
+                           output=bode_opt.output_label)
+    if PhaseMassage:
+        _PhaseMassage(bode, bode_opt, f)
+    return bode
+
+
 def plot_bode_TMM(TMM_model, bode_opt, f, fignum=1, clear=False, \
                    PhaseMassage=False, **kwargs):
     if not hasattr(TMM_model, 'bodes'):

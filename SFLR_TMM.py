@@ -31,7 +31,8 @@ from TMM.spring import TorsionalSpringDamper
 from TMM.velocitysource import AngularVelocitySource
 from TMM.velocitysource import AVS1
 from TMM.velocitysource import AVS1_ol
-from TMM.velocitysource import AVS1_kp, AVS1_Gth_comp
+from TMM.velocitysource import AVS1_kp, AVS1_Gth_comp, \
+     AVS1_Gth_comp_Ga
 from TMM.velocitysource import AVSwThetaFB
 from TMM.feedback import SAMIIAccelFB
 from rwkdataproc import datastruct
@@ -922,8 +923,26 @@ class model_w_bm_with_theta_feedback_comp(model_w_bm_with_theta_feedback):
         self.Gth = controls.TransferFunction([1,z], [1,p])*gain*(p/z)
         model_w_bm_with_theta_feedback.__init__(self, pkl_path)
         self.kp = None
-        
-        
+
+
+class model_w_bm_accel_and_theta_FB(model_w_bm_with_theta_feedback_comp):
+    def _create_AVS(self):
+        self.avs = AVS1_Gth_comp_Ga(params=self.params.__dict__, \
+                                    Gth=self.Gth, \
+                                    Ga=self.Ga, \
+                                    Unc_func=self.Unc_func, \
+                                    maxsize=ms)
+
+    def __init__(self, pkl_path=None, Gth=None, \
+                 Ga=None, Unc_func=None):
+        self.Gth = Gth
+        self.Ga = Ga
+        self.Unc_func = Unc_func
+        model_w_bm_with_theta_feedback.__init__(self, pkl_path)
+
+                                    
+
+
 
 
 

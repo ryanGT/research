@@ -327,6 +327,48 @@ class AVS1_Gth_comp(AVS1_kp):
         return matout
 
 
+class AVS1_Gth_comp_Ga(AVS1_Gth_comp):
+    def __init__(self, params={}, Gth=None, Ga=None, \
+                 Unc_func=None, Gact_func=Gact, **kwargs):
+        """Initialize an instance of the AVS1_Gth_comp_Ga class, used
+        to model an Angular Velocity Source with a compensator in the
+        theta feedback loop and with accelerometer feedback. There is
+        internal compliance in the actuator.  params is a dictionary
+        with many keys including 'K_act', 'p_act1'.  Gth and Ga should
+        be controls.TransferFunction instances or at least be callable
+        functions that return complex numbers for Gth(s) and Ga(s)."""
+        self.params = params
+        self.Gth = Gth
+        self.Gact_func = Gact_func
+        self.Ga = Ga
+        self.Unc_func = Unc_func
+        TMMElementIHT.__init__(self,'avs',params,**kwargs)
+
+
+    def GetAugMat(self, s, sym=False):
+        """Return the augmented element transfer matrix for the
+        AVS1_kp element."""
+        N=self.maxsize
+        if sym:
+            myparams=self.symparams
+            matout=zeros((N+1,N+1),dtype='f')
+            matout=matout.astype('S30')
+        else:
+            matout=zeros((N+1,N+1),dtype='D')
+            myparams=self.params
+        U_theta_FB = AVS1_Gth_comp.GetAugMat(self, s, sym=sym)
+        myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+        term2 = U_theta_FB[myrow, N]
+        Ga = self.Ga(s)
+        a_gain = self.params['a_gain']
+        Unc00, Unc01, Unc02, Unc03, Unc04 = self.Unc_func(s, \
+                                                          self.params, \
+                                                          Gth=self.Gth)
+        matout[1,:] = array([Unc00, Unc01, Unc02, Unc03, Unc04])*\
+                      term2*Ga*a_gain*s**2
+        return U_theta_FB - matout
+
+
 class AVSwThetaFB(TMMElementIHT):
     """This class models the closed-loop response of an angular
     velocity source with compliance and relative theta feedback."""
