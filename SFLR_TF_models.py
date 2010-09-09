@@ -282,6 +282,26 @@ class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
         self.build_TFs()
 
 
+    def update_params(self):
+        """Update the values in self.params from getattr(self, key).
+        This is necessary when you have loaded fit results and then
+        want to save all the params."""
+        for key in self.params.iterkeys():
+            val = getattr(self, key)
+            self.params[key] = val
+
+
+    def fix_pole_zero_cancelation(self):
+        """If someone accidentally allowed one of the poles or zeros
+        that should cancel between Gth and Ga vary and not the other,
+        this should fix it."""
+        self.wpa1 = self.wz1
+        self.wpa2 = self.wz2
+        self.zpa1 = self.zz1
+        self.zpa2 = self.zz2
+
+
+
     def save_params(self, filepath):
         rwkmisc.SavePickle(self.params, filepath)
         return self.params

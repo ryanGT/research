@@ -705,17 +705,20 @@ class SFLR_model_w_bodes:
         comp_mat = self.calc_freq_resp(f)
         th_v_comp = comp_mat[0,:]
         a_v_comp = comp_mat[1,:]
-        th_v_opts = self.find_opt('theta','v')
+        if not hasattr(self, 'bode_input'):
+            self.bode_input = 'v'
+        in_str = self.bode_input
+        th_v_opts = self.find_opt('theta',in_str)
         self.th_v_bode = rwkbode.rwkbode(output='theta', \
-                                         input='v', \
+                                         input=in_str, \
                                          compin=th_v_comp, \
                                          seedfreq=th_v_opts.seedfreq, \
                                          seedphase=th_v_opts.seedphase)
         self.th_v_bode.PhaseMassage(f)
 
-        a_v_opts = self.find_opt('a','v')        
+        a_v_opts = self.find_opt('a',in_str)        
         self.a_v_bode = rwkbode.rwkbode(output='a', \
-                                        input='v', \
+                                        input=in_str, \
                                         compin=a_v_comp, \
                                         seedfreq=a_v_opts.seedfreq, \
                                         seedphase=a_v_opts.seedphase)
@@ -901,6 +904,12 @@ class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
             self.C[i,:] *= C_i
             
 
+class SFLR_CCF_model_closed_loop(SFLR_CCF_model):
+    def __init__(self, *args, **kwargs):
+        SFLR_CCF_model.__init__(self, *args, **kwargs)
+        self.bode_input = 'u'
+        
+    
 class SFLR_CCF_model_theta_only(SFLR_CCF_model):
     def __init__(self, poles, \
                  theta_zeros=None, \
