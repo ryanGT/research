@@ -138,6 +138,12 @@ def plot_TF_bode(G, f, bode_opt, PhaseMassage=True, \
                  **kwargs):
     bode = tf_to_Bode(G, f, bode_opt, PhaseMassage=PhaseMassage)
     _plot_bode(bode, bode_opt, f, **kwargs)
+
+
+def plot_comp_bode(comp, f, bode_opt, PhaseMassage=True, \
+                   **kwargs):
+    bode = comp_to_Bode(comp, f, bode_opt, PhaseMassage=PhaseMassage)
+    _plot_bode(bode, bode_opt, f, **kwargs)
     
 
                              

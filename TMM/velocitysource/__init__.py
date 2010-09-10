@@ -299,6 +299,17 @@ class AVS1_Gth_comp(AVS1_kp):
         TMMElementIHT.__init__(self,'avs',params,**kwargs)
 
 
+    def _calc_terms_1_and_2(self, s):
+        Gact = self.Gact_func(s, self.params)
+        Gth = self.Gth(s)
+        k_spring = self.params['k_spring']
+        c_spring = self.params['c_spring']
+        H = self.params['H']
+        term1 = 1.0/((1.0 + Gact*Gth*H)*(k_spring + c_spring*s))
+        term2 = Gact*Gth/(1.0 + Gact*Gth*H)
+        return term1, term2
+    
+
     def GetAugMat(self, s, sym=False):
         """Return the augmented element transfer matrix for the
         AVS1_kp element."""
@@ -311,21 +322,20 @@ class AVS1_Gth_comp(AVS1_kp):
             matout=eye(N+1,dtype='D')
             myparams=self.params
         myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
-        Gact = self.Gact_func(s, self.params)
-        Gth = self.Gth(s)
-        k_spring = self.params['k_spring']
-        c_spring = self.params['c_spring']
-        H = self.params['H']
-        term1 = 1.0/((1.0 + Gact*Gth*H)*(k_spring + c_spring*s))
-        term2 = Gact*Gth/(1.0 + Gact*Gth*H)
         #term1 = 1.0/(k_spring + c_spring*s + Gact*Gth*k_spring + Gact*Gth*c_spring*s)
         #term2 = Gact*Gth/(1.0 + Gact*Gth)
-
-        myrow = 1# hard coding for now#(self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+        term1, term2 = self._calc_terms_1_and_2(s)
         matout[myrow,2] = term1
         matout[myrow,N] = term2
         return matout
 
+
+    def GetMat(self, s, sym=False):
+        augU = self.GetAugMat(s, sym=sym)
+        N = self.maxsize
+        U = augU[0:N,0:N]
+        return U
+            
 
 class AVS1_Gth_comp_Ga(AVS1_Gth_comp):
     def __init__(self, params={}, Gth=None, Ga=None, \

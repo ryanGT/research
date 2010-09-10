@@ -630,12 +630,15 @@ gain=2.0
 Gth_comp = TF([1,z], [1,p])*gain*(p/z)
 
 class G_th_comp_Theta_FB(Accel_w_two_notches):
-    def build_TFs(self):
+    def _build_TFs(self):
         self.build_act_iso()
         self.build_notch1_TF()
         self.build_notch2_TF()
         self.build_a_theta_TF()
         self.G_act_ol = self.G_act_iso*self.notch1*self.notch2
+        
+    def build_TFs(self):
+        self._build_TFs()
         self.G_act = controls.feedback(self.G_act_ol*self.Gth)
         self.G_a_v = self.G_act*self.G_a_th
 
@@ -655,6 +658,51 @@ class G_th_comp_Theta_FB(Accel_w_two_notches):
                                      params=params)
 
 
+class G_th_G_a_TF(G_th_comp_Theta_FB):
+    def calc_bodes(self, f):
+        #Will need to fix this to find the bodes for a/theta_d and
+        #theta/theta_d
+        bode1 = BPO.tf_to_Bode(self.theta_TF, f, \
+                               self.bode_opts[0], PhaseMassage=True)
+        bode2 = BPO.tf_to_Bode(self.accel_TF, f, \
+                               self.bode_opts[1], PhaseMassage=True)
+
+        self.bodes = [bode1, bode2]
+        self.G_act_bode = bode1#<-- this is a bad variable name
+        self.G_a_v_bode = bode2#<-- this is a bad variable name
+
+
+    def build_TFs(self):
+        self._build_TFs()
+        self.G_act_ol = self.G_act_iso*self.notch1*self.notch2
+        self.G_act = controls.feedback(self.G_act_ol*self.Gth)
+        self.G_a_theta_d_hat = self.G_act*self.G_a_th
+        self.accel_TF = controls.feedback(self.G_a_theta_d_hat, self.Ga)
+        self.theta_TF = self.accel_TF/self.G_a_th
+        #Figure out how to find the a/theta_d bode here and back out
+        #theta/theta_d with Ga
+
+
+    def __init__(self, bode_opts, unknown_params, \
+                 TMM_model, \
+                 Gth=Gth_comp, \
+                 Ga=None, \
+                 ffit=None, \
+                 label='ROM', \
+                 params=accel_params, \
+                 ):
+        self.Ga = Ga
+        G_th_comp_Theta_FB.__init__(self, bode_opts, \
+                                    unknown_params, \
+                                    TMM_model, \
+                                    Gth=Gth, \
+                                    ffit=ffit, \
+                                    label=label, \
+                                    params=params)
+        
+
+
+    
 class G_th_comp_Theta_FB_no_accel(G_th_comp_Theta_FB):
     def lsim(self, u, t):
         self.theta = self.G_act.lsim(u, t)

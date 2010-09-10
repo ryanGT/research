@@ -2141,7 +2141,9 @@ class TMMSystem:
     
     def FindAugU(self,value):
         if scipy.shape(value):
-            value=value[0]+value[1]*1j
+            value = value[0]+value[1]*1.0j
+        else:
+            value = complex(value)
         U=scipy.eye(self.maxsize+1,dtype='D')
         for curelem in self.elemlist:
             tempU=curelem.GetAugMat(value)
@@ -2192,8 +2194,26 @@ class TMMSystem:
         subU, vect=self.FindAugSubmat(s)
         det = scipy.linalg.det(subU)
         return det
-    
 
+    def FindAugUArbitrarySubvect(self, s, inds=[(2,3),(2,4)]):
+        N = len(inds)
+        sout = zeros((N,),'D')
+        U = self.FindAugU(s)
+        for i, ind in enumerate(inds):
+            sout[i] = U[ind]
+        return sout
+
+    def BodeCompForUArbSub(self, svect, inds=[(2,3),(2,4)]):
+        """Find the complex bode vector corresponding to arbitrary
+        elements of AugU.  inds is a list of two-tuples containing the
+        indices of AugU that should be extracted."""
+        Nr = len(svect)
+        Nc = len(inds)
+        sout = zeros((Nr,Nc), 'D')
+        for r, s in enumerate(svect):
+            sout[r,:] = self.FindAugUArbitrarySubvect(s, inds)
+        return sout
+        
     def BaseVectBode(self, wvect):
         if isinstance(wvect,list):
             wvect=array(wvect)
