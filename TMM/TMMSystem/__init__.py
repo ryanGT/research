@@ -1,7 +1,7 @@
 from __future__ import division
 from scipy import cos, cosh, sin, sinh, array, r_, c_, exp, pi, \
      real, imag, zeros, eye, alltrue, shape, atleast_1d, dot, \
-     vstack, isscalar, squeeze, complex128
+     vstack, isscalar, squeeze, complex128, arange
 from scipy.linalg import inv as inverse
 from scipy.linalg import inv
 import scipy.optimize
@@ -39,6 +39,14 @@ from rwkparse import GetPythonFunctionArgs
 import rwkos
 import txt_mixin
 reload(txt_mixin)
+
+import controls
+
+
+def comp_s_from_array(sarray):
+    scomp = sarray[0] + 1.0j*sarray[1]
+    return scomp
+
 
 class TMMSubSystem(list):
     def invert(self):
@@ -2107,7 +2115,14 @@ class TMMSystem:
     def EigError(self, value, useabs=True):
         if not shape(value):
             value=complex(value)
-        submat=self.FindSubmat(value)
+        try:
+            submat=self.FindSubmat(value)
+        except:
+            #I think most errors mean we have 1/0 problems
+            return 0.0
+        if scipy.isnan(submat).any():
+            #I think this has to be an eigenvalue if it causes 1/0 problems
+            return 0.0
         shapevect=scipy.shape(submat)
         if shapevect:
             if len(shapevect)>1 and max(shapevect)>1:
@@ -2230,6 +2245,101 @@ class TMMSystem:
             for curcol,curent in zip(self.bccols,curb.tolist()):
                 matout[curcol,n]=curent
         return matout
+
+
+    def create_s_grid(self, real_min=-100, real_max=0, dreal=0.1, \
+                      imag_min=0, imag_max=100, dimag=None):
+        """Create a matrix of s values that will be used as starting
+        points for FindEig searches.  The assumption behind the
+        default values is that we probably want to search mainly in
+        the second quadrant of the s plane."""
+        if dimag is None:
+            dimag = dreal
+        sreal = arange(real_min, real_max + dreal/2.0, dreal)
+        simag = arange(imag_min, imag_max + dimag/2.0, dimag)*1.0j
+        nr = len(simag)
+        nc = len(sreal)
+        smat = zeros((nr, nc), 'D')
+        for r in range(nr):
+            smat[r,:] = simag[r] + sreal
+        return smat
+
+
+    def test_eig(self, s):
+        if self.keep_imag_min <= imag(s) <= self.keep_imag_max:
+            if self.keep_real_min <= real(s) <= self.keep_real_max:
+                return True
+        #if s doesn't pass both tests, return False
+        return False
+
+
+    def search_s_list(self, smat, eig_error_tol=1000.0, \
+                      stop_after_one=False, dreal=3.0, \
+                      dimag=None, keep_only_close=False):
+        """Search for eigenvalues using self.FindEig with the elements
+        of smat as the inputs.
+
+        Any eigenvalues whose self.EigError is not less than
+        eig_error_tol are thrown out.  (The default is large to sort
+        of turn this off).
+
+        If stop_after_one is True, the method will stop after finding
+        one eigenvalue that is nearby.  Nearby is defined as +/-dreal
+        and +/-dimag*1.0j from the corners of smat.
+
+        If keep_only_close is True, eigenvalues that are not nearby
+        are thrown out.
+        """
+        eigs_out = None
+        eig_errors = []
+        #define nearby
+        if dimag is None:
+            dimag = dreal
+        simag = imag(smat)
+        sreal = real(smat)
+        imag_min = simag.min()
+        imag_max = simag.max()
+        real_min = sreal.min()
+        real_max = sreal.max()
+        self.keep_imag_min = imag_min - dimag
+        self.keep_imag_max = imag_max + dimag
+        self.keep_real_min = real_min - dreal
+        self.keep_real_max = real_max + dreal
+        
+        svect = smat.flatten()
+
+        for s in svect:
+            sarray = self.FindEig(s)
+            scomp = comp_s_from_array(sarray)
+            e = self.EigError(scomp)
+            if abs(e) < eig_error_tol:
+                keep = True
+                if stop_after_one or keep_only_close:
+                    if self.test_eig(scomp):
+                        if stop_after_one:
+                            return scomp
+                    else:
+                        keep = False
+                if keep:
+                    if eigs_out is None:
+                        eigs_out = [scomp]
+                        eig_errors = [e]
+                    else:
+                        if controls.in_with_tol(scomp, eigs_out) == -1:
+                            eigs_out.append(scomp)
+                            eig_errors.append(e)
+        if stop_after_one:
+            #we should have only gotten here is stop_after_one was
+            #requested, but no valid eig was found (i.e. none with
+            #EigError < eig_error_tol)
+
+            #I think this case expects only one output
+            return None
+        else:
+            return eigs_out, eig_errors
+            
+        
+        
 
     def GetValuesorDefaults(self,dictin,keylist):
         """This is a convience function for passing values
