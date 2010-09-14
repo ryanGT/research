@@ -2265,6 +2265,37 @@ class TMMSystem:
         return smat
 
 
+    def search_nearby(self, s, factor=0.25, Nr=10, Ni=None,\
+                      tol=1e-6, slist_in=None, elist_in=None, \
+                      **kwargs):
+        """Search for a system eigenvalue in the neighboorhood +/-
+        factor (real and imag).  Create Nr points in the real and Ni
+        points in the imag directions (smat with be Nr*Ni).  If the real
+        porition is less than tol, search for a real pole."""
+        if Ni is None:
+            Ni = Nr
+        sr = real(s)
+        si = imag(s)
+        dr = abs(factor*sr)
+        rstep = 2.0*dr/Nr
+        di = abs(factor*si)
+        istep = 2.0*di/Ni
+        if abs(si) < tol:
+            #search only for real poles
+            smat = arange(sr-dr, sr+dr+rstep/2, rstep)
+        else:
+            smat = self.create_s_grid(real_min=sr-dr, \
+                                      real_max=sr+dr, \
+                                      dreal=rstep, \
+                                      imag_min=si-di, \
+                                      imag_max=si+di, \
+                                      dimag=istep)
+        s_out, e_out = self.search_s_list(smat, \
+                                                    slist_in=slist_in,\
+                                                    elist_in=elist_in,\
+                                                    **kwargs)
+        return s_out, e_out
+
     def test_eig(self, s):
         if self.keep_imag_min <= imag(s) <= self.keep_imag_max:
             if self.keep_real_min <= real(s) <= self.keep_real_max:
@@ -2275,7 +2306,8 @@ class TMMSystem:
 
     def search_s_list(self, smat, eig_error_tol=1000.0, \
                       stop_after_one=False, dreal=3.0, \
-                      dimag=None, keep_only_close=False):
+                      dimag=None, keep_only_close=False, \
+                      slist_in=None, elist_in=None):
         """Search for eigenvalues using self.FindEig with the elements
         of smat as the inputs.
 
@@ -2290,8 +2322,12 @@ class TMMSystem:
         If keep_only_close is True, eigenvalues that are not nearby
         are thrown out.
         """
-        eigs_out = None
-        eig_errors = []
+        if slist_in is not None:
+            eigs_out = slist_in
+            eig_errors = elist_in
+        else:
+            eigs_out = None
+            eig_errors = []
         #define nearby
         if dimag is None:
             dimag = dreal
@@ -2312,6 +2348,9 @@ class TMMSystem:
             sarray = self.FindEig(s)
             scomp = comp_s_from_array(sarray)
             e = self.EigError(scomp)
+            ## if eigs_out is not None:
+            ##     if len(eigs_out) > 3:
+            ##         Pdb().set_trace()
             if abs(e) < eig_error_tol:
                 keep = True
                 if stop_after_one or keep_only_close:
