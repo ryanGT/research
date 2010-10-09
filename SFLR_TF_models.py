@@ -25,6 +25,8 @@ reload(SFLR_TMM)
 import bode_plot_overlayer as BPO
 reload(BPO)
 
+from IPython.Debugger import Pdb
+
 #import bode_options
 
 def notch_tf(C):
@@ -92,6 +94,7 @@ class SFLR_Time_File_Mixin(object):
         self.load_exp_time_file(filepath)
         u = self.data_file.u
         t = self.data_file.t
+        #Pdb().set_trace()
         self.lsim(u, t)
         if plot:
             self.create_ax(fi=fi, clear=clear)
@@ -134,6 +137,20 @@ class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
             bode = self.find_bode(opt.output_label, opt.input_label)
             BPO._plot_bode(bode, opt, f, fignum=fignum,
                            clear=clear, **kwargs)
+
+    def plot_one_bode(self, f, index, fignum=1, \
+                      clear=False, **kwargs):
+        """index refers to which bode option to pull from
+        self.bode_opts.  This is how the method determines which bode
+        to plot."""
+        if not hasattr(self, 'bodes'):
+            self.calc_bodes(f)
+        if not kwargs.has_key('label'):
+            kwargs['label'] = self.label
+        opt = self.bode_opts[index]
+        bode = self.find_bode(opt.output_label, opt.input_label)
+        BPO._plot_bode(bode, opt, f, fignum=fignum,
+                       clear=clear, **kwargs)
 
 
     def build_act_iso(self):
@@ -659,6 +676,21 @@ class G_th_comp_Theta_FB(Accel_w_two_notches):
 
 
 class G_th_G_a_TF(G_th_comp_Theta_FB):
+    def simplify(self):
+        self.atf2 = self.accel_TF.simplify()
+        self.thtf2 = self.theta_TF.simplify()
+        
+    def lsim(self, u, t, simplify=True):
+        if simplify:
+            self.simplify()
+            self.theta = self.thtf2.lsim(u, t)
+            self.accel = self.atf2.lsim(u, t)
+        else:
+            self.theta = self.theta_TF.lsim(u, t)
+            self.accel = self.accel_TF.lsim(u, t)
+        return self.theta, self.accel
+
+    
     def calc_bodes(self, f):
         #Will need to fix this to find the bodes for a/theta_d and
         #theta/theta_d

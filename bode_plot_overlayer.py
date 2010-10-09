@@ -77,6 +77,18 @@ def plot_bode_SS(SS_model, bode_opt, f, fignum=1, clear=False, \
                **kwargs)
 
 
+def _plot_exp_bode(exp_mod, bode_opt, search_attr, \
+                   f=None, fignum=1, clear=False, \
+                   PhaseMassage=False, **kwargs):
+    bode = exp_mod.find_bode(bode_opt.output_label, \
+                             bode_opt.input_label, \
+                             attr=search_attr)
+    if PhaseMassage:
+        _PhaseMassage(bode, bode_opt, f)
+    _plot_bode(bode, bode_opt, f, fignum=fignum, clear=clear, \
+               **kwargs)
+    
+
 def plot_exp_bode(exp_mod, bode_opt, f=None, fignum=1, clear=False, \
                   trunc=True, PhaseMassage=False, **kwargs):
     if trunc:
@@ -85,14 +97,23 @@ def plot_exp_bode(exp_mod, bode_opt, f=None, fignum=1, clear=False, \
     else:
         search_attr = 'avebodes'
         f = exp_mod.f
+    _plot_exp_bode(exp_mod, bode_opt, search_attr, \
+                   f=f, fignum=fignum, clear=clear, \
+                   PhaseMassage=PhaseMassage, **kwargs)
 
-    bode = exp_mod.find_bode(bode_opt.output_label, \
-                             bode_opt.input_label, \
-                             attr=search_attr)
-    if PhaseMassage:
-        _PhaseMassage(bode, bode_opt, f)
-    _plot_bode(bode, bode_opt, f, fignum=fignum, clear=clear, \
-               **kwargs)
+
+def plot_exp_bode_no_ave(exp_mod, bode_opt, f=None, fignum=1, clear=False, \
+                         trunc=True, PhaseMassage=False, **kwargs):
+    if trunc:
+        search_attr = 'trunc_bodes'
+        f = exp_mod.trunc_f
+    else:
+        search_attr = 'bodes'
+        f = exp_mod.f
+    _plot_exp_bode(exp_mod, bode_opt, search_attr, \
+                   f=f, fignum=fignum, clear=clear, \
+                   PhaseMassage=PhaseMassage, **kwargs)
+
     
 
 def plot_different_exp_bodes_different_mods(exp_mods, bode_opts, \
@@ -183,6 +204,16 @@ class exp_bode_object(object):
                       fignum=fignum, clear=clear, \
                       **kwargs)
 
+
+class exp_bode_object_no_ave(exp_bode_object):
+    def __init__(self, modname, bode_opts, label='exp.'):
+        self.mod = TDP.load_bode_data_set_no_ave(modname)
+        self.bode_opts = bode_opts
+        self.bode_attr = self.mod
+        self.func = plot_exp_bode_no_ave
+        self.label = label
+
+        
 
 class TMM_bode_object(exp_bode_object):
     def __init__(self, TMM_model, bode_opts, label='TMM'):

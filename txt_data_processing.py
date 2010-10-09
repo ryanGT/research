@@ -108,13 +108,13 @@ class object_with_n_vector(object):
         return diff
 
 
-    def fix_n(self):
+    def fix_n(self, debug=0):
         """Undo the jumps in n caused by Two's Complement and 16-bit
         wrapping issues."""
-        if not hasattr(self, 'njump_inds'):
-            self.check_n()
-        for ind in self.njump_inds:
-            self.n[ind+1:] += 65536
+        #if not hasattr(self, 'njump_inds'):
+        self.check_n(debug=debug)
+        for ind, jump in zip(self.njump_inds, self.njumps):
+            self.n[ind+1:] -= jump
         if hasattr(self, 'dt'):
             dt = self.dt
         else:
@@ -122,7 +122,7 @@ class object_with_n_vector(object):
         self.t = self.n*dt
 
 
-    def check_n(self, max_num=10):
+    def check_n(self, max_num=10, debug=0):
         """Because n is used to make sure no data packets were lost
         during serial communication with the PSoC, I want to make sure
         that the only jumps in n are from Two's Complement and 16-bit
@@ -131,14 +131,23 @@ class object_with_n_vector(object):
         jump_inds = where(self.ndiff != 1)[0]
         self.njump_inds = jump_inds
         if len(jump_inds) == 0:
+            self.njumps = array([])
             return False
         else:
             jumps = self.ndiff[jump_inds]
             mybool = jumps == -65535
             msg = "There where %i jumps in n.\n" + \
                   "You specified a maximum of %i"
-            assert len(jump_inds) < max_num, msg % (len(jump_inds), max_num)
-            assert mybool.all(), "Not all the jumps where equal to -65535: " + str(jumps)
+            if debug:
+                test1 = len(jump_inds) < max_num
+                test2 = mybool.all()
+                if not test1:
+                    print(msg % (len(jump_inds), max_num))
+                if not test2:
+                    print("Not all the jumps where equal to -65535: " + str(jumps))
+            else:
+                assert len(jump_inds) < max_num, msg % (len(jump_inds), max_num)
+                assert mybool.all(), "Not all the jumps where equal to -65535: " + str(jumps)
             self.njumps = jumps
             return True
     
@@ -563,8 +572,18 @@ class Bode_Options(object):
         self.phaselim = phaselim
         self.maglim = maglim
         self.cohlim = cohlim
-                 
-                 
+
+    def __repr__(self):
+        attr_list = ['input_label','output_label',\
+                     'seedfreq','seedphase','freqlim',\
+                     'phaselim','maglim','cohlim']
+        outstr = 'Bode_Options object\n'
+        outstr += '-'*20 + '\n'
+        for attr in attr_list:
+            val = getattr(self, attr)
+            outstr += attr + ' : ' + str(val) + '\n'
+        return outstr
+    
 
 class Bode_Data_Set(Data_Set):
     """A class for loading a group of related txt data files and
@@ -651,6 +670,24 @@ class Bode_Data_Set(Data_Set):
         return mydict
 
 
+    def build_bode_dict(self, attrs=['bodes', 'trunc_bodes'], \
+                        f_attrs=['f','trunc_f']):
+        """Build a dictionary that can be used with scipy.io.save_as_module.
+        This also includes making a list of dictionaries for each bode
+        in self.bodes or whatever attributes are listed in attrs."""
+        if not hasattr(self, 'f'):
+            self.Make_Freq_Vect()
+        keys = bode_keys
+        mydict = {}
+        for key in keys:
+            mydict[key] = getattr(self, key)
+        for attr in attrs:
+            mydict = self._ave_dict(attr, mydict)
+        for f_attr in f_attrs:
+            mydict = self._f_into_dict(f_attr, mydict)
+        return mydict
+
+
     def _delete_old(self, mod_name):
         old_files = glob.glob(mod_name+'.*')
         for curfile in old_files:
@@ -659,6 +696,12 @@ class Bode_Data_Set(Data_Set):
 
     def save_ave(self, mod_name, **kwargs):
         mydict = self.build_ave_dict(**kwargs)
+        self._delete_old(mod_name)
+        io.save_as_module(mod_name, mydict)
+
+
+    def save_bodes_no_ave(self, mod_name, **kwargs):
+        mydict = self.build_bode_dict(**kwargs)
         self._delete_old(mod_name)
         io.save_as_module(mod_name, mydict)
 
@@ -1012,18 +1055,37 @@ class Bode_Data_Set(Data_Set):
 ##         if gen_report:
 ##             rst_file.save()
 ##             rst_file.to_html()
-            
+
+
+    def _truncate(self, flow, fhigh, \
+                  attr='bodes', trunc_attr='trunc_bodes'):
+        self._check_bode_existance()
+        bodes_in = getattr(self, attr)
+        bodes_out = copy.deepcopy(bodes_in)
+        for bode in bodes_out:
+            self.trunc_f = bode.truncate(self.f, flow=flow, fhigh=fhigh)
+        setattr(self, trunc_attr, bodes_out)
         
 
+    def Truncate_bodes(self, flow, fhigh):
+        self._truncate(flow, fhigh, attr='bodes', \
+                       trunc_attr='trunc_bodes')
+
+    def Truncate_avebodes(self, flow, fhigh):
+        self._truncate(flow, fhigh, attr='avebodes', \
+                       trunc_attr='trunc_avebodes')
+        
         
     def Truncate(self, flow, fhigh):
-        self._check_bode_existance()
-        self.trunc_bodes = copy.deepcopy(self.bodes)
-        self.trunc_avebodes = copy.deepcopy(self.avebodes)
-        for bode in self.trunc_bodes:
-            self.trunc_f = bode.truncate(self.f, flow=flow, fhigh=fhigh)
-        for bode in self.trunc_avebodes:
-            bode.truncate(self.f, flow=flow, fhigh=fhigh)
+        self.Truncate_bodes()
+        self.Truncate_avebodes()
+        ## self._check_bode_existance()
+        ## self.trunc_bodes = copy.deepcopy(self.bodes)
+        ## self.trunc_avebodes = copy.deepcopy(self.avebodes)
+        ## for bode in self.trunc_bodes:
+        ##     self.trunc_f = bode.truncate(self.f, flow=flow, fhigh=fhigh)
+        ## for bode in self.trunc_avebodes:
+        ##     bode.truncate(self.f, flow=flow, fhigh=fhigh)
         
 
 
@@ -1157,6 +1219,23 @@ def load_avebode_data_set(module_name):
     if hasattr(my_mod, 'trunc_avebodes'):
         my_data_set.trunc_avebodes = list_of_dicts_to_bodes(my_mod, \
                                                             attr='trunc_avebodes')
+        my_data_set.trunc_f = my_mod.trunc_f
+    return my_data_set
+
+
+def load_bode_data_set_no_ave(module_name):
+    """Load a bode data set that was saved to a module using
+    the save_bodes_no_ave method of Bode_Data_Set."""
+    my_mod = import_mod(module_name)
+    my_data_set = Bode_Data_Set(pattern=None, \
+                                bode_list=my_mod.bode_list)
+    for key in bode_keys:
+        val = getattr(my_mod, key)
+        setattr(my_data_set, key, val)
+    my_data_set.bodes = list_of_dicts_to_bodes(my_mod, 'bodes')
+    if hasattr(my_mod, 'trunc_bodes'):
+        my_data_set.trunc_bodes = list_of_dicts_to_bodes(my_mod, \
+                                                         attr='trunc_bodes')
         my_data_set.trunc_f = my_mod.trunc_f
     return my_data_set
 

@@ -1375,8 +1375,24 @@ class email_list(CSVSpreadSheet):
                  labelrow=0, dialect=None):
         CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect)
         self.labelrow=labelrow
+        self.GetLabelRow()
         self.ReadData()
-        self.names = txt_mixin.txt_list(self.get_col(name_col))
+        if self.labels[1].lower().find('first') > -1:
+            #the last names are in column 0 and the first names are in
+            #column 1
+            self.first_names = txt_mixin.txt_list(self.get_col(1))
+            self.last_names = txt_mixin.txt_list(self.get_col(0))
+            names = []
+            for first, last in zip(self.first_names, self.last_names):
+                curname = last + ', ' + first
+                names.append(curname)
+            self.names = copy.copy(names)
+            
+            for i, item in enumerate(self.labels):
+                if item.lower().find('email') > -1:
+                    email_col = i
+        else:
+            self.names = txt_mixin.txt_list(self.get_col(name_col))
         self.emails = txt_mixin.txt_list(self.get_col(email_col))
 
 
@@ -1466,6 +1482,17 @@ class group_list(LabeledDataFile):
         return self._get_names(members)
     
 
+class group_list_2010(group_list):
+    """A class list to find the members of a group given the group or
+    team name.  The spreadsheet has one label row, group names in the
+    first column, and team members in the second column."""
+    def __init__(self, pathin, team_name_col=1, members_col=2, \
+                 labelrow=0, dialect=None, team_number_col=0):
+        group_list.__init__(self, pathin, team_name_col=team_name_col, \
+                            members_col=members_col, labelrow=labelrow, \
+                            dialect=dialect)
+        self.Team_Number = txt_mixin.txt_list(self.get_col(team_number_col))
+        
 
 class JCILabviewSpreadSheet(LabviewSpreadSheet, DataProcMixins.AccelMixin):
     def __init__(self, pathin=None, tlabel='Time', \
