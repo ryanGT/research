@@ -1,6 +1,8 @@
 import txt_data_processing as TDP
 reload(TDP)
 
+import copy
+
 #Specify Bode Plotting Options
 myfreqlim = [0.5,30]
 #myfreqlim = [0.1,100]
@@ -52,3 +54,7 @@ AccelFB_Bode_opts[0].seedphase = 0.0
 
 AccelFB_Bode_opts[1].seedfreq = 5.0
 AccelFB_Bode_opts[1].seedphase = 0.0
+
+Accel_Comp_Bode_opts = copy.copy(AccelFB_Bode_opts)
+Accel_Comp_Bode_opts[1].seedfreq = 10.0
+Accel_Comp_Bode_opts[1].seedphase = -200.0
