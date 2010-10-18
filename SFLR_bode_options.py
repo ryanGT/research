@@ -39,3 +39,16 @@ bode_opt_a_u = TDP.Bode_Options(input_label='u', \
 
 
 OL_bode_opts = [bode_opt_th_v, bode_opt_a_v]
+
+ThetaFB_Bode_opts = [bode_opt_th_u, \
+                     bode_opt_a_u, \
+                    ]
+
+
+AccelFB_Bode_opts = copy.copy(ThetaFB_Bode_opts)
+AccelFB_Bode_opts[0].phaselim = [-200,100]
+AccelFB_Bode_opts[0].seedfreq = 5.0
+AccelFB_Bode_opts[0].seedphase = 0.0
+
+AccelFB_Bode_opts[1].seedfreq = 5.0
+AccelFB_Bode_opts[1].seedphase = 0.0

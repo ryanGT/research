@@ -331,6 +331,18 @@ class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
         return mydict
         
 
+class pure_integrator(Rigid_Acuator_TF_Model):
+    def build_act_iso(self):
+        p_act = self.p_act1
+        K_act = self.K_act
+        H = self.H
+        s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
+        m1 = abs(s1)
+        num = K_act*m1#*m2
+        self.G_act_iso = TF(num*H,[1,0])
+        return self.G_act_iso
+
+    
 class Second_Order_Rigid_Act_Model(Rigid_Acuator_TF_Model):
     def build_act_iso(self):
         p_act1 = self.p_act1
