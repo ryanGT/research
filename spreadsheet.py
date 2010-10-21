@@ -1386,7 +1386,7 @@ class email_list(CSVSpreadSheet):
             for first, last in zip(self.first_names, self.last_names):
                 curname = last + ', ' + first
                 names.append(curname)
-            self.names = copy.copy(names)
+            self.names = txt_mixin.txt_list(copy.copy(names))
             
             for i, item in enumerate(self.labels):
                 if item.lower().find('email') > -1:

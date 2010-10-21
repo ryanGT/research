@@ -59,12 +59,14 @@ thfb_th_comp, thfb_a_comp = model_w_bm_bodes_ThetaFB_editted.Bodes(s, \
 def calc_AFB(Ga):
     Ga_comp = Ga(s)
     afb_a_comp = thfb_a_comp/(1.0+Ga_comp*thfb_a_comp)
+    myopts = SFLR_bode_options.AccelFB_Bode_opts
     afb_a_bode = BPO.comp_to_Bode(afb_a_comp, f, \
-                                  bode_opt=AccelFB_Bode_opts[1])
+                                  bode_opt=myopts[1])
     return afb_a_bode
 
 
-def _plot_accel_Bode(bode, fi, linetype=None, \
+
+def _plot_accel_Bode(bode, fi, linetype='-', \
                      bode_opts=None, **kwargs):
     if bode_opts is None:
         AccelFB_Bode_opts[1]
@@ -73,13 +75,14 @@ def _plot_accel_Bode(bode, fi, linetype=None, \
                    **kwargs)
 
 
-def plot_AFB(bode, fi, linetype=None, **kwargs):
+def plot_AFB(bode, fi, linetype='-', **kwargs):
+    myopts = SFLR_bode_options.AccelFB_Bode_opts    
     _plot_accel_Bode(bode, fi, linetype, \
-                     bode_opts=AccelFB_Bode_opts[1], \
+                     bode_opts=myopts[1], \
                      **kwargs)
 
 
-def plot_Accel_comp(bode, fi, linetype=None, **kwargs):
+def plot_Accel_comp(bode, fi, linetype='-', **kwargs):
     BPO._plot_bode(bode, Accel_Comp_Bode_opts[1], \
                    f, fignum=fi, linetype=linetype, **kwargs)
 
@@ -149,3 +152,14 @@ class AccelFB_System(object):
             self.calc_Accel_comp()
         plot_Accel_comp(self.Accel_comp_Bode, fi, \
                         label=self.substr, linetype=None)
+
+
+    def calc_AFB(self):
+        self.Accel_AFB_Bode = calc_AFB(self.Ga)
+
+
+    def plot_AFB(self, fi=1):
+        if not hasattr(self, 'Accel_AFB_Bode'):
+            self.calc_AFB()
+        plot_AFB(self.Accel_AFB_Bode, fi, \
+                 label=self.substr, linetype=None)
