@@ -1873,7 +1873,7 @@ class GradeSpreadSheetMany(GradeSpreadSheet):
     valuelabels contains a list of the column labels you want to
     extract."""
     def __init__(self, pathin=None, namelabel='Name',valuelabels=[], \
-                 dialect=None, skiprows=0, split_names=1):
+                 dialect=None, skiprows=0, split_names=None):
         CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect, \
                                 skiprows=skiprows)
         self.namelabel = namelabel
@@ -1886,6 +1886,11 @@ class GradeSpreadSheetMany(GradeSpreadSheet):
         self.DropEmptyRows(cols=[namecol])#drop all rows that do not
                                           #have a name in them
         self.names = self.ReadDataColumn(self.namelabel, exact=True)
+        if split_names is None:
+            if namelabel.lower().find('last') > -1:
+                split_names = 0
+            else:
+                split_names = 1
         if split_names:
             self.split_names()
         else:

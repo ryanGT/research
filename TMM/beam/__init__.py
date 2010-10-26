@@ -12,6 +12,8 @@ from TMM.TMMElement import TMMElement, HT4, Transform8by8, TMMElementLHT
 ##from TMM import HT4, Transform8by8
 
 from rwkmisc import symstr, SymstrMattoMaxima
+import rwkmisc
+reload(rwkmisc)
 
 ##import TMM
 #reload(TMM)
@@ -423,23 +425,27 @@ def bendmatz_comp(s, params, EIstr='EI2', symlabel='', \
     z-axis.  This function is used for part of the GetMat function of
     an 8x8 or 12x12 beam.  It will be the entire 4x4 transfer matrix
     if usez=True for the beam element."""
-    s = complex(s)
     if debug>0:
         print('In bendmatz')
     EI = params[EIstr]
     mu = params['mu']
     L = params['L']
-    if not params.has_key('c'):
-        c = 0.0#no damping
-    elif params['c'] == 0.0:
-        c = 0.0
+
+    if type(s) == rwkmisc.symstr:
+        c = params['c']
     else:
-        w = imag(s)
-        c = params['c']/w
+        s = complex(s)
+        if not params.has_key('c'):
+            c = 0.0#no damping
+        elif params['c'] == 0.0:
+            c = 0.0
+        else:
+            w = imag(s)
+            c = params['c']/w
 
 ##     if abs(s) > 5*2*pi:
 ##         c = 0.0
-    beta=pow((-1*s*s*L**4*mu/(EI*(c*s+1))),0.25)
+    beta = pow((-1*s*s*L**4*mu/(EI*(c*s+1))),0.25)
     
     d1 = 0.5*(cos(beta)+cosh(beta))
     d2 = 0.5*(sinh(beta)-sin(beta))

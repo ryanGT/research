@@ -181,10 +181,11 @@ class TMMSystem:
             allcomp.extend(curcomp)
         return allcomp
 
-    def GenMaxima(self,prefix='',skipMaxima=True,showbode=False, newsym=True, **kwargs):
+    def GenMaxima(self, prefix='', skipMaxima=True, \
+                  showbode=False, newsym=True, **kwargs):
         """This file generates a LaTeX file that describes the
         TMMSystem.  This file can be used as an input to the
-        Python->Maxima-> LaTeX symoblic engine.  Optionally, if
+        Python -> Maxima -> LaTeX symoblic engine.  Optionally, if
         skipMaxima=False, Maxima will be called, Python or FORTRAN
         files will be generated and an output LaTeX file will be
         created that contains the symoblic results from Maxima.  The

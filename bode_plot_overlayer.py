@@ -53,6 +53,14 @@ def comp_to_Bode(comp, f, bode_opt, PhaseMassage=True):
     return bode
 
 
+def comp_func_to_Bode(myfunc, f, bode_opt, PhaseMassage=True, \
+                      **kwargs):
+    s = 2.0j*pi*f
+    comp = myfunc(s, **kwargs)
+    return comp_to_Bode(comp, f, bode_opt, \
+                        PhaseMassage=PhaseMassage)
+
+    
 def plot_bode_TMM(TMM_model, bode_opt, f, fignum=1, clear=False, \
                    PhaseMassage=False, **kwargs):
     if not hasattr(TMM_model, 'bodes'):

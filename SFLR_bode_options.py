@@ -40,7 +40,17 @@ bode_opt_a_u = TDP.Bode_Options(input_label='u', \
                                 seedphase=150.0)
 
 
-OL_bode_opts = [bode_opt_th_v, bode_opt_a_v]
+bode_opt_a_theta = TDP.Bode_Options(input_label='theta', \
+                                    output_label='a', \
+                                    freqlim=myfreqlim, \
+                                    maglim=[-20, 45], \
+                                    phaselim=[-250,250], \
+                                    seedfreq=1.0, \
+                                    seedphase=170.0)
+
+
+OL_Bode_opts = [bode_opt_th_v, bode_opt_a_v]
+OL_bode_opts = OL_Bode_opts
 
 ThetaFB_Bode_opts = [bode_opt_th_u, \
                      bode_opt_a_u, \

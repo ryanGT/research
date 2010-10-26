@@ -1,33 +1,73 @@
 from textfiles import rwkreadfile, textlist
 from textfiles.latexlist import ReplaceList
-import os
+import os, re
 import pdb
 import copy
 from scipy import shape
-
+import txt_mixin
 from  IPython.Debugger import Pdb
 #mytrace=Pdb().set_trace
 
 rwkpydir='/home/ryan/rwkpython'
 ws=' '*6
 
+def fix_scientific_notation(pathin, pathout=None):
+    """Python cannot handle a line break in the midst of 1.23423 E +/-
+    123.  This function seeks to find all cases were that happens and
+    shift the line break."""
+    myfile = txt_mixin.txt_file_with_list(pathin)
+    pat1 = "([0-9\.]+) *[Ee] *[+-]* *\\\\*$"
+    pat2 = '^([ \t]*)([+-0-9]+)(.*)'
+    p2 = re.compile(pat2)
+    inds = myfile.findallre(pat1,match=0)
+    for ind in inds:
+        line1 = myfile.list[ind]
+        line2 = myfile.list[ind+1]
+        q2 = p2.search(line2)
+        if q2:
+            #we really do have a match
+            ws = q2.group(1)
+            new_line2 = ws + q2.group(3)
+            new_line1 = line1.rstrip()
+            if new_line1[-1] == '\\':
+                new_line1 = new_line1[0:-1]#drop \ from end
+                new_line1 = new_line1.rstrip()
+            new_line1 += q2.group(2)
+            new_line1 += ' \\'
+            myfile.list[ind] = new_line1
+            myfile.list[ind+1] = new_line2
+    if pathout is None:
+        pathout = pathin
+    myfile.save(pathout)
+                
+            
+    
+    
 def _CleanList(listin):
     listin.replace('%PI','pi')
     return listin
+
     
 def GetHeader(filename='header.f'):
     return rwkreadfile(os.path.join(rwkpydir,filename))
 
-def PythonFileFromMaximaFortran(fortranname,headername, pythonname,newretname='',ws='\t'):
-    mylist=textlist([],pythonname)
-    mylist.list=[]
+
+def PythonFileFromMaximaFortran(fortranname, headername, \
+                                pythonname=None, newretname='', \
+                                ws='\t'):
+    if pythonname is None:
+        fno, ext = os.path.splitext(fortranname)
+        pythonname = fno + '.py'
+    mylist = textlist([],pythonname)
+    mylist.list = []
     mylist.readfile(headername)
-    flist,retname=FortranToTextList(fortranname,newretname,ws)
-    listout=[ws+item for item in flist]
+    flist,retname = FortranToTextList(fortranname,newretname,ws)
+    listout = [ws+item for item in flist]
     mylist.list.extend(listout)
-    mylist=_CleanList(mylist)
+    mylist = _CleanList(mylist)
     mylist.tofile()
     return mylist
+
 
 def UnWrapFortranLine(filename, whitespace='\t'):
     operators=['+','-','/','*']
