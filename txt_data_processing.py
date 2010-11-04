@@ -157,10 +157,10 @@ class Data_File(object_with_n_vector):
     composed of data in columns with a certain number of initial rows
     at the top of the file that should be skipped.
 
-    col_map is a dictionary with column numbers as the keys at the
-    names of attributes to store those columns as as the values, i.e.
+    col_map is a dictionary with column numbers as the keys and the
+    names of attributes to store those columns as the values, i.e.
 
-    colmap = {0:'t', 1:'u', 2:'y'}
+    col_map = {0:'t', 1:'u', 2:'y'}
 
     would lead to the equivalent of
 

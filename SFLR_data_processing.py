@@ -1,7 +1,7 @@
 from scipy import *
 import numpy
 
-import re
+import re, os
 
 #import controls
 
@@ -122,15 +122,29 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
         self.plot_vars = ['u','theta','a','v', \
                           'y_tilde','v_obs']
         self._find_matrices_in_header()
+
+
+    def _get_label(self, key):
+        found = 0
+        if hasattr(self, 'plot_labels'):
+            if self.plot_labels.has_key(key):
+                found = 1
+                return self.plot_labels[key]
+        if not found:
+            return key
         
         
-    def plot(self, fi=1, fig=None, clear=True):
+    def plot(self, fi=1, fig=None, clear=True, plot_vars=None):
+        if plot_vars is None:
+            plot_vars = self.plot_vars
+            
         ax = self._prep_ax(fi=fi, fig=fig, clear=clear)
         t = self.t
-        for key in self.plot_vars:
+        for key in plot_vars:
             if hasattr(self, key):
                 vect = getattr(self, key)
-                ax.plot(t, vect, label=key)
+                label = self._get_label(key)
+                ax.plot(t, vect, label=label)
 
         self.label_axis()
 
@@ -272,4 +286,67 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
         for i in range(1,n):
             self.run_observer(i)
         
+        
+#collables:
+#t	n	u	v	$\theta$	a	$\hat{\theta}_d$
+SFLR_col_map =  {0:'t', 1:'n', 2:'u', 3:'v', \
+                 4:'theta', 5:'a', 6:'theta_d_hat'}
+
+
+class SFLR_Exp_Data_File(SFLR_Data_File):
+    def __init__(self, path=None, substr=None, \
+                 col_map=SFLR_col_map, **kwargs):        
+        txt_data_processing.Data_File.__init__(self, path, \
+                                               col_map=col_map, \
+                                               **kwargs)
+        self.plot_vars = ['u','theta','a','v', \
+                          'theta_d_hat']
+        labels = ['u','\\theta','\\ddot{x}','v','\\hat{\\theta}_d']
+        if substr is not None:
+            labels[1:] = [item + '_{%s}' % substr for item in labels[1:]]
+        labels = ['$%s$' % item for item in labels]
+        self.plot_labels = dict(zip(self.plot_vars, labels))
+        
+
+    
+
+class SFLR_Exp_Step_Response_Set(txt_data_processing.Data_Set):
+    """A class for loading a group of experimental SFLR step response
+    txt data files."""
+    def __init__(self, filepaths, substrs=None):
+        self.filepaths = filepaths
+        self.col_map = SFLR_col_map
+        if substrs is None:
+            substrs = [None]*len(filepaths)
+        self.substrs = substrs
+        #self.title_dict = title_dict
+        self.folder, filename = os.path.split(self.filepaths[0])
+        self.Load_Data()
+
+    
+    def Load_One_File(self, path, substr=None):
+        curfile = SFLR_Exp_Data_File(path, col_map=self.col_map,\
+                                     substr=substr)
+        return curfile
+
+
+    def Load_Data(self):
+        data_files = []
+        for filename, substr in zip(self.filepaths, self.substrs):
+            curfile = self.Load_One_File(filename, substr=substr)
+            data_files.append(curfile)
+        self.data_files = data_files
+    
+
+    def Overlay_Step_Responses(self, fi=1, plot_vars=['theta','a']):
+        first = 1
+        for df in self.data_files:
+            if first:
+                first = 0
+                cur_plot_vars = ['u'] + plot_vars
+                df.plot(fi=fi, fig=None, clear=True, \
+                        plot_vars=cur_plot_vars)
+            else:
+                df.plot(fi=fi, fig=None, clear=False, \
+                        plot_vars=plot_vars)
         
