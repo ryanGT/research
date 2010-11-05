@@ -1,6 +1,8 @@
 from pylab import *
 from scipy import *
 
+import pylab as PL
+
 import os, sys
 
 import controls
@@ -18,11 +20,23 @@ msg2 = """Cannot calculate the step response of
 a Ga_ThetaFB_System unless self.ROM
 is defined."""
 
-class Ga_ThetaFB_System(object):
+def comp_to_db(comp_mat):
+    dB_mat = 20*log10(abs(comp_mat))
+    return dB_mat
+
+
+def comp_to_zeros_db(comp_mat):
+    zeros_mat = 1.0/comp_mat
+    return comp_to_dB(zeros_mat)
+
+
+class ga_theta_fb_system(object):
     def __init__(self, Ga, thfb_a_comp=None, \
                  ROM_model=None, substr=None, \
                  accel_comp_bode_opts=None, \
-                 afb_bode_opts=None):
+                 afb_bode_opts=None, \
+                 tfb_contour_sys=None, \
+                 levels=None):
         self.Ga = Ga
         self.ROM = ROM_model
         self.thfb_a_comp = thfb_a_comp
@@ -33,21 +47,47 @@ class Ga_ThetaFB_System(object):
         if afb_bode_opts is None:
             afb_bode_opts = SFLR_bode_options.AccelFB_Bode_opts[1]
         self.afb_bode_opts = afb_bode_opts
+        self.tfb_contour_sys = tfb_contour_sys
+        if levels is None:
+            levels = arange(-10, 50, 3)
+        self.levels = levels
+        if tfb_contour_sys is not None:
+            self._map_from_tfb_contour_sys()
         if self.ROM is not None:
-            self.update_ROM(Ga)
-        
+            self.update_rom(Ga)
 
-    def calc_Ga_comp(self, s):
+
+    def _map_from_tfb_contour_sys(self):
+        self.comp_mat = self.tfb_contour_sys.comp_mat
+        self.s_contour = self.tfb_contour_sys.s
+        self.f_contour = self.tfb_contour_sys.f
+        self.im_contour = self.tfb_contour_sys.im
+
+
+    def plot_dB_mat_contour(self, dB_afb, fi, title=None, \
+                            myxlim=[-20,2],myylim=[-2,20],\
+                            zoomin=True):
+        figure(fi)
+        clf()
+        contour(-self.f_contour*2*pi, self.im_contour*2*pi , dB_afb, self.levels)
+        if title is not None:
+            PL.title(title)
+        if zoomin:
+            PL.xlim(myxlim)
+            PL.ylim(myylim)
+
+
+    def calc_ga_comp(self, s):
         Ga_comp = self.Ga(s)
         self.Ga_comp = Ga_comp
 
 
-    def calc_Ga_comp_from_f(self, f):
+    def calc_ga_comp_from_f(self, f):
         s = 2.0j*pi*f
-        self.calc_Ga_comp(s)
+        self.calc_ga_comp(s)
 
         
-    def update_ROM(self, Ga=None):
+    def update_rom(self, Ga=None):
         assert self.ROM is not None, msg2
         if Ga is not None:
             self.ROM.Ga = Ga
@@ -85,10 +125,10 @@ class Ga_ThetaFB_System(object):
         plot(self.t, self.accel_t, label='$\\ddot{x}_{%s}$' % self.substr)        
         
         
-    def calc_Accel_comp_Bode(self, f):
+    def calc_accel_comp_bode(self, f):
         assert self.thfb_a_comp is not None, msg1
         if not hasattr(self, 'Ga_comp'):
-            self.calc_Ga_comp_from_f(f)
+            self.calc_ga_comp_from_f(f)
         a_comp = self.Ga_comp*self.thfb_a_comp
         a_bode = BPO.comp_to_Bode(a_comp, f, \
                                   bode_opt=self.accel_comp_bode_opts)
@@ -101,19 +141,19 @@ class Ga_ThetaFB_System(object):
         return kwargs
 
 
-    def plot_Accel_comp_Bode(self, f, fi=1, **kwargs):
+    def plot_accel_comp_bode(self, f, fi=1, **kwargs):
         if not hasattr(self, 'Accel_comp_Bode'):
-            self.calc_Accel_comp_Bode(f)
+            self.calc_accel_comp_bode(f)
         kwargs = self._set_kwargs(**kwargs)
         BPO._plot_bode(self.Accel_comp_Bode, \
                        self.accel_comp_bode_opts, \
                        f, fignum=fi, **kwargs)
         
 
-    def calc_AFB_Bode(self, f):
+    def calc_afb_bode(self, f):
         assert self.thfb_a_comp is not None, msg1
         if not hasattr(self, 'Ga_comp'):
-            self.calc_Ga_comp_from_f(f)
+            self.calc_ga_comp_from_f(f)
         afb_a_comp = self.thfb_a_comp/(1.0+self.Ga_comp*self.thfb_a_comp)
         afb_a_bode = BPO.comp_to_Bode(afb_a_comp, f, \
                                       bode_opt=self.afb_bode_opts)
@@ -121,9 +161,9 @@ class Ga_ThetaFB_System(object):
         self.afb_a_comp = afb_a_comp
 
 
-    def plot_AFB_Bode(self, f, fi=1, **kwargs):
+    def plot_afb_bode(self, f, fi=1, **kwargs):
         if not hasattr(self, 'Accel_AFB_Bode'):
-            self.calc_AFB_Bode(f)
+            self.calc_afb_bode(f)
         kwargs = self._set_kwargs(**kwargs)    
         BPO._plot_bode(self.Accel_AFB_Bode, \
                        self.afb_bode_opts, \
@@ -132,7 +172,7 @@ class Ga_ThetaFB_System(object):
 
     def nyquist_plot(self, f, fi=1, clear=False, **kwargs):
         if not hasattr(self, 'Ga_comp'):
-            self.calc_Ga_comp_from_f(f)
+            self.calc_ga_comp_from_f(f)
         Nyq = self.Ga_comp*self.thfb_a_comp
         figure(fi)
         if clear:
@@ -141,7 +181,22 @@ class Ga_ThetaFB_System(object):
         plot(Nyq.real, Nyq.imag)
         plot(mirror.real, mirror.imag)
         
-        
+
+    def calc_afb_compmat(self):
+        s = self.s_contour
+        Ga_comp = self.Ga(s)
+        self.comp_afb = self.comp_mat/(1+Ga_comp*self.comp_mat)
+        self.comp_afb_db = comp_to_db(self.comp_afb)
+        return self.comp_afb
+
+
+    def plot_afb_contour(self, fi, **kwargs):
+        if not has_attr(self, 'comp_afb_db'):
+            self.calc_afb_compmat()
+        self.plot_dB_mat_contour(self.comp_afb_db, fi, **kwargs)
+
+
+
         
 
 class Kp_Accel_ThetaFB_System(Ga_ThetaFB_System):
