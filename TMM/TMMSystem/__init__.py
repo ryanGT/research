@@ -2016,24 +2016,30 @@ class TMMSystem:
         return bodes
     
             
-    def BodeResponse(self, fvect):
+    def BodeResponse(self, fvect=None, svect=None):
         """Calculate the Bode response at system locations
         specified by self.bodeouts (specified during __init__
         of the TMMSystem).  fvect is a vector of frequencies
         at which the system response will be calculated.  Each
-        entry in fvect is assumed to be a real number in Hz."""
+        entry in fvect is assumed to be a real number in Hz.
+
+        Passing in svect will use the svect specified.  Otherwise,
+        svect = 2.0j*pi*fvect"""
 #        Nout=len(self.bodeoutlist)
 #        outmat=zeros((len(fvect),Nout),'d')
 #        rawvect=zeros((len(fvect),Nout),'d')
 #        outmat=outmat+0.j
         N = self.maxsize
+        if svect is None:
+            svect=2.0j*pi*array(fvect)
+            NP = len(fvect)
+        else:
+            NP = len(svect)
 #        rawbodedict={}
         for curitem in self.rawbodeouts:
-            curitem.compvect=zeros(len(fvect),dtype='D')
+            curitem.compvect=zeros(NP,dtype='D')
         if not N%2:
             N+=1
-#        pdb.set_trace()
-        svect=2.0j*pi*array(fvect)
         for r,s in enumerate(svect):
 #            U=scipy.eye(N,typecode='f')+0.j
             U=scipy.eye(N,dtype='D')

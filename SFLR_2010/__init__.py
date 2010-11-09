@@ -5,11 +5,14 @@ import controls
 
 #import step_response_utils, ROM_model, accel_FB_system
 
+#'theta_fb_sympy_bodes', #<-- this module gives bad results for s with positive real part, so I removed it
+
 modlist = ['step_response_utils', \
            'ROM_model', \
-           'accel_FB_system',
+           'accel_fb_system',
            'theta_fb_contour', \
-           'theta_fb_sympy_bodes', \
+           'theta_fb_maxima_sympy_accel_u_bode', \
+           'theta_fb_maxima_sympy_accel_theta_bode', \
            ]
 
 

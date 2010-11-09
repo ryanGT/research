@@ -2,6 +2,7 @@ from pylab import *
 from scipy import *
 
 import pylab as PL
+import pylab_util as PU
 
 import os, sys
 
@@ -27,7 +28,7 @@ def comp_to_db(comp_mat):
 
 def comp_to_zeros_db(comp_mat):
     zeros_mat = 1.0/comp_mat
-    return comp_to_dB(zeros_mat)
+    return comp_to_db(zeros_mat)
 
 
 class ga_theta_fb_system(object):
@@ -59,22 +60,41 @@ class ga_theta_fb_system(object):
 
     def _map_from_tfb_contour_sys(self):
         self.comp_mat = self.tfb_contour_sys.comp_mat
+        self.ol_db_mat = comp_to_db(self.comp_mat)
         self.s_contour = self.tfb_contour_sys.s
         self.f_contour = self.tfb_contour_sys.f
         self.im_contour = self.tfb_contour_sys.im
 
 
-    def plot_dB_mat_contour(self, dB_afb, fi, title=None, \
+    def plot_db_mat_contour(self, dB_afb, fi, title=None, \
                             myxlim=[-20,2],myylim=[-2,20],\
-                            zoomin=True):
+                            zoomin=False):
         figure(fi)
         clf()
         contour(-self.f_contour*2*pi, self.im_contour*2*pi , dB_afb, self.levels)
+        if hasattr(self, 'contour_fignums'):
+            self.contour_fignums.append(fi)
+        else:
+            self.contour_fignums = [fi]
         if title is not None:
             PL.title(title)
         if zoomin:
             PL.xlim(myxlim)
             PL.ylim(myylim)
+
+
+    def set_contour_lims(self, xlim=None, ylim=None):
+        """Set the limits of all figures in self.contour_fignums.  If
+        xlim or ylim is None, use the max and min values of
+        self.s_contour.real and self.s_contour.imag."""
+        if xlim is None:
+            xlim = [self.s_contour.real.min(), self.s_contour.real.max()]
+        if ylim is None:
+            ylim = [self.s_contour.imag.min(), self.s_contour.imag.max()]
+        for fi in self.contour_fignums:
+            PU.SetXlim(fi, xlim)
+            PU.SetYlim(fi, ylim)
+        
 
 
     def calc_ga_comp(self, s):
@@ -180,31 +200,43 @@ class ga_theta_fb_system(object):
         mirror = Nyq.conj()
         plot(Nyq.real, Nyq.imag)
         plot(mirror.real, mirror.imag)
+
+
+    def calc_ga_comp_contour(self):
+        s = self.s_contour
+        Ga_comp = self.Ga(s)
+        self.Ga_comp_contour = Ga_comp
         
 
     def calc_afb_compmat(self):
-        s = self.s_contour
-        Ga_comp = self.Ga(s)
-        self.comp_afb = self.comp_mat/(1+Ga_comp*self.comp_mat)
+        self.calc_ga_comp_contour()
+        self.comp_afb = self.comp_mat/(1 + self.Ga_comp_contour*self.comp_mat)
         self.comp_afb_db = comp_to_db(self.comp_afb)
         return self.comp_afb
 
 
     def plot_afb_contour(self, fi, **kwargs):
-        if not has_attr(self, 'comp_afb_db'):
+        if not hasattr(self, 'comp_afb_db'):
             self.calc_afb_compmat()
-        self.plot_dB_mat_contour(self.comp_afb_db, fi, **kwargs)
+        self.plot_db_mat_contour(self.comp_afb_db, fi, **kwargs)
+
+
+    def plot_ol_contour(self, fi, **kwargs):
+        self.plot_db_mat_contour(self.ol_db_mat, fi, **kwargs)
 
 
 
         
 
-class Kp_Accel_ThetaFB_System(Ga_ThetaFB_System):
+class kp_accel_theta_fb_system(ga_theta_fb_system):
     def __init__(self, Ga, **kwargs):
         Ga = float(Ga)
-        Ga_ThetaFB_System.__init__(self, Ga, **kwargs)
+        ga_theta_fb_system.__init__(self, Ga, **kwargs)
 
 
-    def calc_Ga_comp(self, s):
-        Ga_comp = self.Ga
-        self.Ga_comp = Ga_comp
+    def calc_ga_comp(self, s):
+        self.Ga_comp = self.Ga
+
+
+    def calc_ga_comp_contour(self):
+        self.Ga_comp_contour = self.Ga
