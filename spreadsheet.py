@@ -1396,7 +1396,8 @@ class email_list(CSVSpreadSheet):
         self.emails = txt_mixin.txt_list(self.get_col(email_col))
 
 
-    def get_email(self, lastname, firstname=None, aslist=False):
+    def get_email(self, lastname, firstname=None, aslist=False, \
+                  fail_quietly=False):
         """Search for email in list using lastname or lastname,
         firstname.  aslist=True forces email to be returned in list
         even if it is only one address.  Students can have more than
@@ -1406,6 +1407,9 @@ class email_list(CSVSpreadSheet):
         if firstname is not None:
             name += ', '+firstname
         inds = self.names.findall(name)
+        if not fail_quietly:
+            assert len(inds)==1, "Did not find exactly one match for %s, %s.  len(inds)=%i" % \
+                  (lastname, firstname, len(inds))
         if len(inds) == 0:
             print('did not find %s in self.names' % name)
         if len(inds) > 1:
