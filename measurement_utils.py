@@ -90,6 +90,13 @@ def main(y, u, t, Mp=10.0, p=0.01, fignum=1):
     return ts, overshoot
 
 
+def find_and_plot_settling_time(y, u, t, p=0.01, fignum=1):
+    ts = find_settling_time(y, u, t, p=p)
+    print('settling time = %s' % ts)
+    plot_settling_lines(u, t, p, fignum=fignum)
+    plot_settling_point(y, u, t, p, fignum=fignum)
+
+
 def plot_overshoot_and_settling(y, u, t, Mp=10.0, p=0.01, fignum=1):
     plot_overshoot(u, t, Mp, fignum=fignum)
     plot_settling_lines(u, t, p, fignum=fignum)

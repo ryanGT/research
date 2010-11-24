@@ -66,6 +66,7 @@ def BuildMask(inds, vect):
 ###########################
 
 drop_list = ['{','}']
+rep_list = ['\\']
 
 def clean_key(keyin):
     if keyin[0] == '#':
@@ -73,6 +74,8 @@ def clean_key(keyin):
     temp = p.sub('\\1', keyin)
     for item in drop_list:
         temp = temp.replace(item,'')
+    for item in rep_list:
+        temp = temp.replace(item,'_')
     return temp
 
 

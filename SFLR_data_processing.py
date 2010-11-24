@@ -118,7 +118,8 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
 
     def __init__(self, path=None, **kwargs):
         txt_data_processing.Data_File.__init__(self, path, **kwargs)
-        self.y_tilde = self.tildey
+        if hasattr(self, 'tildey'):
+            self.y_tilde = self.tildey
         self.plot_vars = ['u','theta','a','v', \
                           'y_tilde','v_obs']
         self._find_matrices_in_header()
@@ -295,12 +296,15 @@ SFLR_col_map =  {0:'t', 1:'n', 2:'u', 3:'v', \
 
 class SFLR_Exp_Data_File(SFLR_Data_File):
     def __init__(self, path=None, substr=None, \
-                 col_map=SFLR_col_map, **kwargs):        
+                 col_map=SFLR_col_map, plot_vars=None, \
+                 **kwargs):        
         txt_data_processing.Data_File.__init__(self, path, \
                                                col_map=col_map, \
                                                **kwargs)
-        self.plot_vars = ['u','theta','a','v', \
-                          'theta_d_hat']
+        if plot_vars is None:
+            plot_vars = ['u','theta','a','v', \
+                         'theta_d_hat']
+        self.plot_vars = plot_vars
         labels = ['u','\\theta','\\ddot{x}','v','\\hat{\\theta}_d']
         if substr is not None:
             labels[1:] = [item + '_{%s}' % substr for item in labels[1:]]
