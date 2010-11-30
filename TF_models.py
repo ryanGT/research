@@ -12,10 +12,10 @@ import os, sys
 import rwkos, rwkbode
 
 import txt_data_processing as TDP
-reload(TDP)
+#reload(TDP)
 
 import rwkbode, pylab_util, rwkos
-reload(rwkbode)
+#reload(rwkbode)
 
 import controls
 TF = controls.TransferFunction
@@ -23,10 +23,10 @@ TF = controls.TransferFunction
 import copy
 
 import SFLR_TMM
-reload(SFLR_TMM)
+#reload(SFLR_TMM)
 
 import bode_plot_overlayer as BPO
-reload(BPO)
+#reload(BPO)
 
 
 class DC_Motor_TF_Model(object):

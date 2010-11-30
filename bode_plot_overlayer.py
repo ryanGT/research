@@ -3,13 +3,13 @@ from scipy import *
 from scipy import optimize
 
 import pylab_util as PU
-reload(PU)
+#reload(PU)
 import os, sys
 
 import rwkos, rwkbode
 
 import txt_data_processing as TDP
-reload(TDP)
+#reload(TDP)
 
 import rwkbode, pylab_util, rwkos
 
@@ -18,7 +18,7 @@ import controls
 import copy
 
 import SFLR_TMM
-reload(SFLR_TMM)
+#reload(SFLR_TMM)
 
 
 def _plot_bode(bode, bode_opt, f, fignum=1, clear=False, \
