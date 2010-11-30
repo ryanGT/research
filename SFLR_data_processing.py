@@ -135,7 +135,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
             return key
         
         
-    def plot(self, fi=1, fig=None, clear=True, plot_vars=None):
+    def plot(self, fi=1, fig=None, clear=True, plot_vars=None, **kwargs):
         if plot_vars is None:
             plot_vars = self.plot_vars
             
@@ -145,7 +145,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
             if hasattr(self, key):
                 vect = getattr(self, key)
                 label = self._get_label(key)
-                ax.plot(t, vect, label=label)
+                ax.plot(t, vect, label=label, **kwargs)
 
         self.label_axis()
 
@@ -342,15 +342,18 @@ class SFLR_Exp_Step_Response_Set(txt_data_processing.Data_Set):
         self.data_files = data_files
     
 
-    def Overlay_Step_Responses(self, fi=1, plot_vars=['theta','a']):
+    def Overlay_Step_Responses(self, fi=1, plot_vars=['theta','a'], linestyles=None):
         first = 1
-        for df in self.data_files:
+        if linestyles is None:
+            linestyles = ['-']*len(self.data_files)
+        for df,lt in zip(self.data_files, linestyles):
             if first:
                 first = 0
                 cur_plot_vars = ['u'] + plot_vars
                 df.plot(fi=fi, fig=None, clear=True, \
-                        plot_vars=cur_plot_vars)
+                        plot_vars=cur_plot_vars, linestyle=lt)
             else:
                 df.plot(fi=fi, fig=None, clear=False, \
-                        plot_vars=plot_vars)
+                        plot_vars=plot_vars, linestyle=lt)
+
         

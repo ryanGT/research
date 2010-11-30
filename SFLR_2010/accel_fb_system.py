@@ -160,15 +160,17 @@ class ga_theta_fb_system(object):
     def rst_contour_plot(self, figfolder, caption=None):
         self.abs_pdf_contour_path(figfolder)
         if caption is None:
-            caption = 'Contour plot for ' + self.substr
+            caption = 'Contour plot for Case ' + self.labelstr
 
         return self.rst_plot(self.contour_pdf_path, caption)
 
 
     def rst_contour_plot_zoomed(self, figfolder, caption=None):
         self.abs_zoom_pdf_contour_path(figfolder)
+
         if caption is None:
-            caption = 'Contour plot for ' + self.substr + ', zoomed in near the origin.'
+            caption = 'Contour plot for Case ' + self.labelstr + ', zoomed in near the origin.  ' + \
+                      '`\\label{fig:opt' + self.labelstr + 'contour}`'
 
         return self.rst_plot(self.contour_zoom_pdf_path, caption)
 
@@ -176,7 +178,8 @@ class ga_theta_fb_system(object):
     def rst_step_plot(self, caption=None):
         self.abs_pdf_step_path()
         if caption is None:
-            caption = 'Step plot for ' + self.substr
+            caption = 'Step response for Case %s.  `\label{fig:opt%sstep}`' % \
+                      (self.labelstr, self.labelstr)
 
         return self.rst_plot(self.step_pdf_path, caption)
         
@@ -609,7 +612,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         return other_zeros
 
 
-    def fmt_one_pole_or_zero(self, pz, rfmt='%0.3f', ifmt=None, tol=1e-6):
+    def fmt_one_pole_or_zero(self, pz, rfmt='%0.3g', ifmt=None, tol=1e-6):
         if ifmt is None:
             #ifmt = rfmt.replace('%','%+')+'j'
             ifmt = rfmt
@@ -880,6 +883,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         C_rst = C_fmt % tuple(self.C_opt)
         return C_rst
 
+
     def find_settling_time(self):
         self.ts = measurement_utils.find_settling_time(self.df.theta, \
                                                        self.df.u, \
@@ -910,7 +914,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         rst_list.extend(self.rst_step_plot())
         self.find_settling_time()
         rst_list.append('')
-        rst_list.append('Settling time = %0.3f' % self.ts)
+        rst_list.append('Settling time = %0.3g' % self.ts)
         rst_list.append('')
         self.find_overshoot()
         rst_list.append('')
@@ -993,7 +997,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         for r, zero in enumerate(self.small_real2_zeros):
             nested_list[r][4] = '$%s$' % self.fmt_one_pole_or_zero(zero)
 
-        nested_list[0][5] = '%0.3f' % self.ts
+        nested_list[0][5] = '%0.3g' % self.ts
         nested_list[0][6] = '%0.1f' % self.overshoot
 
         self.nested_list = nested_list

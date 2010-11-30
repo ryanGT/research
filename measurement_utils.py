@@ -1,6 +1,7 @@
 from pylab import *
 from scipy import *
 
+from IPython.Debugger import Pdb
 #from RTP_utils import *
 #from RTP_utils import dt
 
@@ -18,7 +19,10 @@ def find_overshoot(y, u):
 def find_settling_index(y, u, p=0.01):
     e = u-y
     final_value = u[-1]
-    bool1 = abs(e)<=p*final_value
+    ep = abs(p*final_value)
+    if ep < 1.0:
+        ep = 1.0
+    bool1 = abs(e)<= ep
     bool0 = u == final_value#use this to ignore the portion before the
                             #step input occurs where u==y==0.
     mybool = bool0 & bool1
@@ -58,21 +62,24 @@ def plot_overshoot(u, t, Mp, fignum=1):
     plot(t_plot, [max_allowed, max_allowed], 'r--')
 
 
-def plot_settling_lines(u, t, p=0.01, fignum=1):
+def plot_settling_lines(u, t, p=0.01, fignum=1, ls='k--'):
     final_value = u[-1]
-    lower_limit = final_value*(1.0-p)
-    upper_limit = final_value*(1.0+p)
+    dy = abs(final_value*p)
+    if  dy < 1.0:
+        dy = 1.0
+    lower_limit = final_value - dy
+    upper_limit = final_value + dy
     t_plot = get_t_limits(t)
     figure(fignum)
-    plot(t_plot, [lower_limit, lower_limit], 'k--', label=None)
-    plot(t_plot, [upper_limit, upper_limit], 'k--', label=None)
+    plot(t_plot, [lower_limit, lower_limit], ls, label=None)
+    plot(t_plot, [upper_limit, upper_limit], ls, label=None)
 
 
-def plot_settling_point(y, u, t, p=0.01, fignum=1):
+def plot_settling_point(y, u, t, p=0.01, fignum=1, ps='k^'):
     ind = find_settling_index(y, u, p)
     if ind is not None:
         figure(fignum)
-        plot([t[ind]], [y[ind]], 'k^', label=None)
+        plot([t[ind]], [y[ind]], ps, label=None)
 
 
 def find_steady_state_error(y, u):
@@ -90,11 +97,17 @@ def main(y, u, t, Mp=10.0, p=0.01, fignum=1):
     return ts, overshoot
 
 
-def find_and_plot_settling_time(y, u, t, p=0.01, fignum=1):
+def find_and_plot_settling_time(y, u, t, p=0.01, fignum=1, ls='--', ps='k^'):
     ts = find_settling_time(y, u, t, p=p)
     print('settling time = %s' % ts)
-    plot_settling_lines(u, t, p, fignum=fignum)
-    plot_settling_point(y, u, t, p, fignum=fignum)
+    plot_settling_lines(u, t, p, fignum=fignum, ls=ls)
+    plot_settling_point(y, u, t, p, fignum=fignum, ps=ps)
+
+
+def find_and_plot_settling_point(y, u, t, p=0.01, fignum=1, ps='k^'):
+    ts = find_settling_time(y, u, t, p=p)
+    print('settling time = %s' % ts)
+    plot_settling_point(y, u, t, p, fignum=fignum, ps=ps)
 
 
 def plot_overshoot_and_settling(y, u, t, Mp=10.0, p=0.01, fignum=1):
