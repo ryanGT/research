@@ -311,7 +311,7 @@ class SFLR_Exp_Data_File(SFLR_Data_File):
             plot_vars = ['u','theta','a','v', \
                          'theta_d_hat']
         self.plot_vars = plot_vars
-        labels = ['\\theta_d','\\theta','\\ddot{x}','v','\\hat{\\theta}_d']
+        labels = ['\\theta_d','\\theta','\\ddot{x}_{tip}','v','\\hat{\\theta}_d']
         if substr is not None:
             labels[1:] = [item + '_{%s}' % substr for item in labels[1:]]
         labels = ['$%s$' % item for item in labels]
@@ -350,7 +350,8 @@ class SFLR_Exp_Step_Response_Set(txt_data_processing.Data_Set):
 
     def Overlay_Step_Responses(self, fi=1, \
                                plot_vars=['theta','a'], \
-                               linestyles=None):
+                               linestyles=None, \
+                               ustyle=':'):
         first = 1
         if linestyles is None:
             linestyles = ['-']*len(self.data_files)
@@ -359,7 +360,7 @@ class SFLR_Exp_Step_Response_Set(txt_data_processing.Data_Set):
                 first = 0
                 cur_plot_vars = ['u'] + plot_vars
                 df.plot(fi=fi, fig=None, clear=True, \
-                        plot_vars=cur_plot_vars, linestyles=[lt])
+                        plot_vars=cur_plot_vars, linestyles=[ustyle, lt])
             else:
                 df.plot(fi=fi, fig=None, clear=False, \
                         plot_vars=plot_vars, linestyles=[lt])

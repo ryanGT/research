@@ -957,7 +957,8 @@ class ga_pole_optimizer(ga_theta_fb_system):
                      linestyles=[':','-','--'])
         if measure:
             measurement_utils.plot_settling_lines(self.df.u, self.df.t, \
-                                                  p=0.01, fignum=fi)
+                                                  p=0.01, fignum=fi, \
+                                                  linewidth=0.5)
             measurement_utils.plot_settling_point(self.df.theta, \
                                                   self.df.u, \
                                                   self.df.t, \

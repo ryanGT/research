@@ -62,7 +62,7 @@ def plot_overshoot(u, t, Mp, fignum=1):
     plot(t_plot, [max_allowed, max_allowed], 'r--')
 
 
-def plot_settling_lines(u, t, p=0.01, fignum=1, ls='k--'):
+def plot_settling_lines(u, t, p=0.01, fignum=1, ls='k--', linewidth=1.0):
     final_value = u[-1]
     dy = abs(final_value*p)
     if  dy < 1.0:
@@ -71,8 +71,10 @@ def plot_settling_lines(u, t, p=0.01, fignum=1, ls='k--'):
     upper_limit = final_value + dy
     t_plot = get_t_limits(t)
     figure(fignum)
-    plot(t_plot, [lower_limit, lower_limit], ls, label=None)
-    plot(t_plot, [upper_limit, upper_limit], ls, label=None)
+    plot(t_plot, [lower_limit, lower_limit], ls, \
+         label=None, linewidth=linewidth)
+    plot(t_plot, [upper_limit, upper_limit], ls, \
+         label=None, linewidth=linewidth)
 
 
 def plot_settling_point(y, u, t, p=0.01, fignum=1, ps='k^'):
@@ -97,10 +99,12 @@ def main(y, u, t, Mp=10.0, p=0.01, fignum=1):
     return ts, overshoot
 
 
-def find_and_plot_settling_time(y, u, t, p=0.01, fignum=1, ls='--', ps='k^'):
+def find_and_plot_settling_time(y, u, t, p=0.01, fignum=1, \
+                                ls='--', ps='k^', linewidth=1.0):
     ts = find_settling_time(y, u, t, p=p)
     print('settling time = %s' % ts)
-    plot_settling_lines(u, t, p, fignum=fignum, ls=ls)
+    plot_settling_lines(u, t, p, fignum=fignum, ls=ls, \
+                        linewidth=linewidth)
     plot_settling_point(y, u, t, p, fignum=fignum, ps=ps)
 
 
