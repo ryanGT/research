@@ -198,8 +198,8 @@ class ga_theta_fb_system(object):
         figure(fi)
         clf()
         contour(-self.f_contour*2*pi, self.im_contour*2*pi , dB_afb, self.levels)
-        PL.xlabel('real($s$)')
-        PL.ylabel('imag($s$)')
+        PL.xlabel('real($s$) {\\Large (rad./sec.)}')
+        PL.ylabel('imag($s$) {\\Large (rad./sec.)}')
         if hasattr(self, 'contour_fignums'):
             self.contour_fignums.append(fi)
         else:
@@ -914,7 +914,10 @@ class ga_pole_optimizer(ga_theta_fb_system):
         rst_list.extend(self.rst_step_plot())
         self.find_settling_time()
         rst_list.append('')
-        rst_list.append('Settling time = %0.3g' % self.ts)
+        if self.ts is None:
+            rst_list.append('Did not settle.')
+        else:
+            rst_list.append('Settling time = %0.3g' % self.ts)
         rst_list.append('')
         self.find_overshoot()
         rst_list.append('')
@@ -947,18 +950,19 @@ class ga_pole_optimizer(ga_theta_fb_system):
         self.df = SFLR_data_processing.SFLR_Exp_Data_File(self.step_data_path)
 
 
-    def plot_exp_step(self, fi=1, measure=True):
+    def plot_exp_step(self, fi=1, measure=True, legloc=5):
         self.step_fi = fi
-        self.df.plot(fi)
+        self.df.plot(fi, \
+                     plot_vars=['u','theta','a'], \
+                     linestyles=[':','-','--'])
         if measure:
-            print('yep')
             measurement_utils.plot_settling_lines(self.df.u, self.df.t, \
                                                   p=0.01, fignum=fi)
             measurement_utils.plot_settling_point(self.df.theta, \
                                                   self.df.u, \
                                                   self.df.t, \
                                                   p=0.01, fignum=fi)
-        PU.SetLegend(fi, loc=5)
+        PU.SetLegend(fi, loc=legloc)
 
     
 
@@ -997,7 +1001,10 @@ class ga_pole_optimizer(ga_theta_fb_system):
         for r, zero in enumerate(self.small_real2_zeros):
             nested_list[r][4] = '$%s$' % self.fmt_one_pole_or_zero(zero)
 
-        nested_list[0][5] = '%0.3g' % self.ts
+        if self.ts is None:
+            nested_list[0][5] = '$>$ 2'
+        else:
+            nested_list[0][5] = '%0.3g' % self.ts
         nested_list[0][6] = '%0.1f' % self.overshoot
 
         self.nested_list = nested_list
@@ -1043,7 +1050,58 @@ class Ga5_pole_optimizer(ga_pole_optimizer):
         return pat
 
 
-    
+
+class noA_pole_optimizer(ga_pole_optimizer):
+    """This class is for comparing results without acceleration
+    feedback to optimized Ga results."""
+    def __init__(self, **kwargs):
+        ga_pole_optimizer.__init__(self, Ga=None, **kwargs)
+        
+
+    def set_C_from_Ga(self):
+        self.C_opt = [0]*5
+
+    def rst_header(self):
+        mylist = section_dec('Without Acceleration Feedback')
+        #mylist.append('class: ' + str(self.__class__))
+        #mylist.append('')
+        return mylist
+
+
+    def build_step_glob_pattern(self):
+        pat = '*no_accel_FB_*_SLFR_RTP_Motor_Comp_Gth.txt'
+        self.step_pat = pat
+        return pat
+
+
+    def optimize_Ga(self, *args, **kwargs):
+        print('not a good idea')
+
+
+    def calc_ga_comp(self, s):
+        self.Ga_comp = 0.0
+        
+
+    def calc_accel_comp_bode(self, f):
+        assert self.thfb_a_comp is not None, msg1
+        a_comp = self.thfb_a_comp#<-- don't really do anything
+        a_bode = BPO.comp_to_Bode(a_comp, f, \
+                                  bode_opt=self.accel_comp_bode_opts)
+        self.Accel_comp_Bode = a_bode
+        
+
+    def calc_afb_compmat(self):
+        self.comp_afb = self.comp_mat
+        self.comp_afb_db = comp_to_db(self.comp_afb)
+        return self.comp_afb_db
+
+
+    def plot_exp_step(self, fi=1, measure=False, legloc=4):
+        ga_pole_optimizer.plot_exp_step(self, fi=fi, \
+                                        measure=measure, \
+                                        legloc=legloc)
+
+
 class first_pole_optimizer(ga_pole_optimizer):
     """I am attempting to tell a story in the SFLR_2010 paper about
     how I developed a good cost function for this problem.  I am

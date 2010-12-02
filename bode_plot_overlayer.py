@@ -23,6 +23,7 @@ import SFLR_TMM
 
 def _plot_bode(bode, bode_opt, f, fignum=1, clear=False, \
                linetype='-', **kwargs):
+    #print('kwargs = ' + str(kwargs))
     rwkbode.GenBodePlot(fignum, f, bode, clear=clear, \
                         linetype=linetype, **kwargs)
     PU.set_Bode_opts(fignum, bode_opt, coh=False)
@@ -327,14 +328,27 @@ class Bode_Overlayer(object):
         self.bode_opt_list = bode_opt_list
 
 
-    def plot_bodes(self, f, startfi=1, clear=True, **kwargs):
+    def plot_bodes(self, f, startfi=1, clear=True,
+                   linestyles=None, linewidths=None, \
+                   **kwargs):
         first = 1
-        for bode_obj in self.bode_obj_list:
+        n = len(self.bode_obj_list)
+        if linestyles is None:
+            linestyles = ['-']*n
+        if linewidths is None:
+            linewidths = [1.0]*n
+                          
+        for bode_obj, ls, lw in zip(self.bode_obj_list, \
+                                    linestyles, \
+                                    linewidths):
             if first:
                 clear = clear
                 first = 0
             else:
                 clear = False
             bode_obj.plot_bodes(f, startfi=startfi, clear=clear,
-                                label=bode_obj.label, **kwargs)
+                                label=bode_obj.label, \
+                                linestyle=ls, \
+                                linewidth=lw, \
+                                **kwargs)
             

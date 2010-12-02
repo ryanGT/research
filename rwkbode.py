@@ -532,7 +532,7 @@ def CreateLogMask(vector,factor=1.1):
 #    on the switch to WX embedded compatible functions
 #
 #ttttttttttttttttttttttttttttttttttttttttttt
-## def GenCohPlot(fignum,freqvect,bodein,clear=True,filename='',mydpi=75,folder='figs',linetype='',legend=[],legloc=-1,autoY=1,linewidth=None):
+## def GenCohPlot(fignum,freqvect,bodein,clear=True,filename='',mydpi=75,folder='figs',linestyle='',legend=[],legloc=-1,autoY=1,linewidth=None):
 ## #    pdb.set_trace()
 ##     pylab.figure(fignum)
 ##     if clear:
@@ -545,8 +545,8 @@ def CreateLogMask(vector,factor=1.1):
 ##             raise IndexError, 'Coherence must be a vector or a matrix with only one column. Got something with shape '+str(shape(bodein.coh))
 ##     myargs=[freqvect,bodein.coh]
 ##     mykwargs={}
-##     if linetype:
-##         myargs.append(linetype)
+##     if linestyle:
+##         myargs.append(linestyle)
 ##     if linewidth:
 ##         mykwargs['linewidth']=linewidth
 ##     pylab.semilogx(*myargs,**mykwargs)
@@ -688,7 +688,7 @@ mytypes=['-','--',':','-.']
 #colors='ygrbckm'
 colors=['b','y','r','g','c','k']#['y','b','r','g','c','k']
 
-def _getlinetype(ax=None):
+def _getlinestyle(ax=None):
     if ax is None:
        import pylab
        ax = pylab.gca()
@@ -699,7 +699,7 @@ def _inccount():
     ax=gca()
     ax._get_lines.count+=1
     
-def _PlotMatrixvsF(freqvect, matin, linetype='', \
+def _PlotMatrixvsF(freqvect, matin, linestyle='', \
                    linewidth=None, semilogx=True, \
                    allsolid=False, axis=None, label=None):
     mykwargs={}
@@ -710,10 +710,10 @@ def _PlotMatrixvsF(freqvect, matin, linetype='', \
        usepylab = True
     if len(shape(matin))==1:
         myargs=[freqvect,matin]
-        if linetype:
-            myargs.append(linetype)
+        if linestyle:
+            myargs.append(linestyle)
         else:
-            mykwargs.update(_getlinetype(axis))
+            mykwargs.update(_getlinestyle(axis))
         if linewidth:
             mykwargs['linewidth'] = linewidth
         if label is not None:
@@ -728,10 +728,10 @@ def _PlotMatrixvsF(freqvect, matin, linetype='', \
         mylines=[]
         for q in range(shape(matin)[1]):
             myargs=[freqvect,matin[:,q]]
-            if linetype:
-                myargs.append(linetype)
+            if linestyle:
+                myargs.append(linestyle)
             else:
-                mykwargs.update(_getlinetype(axis))
+                mykwargs.update(_getlinestyle(axis))
             if linewidth:
                 mykwargs['linewidth']=linewidth
             if label is not None:
@@ -745,23 +745,23 @@ def _PlotMatrixvsF(freqvect, matin, linetype='', \
     return mylines
 
 
-def _PlotMag(freqvect,bodein,linetype='',linewidth=0, \
+def _PlotMag(freqvect,bodein,linestyle='',linewidth=0, \
              axis=None, label=None):
     if callable(bodein.dBmag):
         myvect=bodein.dBmag()
     else:
         myvect=bodein.dBmag
-    return _PlotMatrixvsF(freqvect, myvect, linetype=linetype, \
+    return _PlotMatrixvsF(freqvect, myvect, linestyle=linestyle, \
                           linewidth=linewidth, axis=axis, label=label)
 
-def _PlotPhase(freqvect,bodein,linetype='',linewidth=0, axis=None, \
+def _PlotPhase(freqvect,bodein,linestyle='',linewidth=0, axis=None, \
                label=None):
-    return _PlotMatrixvsF(freqvect,bodein.phase,linetype=linetype, \
+    return _PlotMatrixvsF(freqvect,bodein.phase,linestyle=linestyle, \
                           linewidth=linewidth, axis=axis, label=label)
 
-def _PlotCoh(freqvect,bodein,linetype='',linewidth=0, axis=None, \
+def _PlotCoh(freqvect,bodein,linestyle='',linewidth=0, axis=None, \
              label=None):
-    return _PlotMatrixvsF(freqvect,bodein.coh, linetype=linetype, \
+    return _PlotMatrixvsF(freqvect,bodein.coh, linestyle=linestyle, \
                           linewidth=linewidth, axis=axis, label=label)
 
 #ttttttttttttttttttttttttttttttttttttttttttt
@@ -772,7 +772,7 @@ def _PlotCoh(freqvect,bodein,linetype='',linewidth=0, axis=None, \
 #ttttttttttttttttttttttttttttttttttttttttttt
 ## def MagPlot(fignum,freqvect,bodein,clear=True,legendsub=111,legloc=3,**kwargs):
 ##     figure(fignum)
-##     myargs=['linetype','colors','linewidth']
+##     myargs=['linestyle','colors','linewidth']
 ##     subkwargs={}
 ##     for key in myargs:
 ##         if kwargs.has_key(key):
@@ -805,7 +805,7 @@ def _PlotCoh(freqvect,bodein,linetype='',linewidth=0, axis=None, \
 #ttttttttttttttttttttttttttttttttttttttttttt
 ## def AspectPlot(fignum, freqvect, bodein, aspectstr, semilogx=True, clear=True, legendsub=111,legloc=3,**kwargs):
 ##     figure(fignum)
-##     myargs=['linetype','colors','linewidth']
+##     myargs=['linestyle','colors','linewidth']
 ##     subkwargs={}
 ##     for key in myargs:
 ##         if kwargs.has_key(key):
@@ -842,7 +842,7 @@ def BodeCohPlot(fignum, freqvect, bodein, \
     if fig is None:
        from pylab import figure
        fig = figure(fignum,figsize=(8,8))
-    myargs=['linetype','colors','linewidth']
+    myargs=['linestyle','colors','linewidth']
     subkwargs={}
     for key in myargs:
         if kwargs.has_key(key):
@@ -887,7 +887,8 @@ def GenBodePlot(fignum, freqvect, bodein, clear=True, \
     
     if type(bodein)==type(arange(0,1,0.01)):
         bodein=rwkbode(compin=bodein)
-    myargs=['linetype','colors','linewidth','label']
+    #myargs=['linestyle','colors','linewidth','label']
+    myargs=['linestyle','colors','linewidth','label']
     subkwargs={}
     for key in myargs:
         if kwargs.has_key(key):
@@ -930,7 +931,7 @@ def GenCohPlot(fignum, freqvect, bodein, \
        fig = figure(fignum)
     assert isinstance(bodein, rwkbode), "GenCohPlot must be called with an rwkbode instance for bodein."
 
-    myargs=['linetype','colors','linewidth']
+    myargs=['linestyle','colors','linewidth']
     subkwargs={}
     for key in myargs:
         if kwargs.has_key(key):
@@ -950,7 +951,7 @@ def GenCohPlot(fignum, freqvect, bodein, \
     
     
 
-## def GenBodePlot(fignum,freqvect,bodein,clear=True,filename='',mydpi=75,folder='figs',linetype='',colors=[],legend=[],legloc=-1,autoY=1,speciallegend=False,linewidth=0,legonphase=False):
+## def GenBodePlot(fignum,freqvect,bodein,clear=True,filename='',mydpi=75,folder='figs',linestyle='',colors=[],legend=[],legloc=-1,autoY=1,speciallegend=False,linewidth=0,legonphase=False):
 ##     #ticksize='large',labelsize='x-large',
 ##     pylab.ioff()
 ##     bodein.mag=colwise(bodein.mag,makecopy=False)    
@@ -964,8 +965,8 @@ def GenCohPlot(fignum, freqvect, bodein, \
 
 ##     if len(shape(bodein.mag))==1:
 ##         myargs=[freqvect,20*log10(bodein.mag)]
-##         if linetype:
-##             myargs.append(linetype)
+##         if linestyle:
+##             myargs.append(linestyle)
 ##         elif colors:
 ##             myargs.append(colors[0])
 ##         curline,=pylab.semilogx(*myargs)
@@ -974,8 +975,8 @@ def GenCohPlot(fignum, freqvect, bodein, \
 ##         mylines=[]
 ##         for q in range(shape(bodein.mag)[1]):
 ##             myargs=[freqvect,20*log10(bodein.mag[:,q])]
-##             if linetype:
-##                 myargs.append(linetype)
+##             if linestyle:
+##                 myargs.append(linestyle)
 ##             elif colors:
 ##                 myargs.append(colors[q % len(colors)])                
 ##             if linewidth:
@@ -1014,8 +1015,8 @@ def GenCohPlot(fignum, freqvect, bodein, \
 ##         pylab.cla()
 ##     if len(shape(bodein.phase))==1:
 ##         plotstr='pylab.semilogx(freqvect,bodein.phase'
-##         if len(linetype)>0:
-##             plotstr+=',linetype'
+##         if len(linestyle)>0:
+##             plotstr+=',linestyle'
 ##         if len(colors)>0:
 ##             plotstr+=',colors[0]'
 ##         plotstr+=')'
@@ -1023,8 +1024,8 @@ def GenCohPlot(fignum, freqvect, bodein, \
 ##     else:
 ##         for q in range(shape(bodein.phase)[1]):
 ##             myargs=[freqvect,bodein.phase[:,q]]
-##             if linetype:
-##                 myargs.append(linetype)
+##             if linestyle:
+##                 myargs.append(linestyle)
 ##             elif colors:
 ##                 myargs.append(colors[q % len(colors)])
 ##             pylab.semilogx(*myargs,**mykwargs)
