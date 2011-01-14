@@ -1711,7 +1711,10 @@ class BlackBoardGBFile(CSVSpreadSheet):
         This method assumes we are matching student names.  If
         splitnames=True, then it is further assumed that namelist
         contains a list of 'FirstName LastName' with a space
-        seperating them."""
+        seperating them.
+
+        Last Name and First Name are now in two separate columns, but
+        I have an issue for 482, Fall 2010: two Miller's."""
         destcol = self.labels.index(destlabel)
         if splitnames:
             lastnames = []
@@ -1727,11 +1730,14 @@ class BlackBoardGBFile(CSVSpreadSheet):
                 lastnames.append(last)
             namelist = lastnames
         found = 0
-        for curname, row in zip(self.lastnames,self.alldata):
+        for curname, row in zip(self.lastnames, self.alldata):
             curind = search_list(namelist, curname, match=1)
+            #print('curind = ' + str(curind)) 
             if curind == -1:
                 if verbosity > 1:
-                    print('could not find '+curname)
+                    print('could not find ' + curname)
+                    print('namelist = ' + str(namelist))
+                    print('destlabel = ' + destlabel)
             else:
                 #if valuelist[curind]:#I don't know why this was here,
                 #I guess to allow empty cells not mess up averages
@@ -1748,7 +1754,42 @@ class BlackBoardGBFile(CSVSpreadSheet):
         if (found != len(namelist)) and (verbosity >0):
             print('found = ' + str(found))
             print('len(namelist) = '+str(len(namelist)))
-                                         
+
+
+    def find_student(self, lastname, firstname, verbosity=0):
+        last_inds = self.lastnames.findall(lastname)
+        assert len(last_inds) > 0, "Did not find a student with the lastname " + str(lastname)
+        if len(last_inds) == 1:
+            return last_inds[0]
+        else:
+            possible_firstnames = []
+            for ind in last_inds:
+                possible_firstnames.append(self.firstnames[ind])
+            possible_firstnames = txt_mixin.txt_list(possible_firstnames)
+            first_inds = possible_firstnames.findall(firstname)
+            if verbosity > 0:
+                print('firstname = ' + firstname)
+                print('found: ' + str(self.alldata[last_inds[first_inds[0]]]))
+            assert len(first_inds) == 1, "Did not find exacly one firstname for lastname " + str(lastname)
+            return last_inds[first_inds[0]]
+        
+
+    def InsertColFromList_v2(self, lastnames, firstnames, \
+                             destlabel, valuelist, \
+                             verbosity=2):
+        """Fall 2010 is the first time I had two students with the
+        same last name in one class.  I am writing this new method to
+        address this issue."""
+        destcol = self.labels.index(destlabel)
+
+        for last, first, value in zip(lastnames, firstnames, valuelist):
+            rowind = self.find_student(last, first)
+            row = self.alldata[rowind]
+            N = len(row)-1
+            if destcol > N:
+                row += [None]*(destcol-N)
+                    #row.append(valuelist[curind])
+            row[destcol] = value
 
 
     def AppendColFromList(self, namelist, destlabel, valuelist, \
@@ -1756,6 +1797,19 @@ class BlackBoardGBFile(CSVSpreadSheet):
         self.labels.append(destlabel)
         self.InsertColFromList(namelist, destlabel, valuelist, \
                                splitnames=splitnames)
+
+
+    def Append_Col_of_Zeros(self, val='0.0'):
+        for row in self.alldata:
+            row.append(val)
+
+
+    def AppendColFromList_v2(self, lastnames, firstnames, \
+                             destlabel, valuelist, verbosity=0):
+        self.labels.append(destlabel)
+        self.InsertColFromList_v2(lastnames, firstnames, \
+                                  destlabel, valuelist)
+
 
     def Append_From_GradeSpreadSheet(self, gradesheet, labels=None, \
                                      parsefunc=myfloat):
@@ -1785,10 +1839,14 @@ class BlackBoardGBFile_v_8_0(BlackBoardGBFile):
             self.alldata.pop(0)
         self.ParseNames()
 
+
     def ParseNames(self):
         self.MapCols({'Last Name':'lastnames', \
                       'First Name':'firstnames', \
                       'Username':'uids'})
+        self.lastnames = txt_mixin.txt_list(self.lastnames)
+        self.firstnames = txt_mixin.txt_list(self.firstnames)
+        
 
 class Fake_BlackBoard_File(BlackBoardGBFile_v_8_0):
     def __init__(self, lastnames, firstnames=None):
@@ -1801,6 +1859,7 @@ class Fake_BlackBoard_File(BlackBoardGBFile_v_8_0):
         alldata_tups = zip(self.lastnames, self.firstnames, \
                            self.uids)
         self.alldata = [list(item) for item in alldata_tups]
+
     
 class GradeSpreadSheet(CSVSpreadSheet):
     def __init__(self, pathin=None, namelabel='Name',valuelabel='Total', \

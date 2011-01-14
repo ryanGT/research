@@ -198,8 +198,8 @@ class ga_theta_fb_system(object):
         figure(fi)
         clf()
         contour(-self.f_contour*2*pi, self.im_contour*2*pi , dB_afb, self.levels)
-        PL.xlabel('real($s$) {\\Large (rad./sec.)}')
-        PL.ylabel('imag($s$) {\\Large (rad./sec.)}')
+        PL.xlabel('real($s$) {\\LARGE (rad./s)}')
+        PL.ylabel('imag($s$) {\\LARGE (rad./s)}')
         if hasattr(self, 'contour_fignums'):
             self.contour_fignums.append(fi)
         else:
@@ -963,6 +963,8 @@ class ga_pole_optimizer(ga_theta_fb_system):
                                                   self.df.u, \
                                                   self.df.t, \
                                                   p=0.01, fignum=fi)
+        figure(fi)
+        xlabel('Time (s)')
         PU.SetLegend(fi, loc=legloc)
 
     
