@@ -303,7 +303,7 @@ SFLR_col_map =  {0:'t', 1:'n', 2:'u', 3:'v', \
 class SFLR_Exp_Data_File(SFLR_Data_File):
     def __init__(self, path=None, substr=None, \
                  col_map=SFLR_col_map, plot_vars=None, \
-                 **kwargs):        
+                 labels=None, **kwargs):        
         txt_data_processing.Data_File.__init__(self, path, \
                                                col_map=col_map, \
                                                **kwargs)
@@ -311,13 +311,27 @@ class SFLR_Exp_Data_File(SFLR_Data_File):
             plot_vars = ['u','theta','a','v', \
                          'theta_d_hat']
         self.plot_vars = plot_vars
-        labels = ['\\theta_d','\\theta','\\ddot{x}_{tip}','v','\\hat{\\theta}_d']
+        if labels is None:
+            labels = ['u','\\theta','\\ddot{x}','v','\\hat{\\theta}_d']
         if substr is not None:
             labels[1:] = [item + '_{%s}' % substr for item in labels[1:]]
         labels = ['$%s$' % item for item in labels]
         self.plot_labels = dict(zip(self.plot_vars, labels))
-        
 
+
+SFLR_col_map_no_theta_hat =  {0:'t', 1:'n', 2:'u', 3:'v', \
+                              4:'theta', 5:'a'}
+
+class SFLR_Exp_Data_File_no_theta_hat(SFLR_Exp_Data_File):
+    def __init__(self, path=None, substr=None, \
+                 col_map=SFLR_col_map_no_theta_hat, \
+                 plot_vars=['u','theta','a','v'], \
+                 labels = ['u','\\theta','\\ddot{x}','v'], \
+                 **kwargs):
+        SFLR_Exp_Data_File.__init__(self, \
+                                    path=path, substr=substr, \
+                                    col_map=col_map, plot_vars=plot_vars, \
+                                    labels=labels, **kwargs)
     
 
 class SFLR_Exp_Step_Response_Set(txt_data_processing.Data_Set):
