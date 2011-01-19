@@ -80,7 +80,11 @@ ROM_ATFB_model = SFLR_TF_models.G_th_G_a_TF(AccelFB_Bode_opts, \
                                             ffit=None, \
                                             label='ROM')
 
-ROM_ATFB_model.load_params('decent_ROM_params_09_09_10.pkl')
+pkl_name = 'decent_ROM_params_09_09_10.pkl'
+pkl_dir = '/home/ryan/git/research/SFLR_2010'
+pkl_path = os.path.join(pkl_dir, pkl_name)
+
+ROM_ATFB_model.load_params(pkl_path)
 #ROM_ATFB_model.plot_one_bode(f, 1, fignum=1)
 
 t = arange(0,2,0.01)
