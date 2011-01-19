@@ -67,7 +67,7 @@ if __name__ == '__main__':
 
         data_set.Bode_Plot2(attr='compressed_avebodes', \
                     f_attr='compressed_f', figs=figs, \
-                    clear=False, linetype='o')
+                    clear=False, linestyle='o')
 
         show()
         

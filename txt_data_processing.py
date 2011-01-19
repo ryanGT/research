@@ -1080,8 +1080,8 @@ class Bode_Data_Set(Data_Set):
         
         
     def Truncate(self, flow, fhigh):
-        self.Truncate_bodes()
-        self.Truncate_avebodes()
+        self.Truncate_bodes(flow, fhigh)
+        self.Truncate_avebodes(flow, fhigh)
         ## self._check_bode_existance()
         ## self.trunc_bodes = copy.deepcopy(self.bodes)
         ## self.trunc_avebodes = copy.deepcopy(self.avebodes)
