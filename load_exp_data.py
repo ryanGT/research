@@ -9,8 +9,9 @@ import pylab_util as PU
 
 data_dir1 = rwkos.FindFullPath('siue/Research/modeling/SLFR/data/July_07_2009')
 data_dir2 = rwkos.FindFullPath('siue/Research/PSoC_Research/SFLR_2010/data/swept_sine/July_2010/JVC/July_02_2010')
+data_dir3 = rwkos.FindFullPath('siue/Research/PSoC_Research/SFLR_2010/data/swept_sine/August_2010/after_beam_reattachment')
 
-data_dirs = [data_dir1, data_dir2]
+data_dirs = [data_dir1, data_dir2, data_dir3]
 
 for data_dir in data_dirs:
     if data_dir not in sys.path:

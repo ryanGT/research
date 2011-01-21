@@ -190,15 +190,23 @@ class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
         self.set_params(C)
         self.build_TFs()
         self.calc_bodes(self.ffit)
-        cost = self.G_act_bode.dB_Phase_Error_sum(self.TMM_act_bode)
+        cost = self.G_act_bode.dB_Phase_Error_sum(self.act_fit_bode)
         cost += self.negative_params_check()
         return cost
+
+
+    def set_fit_bode(self):
+        if self.exp_fit:
+            self.act_fit_bode = self.exp_bode
+        else:
+            self.act_fit_bode = self.TMM_act_bode
 
 
     def calc_TMM_bode(self):
         self.TMM_model.calc_bodes(self.ffit)
         self.TMM_act_bode = self.TMM_model.find_bode(self.bode_opts[0])
-
+        self.set_fit_bode()
+        
 
     def __init__(self, bode_opts, unknown_params, \
                  TMM_model, \
@@ -206,13 +214,18 @@ class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
                  label='rigid act.', \
                  params={'K_act':(0.06727320631008038/(2*pi)), \
                          'H':180.0/pi*1024/360.0, \
-                         'p_act1':120.40659975047289}):
+                         'p_act1':120.40659975047289}, \
+                 exp_fit=False, exp_bode=None):
         if ffit is None:
             ffit = logspace(-1,1.5,200)
         self.TMM_model = TMM_model
         self.ffit = ffit
+        self.exp_fit = exp_fit
+        self.exp_bode = exp_bode
         self.bode_opts = bode_opts
         self.unknown_params = unknown_params
+        if not params.has_key('H'):
+            params['H'] = 180.0/pi*1024/360.0
         self.params = params
         for key, value in params.iteritems():
             setattr(self, key, value)
@@ -542,8 +555,10 @@ class TF_w_accel(object):
 
     def calc_TMM_bode(self):
         self.TMM_model.calc_bodes(self.ffit)
-        self.TMM_act_bode = self.TMM_model.find_bode(self.bode_opts[0])
+        self.TMM_act_bode = self.TMM_model.find_bode(self.bode_opts[0])        
         self.TMM_accel_v_bode = self.TMM_model.find_bode(self.bode_opts[1])
+        self.set_fit_bode()
+
 
 
     def accel_v_cost(self, C):
