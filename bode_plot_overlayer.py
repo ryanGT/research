@@ -335,6 +335,28 @@ class TMM_model_with_Python_module(OL_TF_bode_object):
         self._bodes_from_comp(f)
 
 
+class TMM_model_with_Python_module_two_funcs(OL_TF_bode_object):
+    """This class represents a system whose Bodes are calculated from
+    a Python module created using Maxima or Sympy.  The module is
+    assumed to have a function called Bodes that takes s and params as
+    inputs and returns two complex vectors."""
+    def __init__(self, theta_bode_func, accel_bode_func, \
+                 params, bode_opts, label='TMM'):
+        self.theta_bode_func = theta_bode_func
+        self.accel_bode_func = accel_bode_func
+        self.params = params
+        self.bode_opts = bode_opts
+        self.func = plot_bode_TMM
+        self.label = label
+
+
+    def calc_bodes(self, f):
+        s = 2.0j*pi*f
+        self.th_v_comp = self.theta_bode_func(s, self.params)
+        self.a_v_comp = self.accel_bode_func(s, self.params)
+        self._bodes_from_comp(f)
+
+
 
 
 class SS_bode_object(TMM_bode_object):

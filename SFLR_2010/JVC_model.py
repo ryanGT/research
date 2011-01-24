@@ -116,10 +116,14 @@ class JVC_model(object):
         return U_str
 
 
-    def Maxima_bodes(self, sensor_inds=[], dofs=[], sensor_post=[]):
+    def Maxima_bodes(self, sensor_inds=[], dofs=[], sensor_post=[], \
+                     ND=True):
         """Find the final bode outputs for each sensor location,
         assuming Usys and the basevector bv have already been
-        calculated at this point in the Maxima script."""
+        calculated at this point in the Maxima script.
+
+        ND refers to whether or not to separate the numerator and
+        denominator of the Bodes."""
         bode_inds = range(len(sensor_inds))
         outlines = None
         for bi, ind, dof, post in zip(bode_inds, sensor_inds, \
@@ -137,10 +141,11 @@ class JVC_model(object):
             if post:
                 bodeline2 = 'bode%i:bode%i*%s$' % (bi, bi, post)
                 outlines.append(bodeline2)
-            bodeNline = 'bode%iN:ratnumer(bode%i)$' % (bi, bi)
-            outlines.append(bodeNline)
-            bodeDline = 'bode%iD:ratdenom(bode%i)$' % (bi, bi)
-            outlines.append(bodeDline)
+            if ND:
+                bodeNline = 'bode%iN:ratnumer(bode%i)$' % (bi, bi)
+                outlines.append(bodeNline)
+                bodeDline = 'bode%iD:ratdenom(bode%i)$' % (bi, bi)
+                outlines.append(bodeDline)
         return outlines
             
     
@@ -154,7 +159,8 @@ class JVC_model(object):
         Usys_str = 'Usys:' + Usys_str + '$'
         return Usys_str
 
-    def save_Maxima_bodes_to_Fortran(self,  num_bodes, base_mod_name):
+    def save_Maxima_bodes_to_Fortran(self,  num_bodes, base_mod_name, \
+                                     ND=True):
         outlines = None
         for bi in range(num_bodes):
             filename = base_mod_name + str(bi) + '.f'
@@ -166,17 +172,18 @@ class JVC_model(object):
                 outlines = [outline]
             else:
                 outlines.append(outline)
-            Nline = 'with_stdout ("%s", fortran_optimize (bode%iN))$' % \
-                    (Nfilename, bi)
-            outlines.append(Nline)
-            Dline = 'with_stdout ("%s", fortran_optimize (bode%iD))$' % \
-                    (Dfilename, bi)
-            outlines.append(Dline)
+            if ND:
+                Nline = 'with_stdout ("%s", fortran_optimize (bode%iN))$' % \
+                        (Nfilename, bi)
+                outlines.append(Nline)
+                Dline = 'with_stdout ("%s", fortran_optimize (bode%iD))$' % \
+                        (Dfilename, bi)
+                outlines.append(Dline)
         return outlines
 
         
     def to_Maxima(self, pathout, attrlist=['U0'], num_bodes=2, \
-                  base_mod_name='maxima_bode',  **kwargs):
+                  base_mod_name='maxima_bode', ND=True, **kwargs):
         """Create a Maxima batch file for the system.  attrlist is a
         list of strings referring to the element matrices.  The
         elements of attrlist should be in order, starting with U0 and
@@ -195,10 +202,11 @@ class JVC_model(object):
         Usys_line = self.Usys_Maxima(attrlist)
         out(Usys_line)
         mylist.extend(maxima_bv)
-        bode_lines = self.Maxima_bodes(**kwargs)
+        bode_lines = self.Maxima_bodes(ND=ND, **kwargs)
         mylist.extend(bode_lines)
         save_lines = self.save_Maxima_bodes_to_Fortran(num_bodes, \
-                                                       base_mod_name)
+                                                       base_mod_name, \
+                                                       ND=ND)
         mylist.extend(save_lines)
         self.maxima_list = mylist
         txt_mixin.dump(pathout, mylist)
@@ -863,11 +871,11 @@ class model_w_bm(model2b):
 
 
     def to_Maxima(self, pathout, num_bodes=2, \
-                  base_mod_name='maxima_bode'):
+                  base_mod_name='maxima_bode', **kwargs):
         attrlist = ['U0','U1','U2','U3','U4','U5','U6']
         JVC_model.to_Maxima(self, pathout, attrlist, \
                             num_bodes=num_bodes, \
-                            base_mod_name=base_mod_name)
+                            base_mod_name=base_mod_name, **kwargs)
 
         
     def find_symbolic_bodes(self, save=1):
@@ -887,13 +895,14 @@ class model_w_bm(model2b):
         return self.sym_bodes
 
 
-    def Maxima_bodes(self):
+    def Maxima_bodes(self, **kwargs):
         sensor_inds = [2,5]
         dofs = [1,0]
         #enc_gain = 180.0/pi*1024.0/360.0
         #enc_gain_str = str(enc_gain)
         sensor_post = ['enc_gain', 's^2*a_gain']
-        return JVC_model.Maxima_bodes(self, sensor_inds, dofs, sensor_post)
+        return JVC_model.Maxima_bodes(self, sensor_inds, dofs, sensor_post, \
+                                      **kwargs)
 
         
     def __init__(self, mod_name='model_w_bm_bodes', \
@@ -1054,11 +1063,11 @@ class model_w_bm_theta_FB_ND(model_w_bm_theta_FB):
 
 
     def to_Maxima(self, pathout, num_bodes=2, \
-                  base_mod_name='maxima_bode'):
+                  base_mod_name='maxima_bode', **kwargs):
         attrlist = ['U0','U1','U2','U3','U4','U5']
         JVC_model.to_Maxima(self, pathout, attrlist, \
                             num_bodes=num_bodes, \
-                            base_mod_name=base_mod_name)
+                            base_mod_name=base_mod_name, **kwargs)
 
 
     def find_symbolic_bodes(self, save=1):
@@ -1078,10 +1087,11 @@ class model_w_bm_theta_FB_ND(model_w_bm_theta_FB):
         return self.sym_bodes
 
 
-    def Maxima_bodes(self):
+    def Maxima_bodes(self, **kwargs):
         sensor_inds = [1,4]
         dofs = [1,0]
         #enc_gain = 180.0/pi*1024.0/360.0
         #enc_gain_str = str(enc_gain)
         sensor_post = ['enc_gain', 's^2*a_gain']
-        return JVC_model.Maxima_bodes(self, sensor_inds, dofs, sensor_post)
+        return JVC_model.Maxima_bodes(self, sensor_inds, dofs, sensor_post, \
+                                      **kwargs)

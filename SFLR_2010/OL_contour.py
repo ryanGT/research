@@ -9,6 +9,13 @@ from IPython.Debugger import Pdb
 import theta_fb_contour
 import accel_fb_system
 
+mysaveattrs = ['f','im','s', \
+               'theta_comp_mat','accel_comp_mat', \
+               'theta_abs_mat','accel_abs_mat', \
+               'theta_dB_mat','accel_dB_mat', \
+               'levels']
+
+
 class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
                      accel_fb_system.generic_contour_system):
     def calc_theta_fb_contours(self):
@@ -48,7 +55,16 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
                                  myxlim=myxlim, myylim=myylim, \
                                  zoomin=zoomin)
         
-                                 
+
+
+    def _initial_calcs(self):
+        self.build_s()
+        self.calc_contours()
+        self.theta_abs_mat = abs(self.theta_comp_mat)
+        self.theta_dB_mat = 20*log10(abs(self.theta_comp_mat))
+        self.accel_abs_mat = abs(self.accel_comp_mat)
+        self.accel_dB_mat = 20*log10(abs(self.accel_comp_mat))
+        
 
     def __init__(self, mod, params_pkl_path=None, saved_pklname=None, \
                  levels=None):
@@ -60,20 +76,38 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
             self.load(saved_pklname)
         else:
             self.params_pkl_path = params_pkl_path
-            self.load_params()            
-            self.build_s()
+            self.load_params()
             self.mod = mod
             self.bode_func = mod.Bodes
-            self.calc_contours()
-            self.theta_abs_mat = abs(self.theta_comp_mat)
-            self.theta_dB_mat = 20*log10(abs(self.theta_comp_mat))
-            self.accel_abs_mat = abs(self.accel_comp_mat)
-            self.accel_dB_mat = 20*log10(abs(self.accel_comp_mat))
             self.levels = levels
+            self._initial_calcs()
         self.f_contour = self.f
         self.im_contour = self.im
-        self.saveattrs = ['f','im','s', \
-                          'theta_comp_mat','accel_comp_mat', \
-                          'theta_abs_mat','accel_abs_mat', \
-                          'theta_dB_mat','accel_dB_mat', \
-                          'levels']
+        self.saveattrs = mysaveattrs
+
+
+class OL_sys_contour_two_funcs(OL_sys_contour):
+    def calc_contours(self):
+        self.theta_comp_mat = self.theta_bode_func(self.s, self.params)
+        self.accel_comp_mat = self.accel_bode_func(self.s, self.params)
+
+    
+    def __init__(self, theta_bode_func, accel_bode_func, \
+                 params_pkl_path=None, saved_pklname=None, \
+                 levels=None):
+        """params_pkl_path refers to the path for loading the SFLR
+        parameters.  saved_pklname refers to the path to a pickle for
+        restoring the contour data without re-running the
+        calculations."""
+        if saved_pklname is not None:
+            self.load(saved_pklname)
+        else:
+            self.params_pkl_path = params_pkl_path
+            self.load_params()
+            self.theta_bode_func = theta_bode_func
+            self.accel_bode_func = accel_bode_func
+            self.levels = levels
+            self._initial_calcs()
+        self.f_contour = self.f
+        self.im_contour = self.im
+        self.saveattrs = mysaveattrs
