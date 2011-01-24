@@ -57,8 +57,63 @@ def pole_locs(dB_mat):
     return indr, indc
 
 
+class generic_contour_system(object):
+    """I am trying to create a base class that I can also use for OL
+    contour plotting."""
+    def plot_db_mat_contour(self, dB_mat, fi, title=None, \
+                            myxlim=[-20,2],myylim=[-2,20],\
+                            zoomin=False):
+        figure(fi)
+        clf()
+        contour(-self.f_contour*2*pi, self.im_contour*2*pi , dB_mat, self.levels)
+        PL.xlabel('real($s$) {\\LARGE (rad./s)}')
+        PL.ylabel('imag($s$) {\\LARGE (rad./s)}')
+        if hasattr(self, 'contour_fignums'):
+            self.contour_fignums.append(fi)
+        else:
+            self.contour_fignums = [fi]
+        if title is not None:
+            PL.title(title)
+        if zoomin:
+            PL.xlim(myxlim)
+            PL.ylim(myylim)
 
-class ga_theta_fb_system(object):
+
+    def find_poles(self, dB_mat):
+        indr, indc = pole_locs(dB_mat)
+
+        pole_vect = zeros((len(indr)), dtype='D')
+        nc = len(self.f_contour)
+        nr = len(self.im_contour)
+
+        for i in range(len(indr)):
+            ir = indr[i]
+            ic = indc[i]
+            if ir < nr - 1:
+                ir += 1
+            if ic < nc - 1:
+                ic += 1
+            pole_i = -self.f_contour[ic]*2*pi + self.im_contour[ir]*2.0j*pi
+            pole_vect[i] = pole_i
+
+        return pole_vect
+
+
+    def set_contour_lims(self, xlim=None, ylim=None):
+        """Set the limits of all figures in self.contour_fignums.  If
+        xlim or ylim is None, use the max and min values of
+        self.s_contour.real and self.s_contour.imag."""
+        if xlim is None:
+            xlim = [self.s_contour.real.min(), self.s_contour.real.max()]
+        if ylim is None:
+            ylim = [self.s_contour.imag.min(), self.s_contour.imag.max()]
+        for fi in self.contour_fignums:
+            PU.SetXlim(fi, xlim)
+            PU.SetYlim(fi, ylim)
+
+
+
+class ga_theta_fb_system(generic_contour_system):
     def __init__(self, Ga, thfb_a_comp=None, \
                  ROM_model=None, substr=None, \
                  accel_comp_bode_opts=None, \
@@ -189,61 +244,8 @@ class ga_theta_fb_system(object):
         self.s_contour = self.tfb_contour_sys.s
         self.f_contour = self.tfb_contour_sys.f
         self.im_contour = self.tfb_contour_sys.im
-        self.a_theta_comp = self.tfb_contour_sys.a_theta_comp 
-
-
-    def plot_db_mat_contour(self, dB_afb, fi, title=None, \
-                            myxlim=[-20,2],myylim=[-2,20],\
-                            zoomin=False):
-        figure(fi)
-        clf()
-        contour(-self.f_contour*2*pi, self.im_contour*2*pi , dB_afb, self.levels)
-        PL.xlabel('real($s$) {\\LARGE (rad./s)}')
-        PL.ylabel('imag($s$) {\\LARGE (rad./s)}')
-        if hasattr(self, 'contour_fignums'):
-            self.contour_fignums.append(fi)
-        else:
-            self.contour_fignums = [fi]
-        if title is not None:
-            PL.title(title)
-        if zoomin:
-            PL.xlim(myxlim)
-            PL.ylim(myylim)
-
-
-    def find_poles(self, dB_mat):
-        indr, indc = pole_locs(dB_mat)
-
-        pole_vect = zeros((len(indr)), dtype='D')
-        nc = len(self.f_contour)
-        nr = len(self.im_contour)
-
-        for i in range(len(indr)):
-            ir = indr[i]
-            ic = indc[i]
-            if ir < nr - 1:
-                ir += 1
-            if ic < nc - 1:
-                ic += 1
-            pole_i = -self.f_contour[ic]*2*pi + self.im_contour[ir]*2.0j*pi
-            pole_vect[i] = pole_i
-
-        return pole_vect
-
-
-    def set_contour_lims(self, xlim=None, ylim=None):
-        """Set the limits of all figures in self.contour_fignums.  If
-        xlim or ylim is None, use the max and min values of
-        self.s_contour.real and self.s_contour.imag."""
-        if xlim is None:
-            xlim = [self.s_contour.real.min(), self.s_contour.real.max()]
-        if ylim is None:
-            ylim = [self.s_contour.imag.min(), self.s_contour.imag.max()]
-        for fi in self.contour_fignums:
-            PU.SetXlim(fi, xlim)
-            PU.SetYlim(fi, ylim)
+        self.a_theta_comp = self.tfb_contour_sys.a_theta_comp
         
-
 
     def calc_ga_comp(self, s):
         Ga_comp = self.Ga(s)

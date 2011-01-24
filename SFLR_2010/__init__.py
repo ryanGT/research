@@ -15,6 +15,7 @@ modlist = ['step_response_utils', \
            'theta_fb_maxima_sympy_accel_theta_bode', \
            'bode_plots', \
            'model_w_bm_OL_bodes', \
+           'OL_contour'
            ]
 
 

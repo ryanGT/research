@@ -7,16 +7,20 @@ import exp_data
 reload(exp_data)
 import sympy_bode_analysis
 reload(sympy_bode_analysis)
-import rwkbode
+import rwkbode, txt_mixin
 from rwkmisc import my_import
 #from sympy_bode_analysis import calc_and_plot_Bodes
 from sympy_optimize_utils import myoptimize, _cost, fexp
 from rwkdataproc import thresh
 
+import sympy_utils
+reload(sympy_utils)
+
 ind1 = thresh(fexp,5)
 
 from sympy import Symbol
 import sympy_TMM
+reload(sympy_TMM)
 
 import os, copy, time
 
@@ -47,10 +51,20 @@ p_act1 = Symbol('p_act1')
 AVS_params = {'K_act':K_act, 'p_act1':p_act1}
 AVS = sympy_TMM.Sympy_AVS1_Element(AVS_params)
 
+
 k_spring = Symbol('k_spring')
 c_spring = Symbol('c_spring')
 TSD_params = {'k':k_spring, 'c':c_spring}
 TSD = sympy_TMM.Sympy_TSD_Element(TSD_params)
+
+H = Symbol('H')
+AVS_TFB_params = {'K_act':K_act, 'p_act1':p_act1, \
+                  'H':H, 'k':k_spring, 'c':c_spring}
+AVS_ThetaFB = sympy_TMM.Sympy_AVS_ThetaFB_Element(AVS_TFB_params)
+GthNum = Symbol('GthNum')
+GthDen = Symbol('GthDen')
+AVS_ThetaFB2 = sympy_TMM.Sympy_AVS_ThetaFB_Element(AVS_TFB_params, \
+                                                   Gth=GthNum/GthDen)
 
 k_clamp = Symbol('k_clamp')
 c_clamp = Symbol('c_clamp')
@@ -77,7 +91,121 @@ phaselims = [(-220,0),(-400,120),(-200,220)]
 NF = 3
 figdir = 'figs'
 
+maxima_bv = ['submat:submatrix(1,2,5,Usys,1,2,5)$', \
+             'subcol:submatrix(1,2,5,Usys,1,2,3,4)$', \
+             'nzbv:invert(submat).(-1*subcol)$', \
+             'bv:zeromatrix(5,1)$', \
+             'bv[5,1]:1$', \
+             'bv[3,1]:nzbv[1,1]$', \
+             'bv[4,1]:nzbv[2,1]$']
+
+
 class JVC_model(object):
+    def build_Maxima_Umat_str(self, maxind):
+        """Create a Maxima line to multiply matrices together from 0
+        to maxind."""
+        U_str = None
+        Uname = 'Ubode%i' % maxind
+        for ind in range(maxind+1):
+            curU = 'U%i' % ind
+            if U_str is None:
+                U_str = curU
+            else:
+                U_str = curU + '.' + U_str
+        U_str = Uname + ':' + U_str + '$'
+        return U_str
+
+
+    def Maxima_bodes(self, sensor_inds=[], dofs=[], sensor_post=[]):
+        """Find the final bode outputs for each sensor location,
+        assuming Usys and the basevector bv have already been
+        calculated at this point in the Maxima script."""
+        bode_inds = range(len(sensor_inds))
+        outlines = None
+        for bi, ind, dof, post in zip(bode_inds, sensor_inds, \
+                                      dofs, sensor_post):
+            Uline = self.build_Maxima_Umat_str(ind)
+            zline = 'z_bode%i:Ubode%i.bv$' % (bi, ind)
+            bodeline1 = 'bode%i:z_bode%i[%i,1]$' % (bi, bi, dof+1)#z_bodei
+            #is a 2D column matrix.  We want to extract a scalar, so
+            #we need to specify column 1
+            curlist = [Uline, zline, bodeline1]
+            if outlines is None:
+                outlines = curlist
+            else:
+                outlines.extend(curlist)
+            if post:
+                bodeline2 = 'bode%i:bode%i*%s$' % (bi, bi, post)
+                outlines.append(bodeline2)
+            bodeNline = 'bode%iN:ratnumer(bode%i)$' % (bi, bi)
+            outlines.append(bodeNline)
+            bodeDline = 'bode%iD:ratdenom(bode%i)$' % (bi, bi)
+            outlines.append(bodeDline)
+        return outlines
+            
+    
+    def Usys_Maxima(self, attrlist):
+        Usys_str = None
+        for attr in attrlist:
+            if Usys_str is None:
+                Usys_str = attr
+            else:
+                Usys_str = attr + '.' + Usys_str
+        Usys_str = 'Usys:' + Usys_str + '$'
+        return Usys_str
+
+    def save_Maxima_bodes_to_Fortran(self,  num_bodes, base_mod_name):
+        outlines = None
+        for bi in range(num_bodes):
+            filename = base_mod_name + str(bi) + '.f'
+            Nfilename = base_mod_name + str(bi) + '_num.f'
+            Dfilename = base_mod_name + str(bi) + '_den.f'
+            outline = 'with_stdout ("%s", fortran_optimize (bode%i))$' % \
+                      (filename, bi)
+            if outlines is None:
+                outlines = [outline]
+            else:
+                outlines.append(outline)
+            Nline = 'with_stdout ("%s", fortran_optimize (bode%iN))$' % \
+                    (Nfilename, bi)
+            outlines.append(Nline)
+            Dline = 'with_stdout ("%s", fortran_optimize (bode%iD))$' % \
+                    (Dfilename, bi)
+            outlines.append(Dline)
+        return outlines
+
+        
+    def to_Maxima(self, pathout, attrlist=['U0'], num_bodes=2, \
+                  base_mod_name='maxima_bode',  **kwargs):
+        """Create a Maxima batch file for the system.  attrlist is a
+        list of strings referring to the element matrices.  The
+        elements of attrlist should be in order, starting with U0 and
+        stopping at U_n."""
+        #consider adding ratdenom and ratnumer
+        mylist = txt_mixin.txt_list()
+        out = mylist.append
+        out('showtime:all$')
+        out('nolabels:true$')
+        #ratvars(mubz,EIbz,Lbz,abz,betabz,c1bz,c2bz,c3bz,c4bz,s)$
+        out('grind:true$')
+        for attr in attrlist:
+            U = getattr(self, attr)
+            Uline = sympy_utils.matrix_to_Maxima_string(U,attr)
+            out(Uline)
+        Usys_line = self.Usys_Maxima(attrlist)
+        out(Usys_line)
+        mylist.extend(maxima_bv)
+        bode_lines = self.Maxima_bodes(**kwargs)
+        mylist.extend(bode_lines)
+        save_lines = self.save_Maxima_bodes_to_Fortran(num_bodes, \
+                                                       base_mod_name)
+        mylist.extend(save_lines)
+        self.maxima_list = mylist
+        txt_mixin.dump(pathout, mylist)
+
+        
+
+        
     def _def_params(self):
         raise NotImplementedError
 
@@ -723,27 +851,49 @@ class model_w_bm(model2b):
         self.U0 = U0
         return U0
 
+
+    def find_sym_matrices(self):
+        self.U0 = AVS.Get_Aug_Mat(s)
+        self.U1 = TSD.Get_Aug_Mat(s)
+        self.U2 = Base_Mass.Get_Aug_Mat(s)
+        self.U3 = TSD_clamp.Get_Aug_Mat(s)
+        self.U4 = beam1.Get_Aug_Mat(s)
+        self.U5 = Accel_Mass.Get_Aug_Mat(s)
+        self.U6 = beam2.Get_Aug_Mat(s)
+
+
+    def to_Maxima(self, pathout, num_bodes=2, \
+                  base_mod_name='maxima_bode'):
+        attrlist = ['U0','U1','U2','U3','U4','U5','U6']
+        JVC_model.to_Maxima(self, pathout, attrlist, \
+                            num_bodes=num_bodes, \
+                            base_mod_name=base_mod_name)
+
+        
     def find_symbolic_bodes(self, save=1):
-        U0 = AVS.Get_Aug_Mat(s)
-        U1 = TSD.Get_Aug_Mat(s)
-        U2 = Base_Mass.Get_Aug_Mat(s)
-        U3 = TSD_clamp.Get_Aug_Mat(s)
-        U4 = beam1.Get_Aug_Mat(s)
-        U5 = Accel_Mass.Get_Aug_Mat(s)
-        U6 = beam2.Get_Aug_Mat(s)
-        Usys = U6*(U5*(U4*(U3*(U2*(U1*U0)))))
-        z_b = sympy_TMM.find_base_vector(Usys)
-        z_enc = U2*(U1*(U0*z_b))
+        self.Usys = self.U6*(self.U5*(self.U4*(self.U3*\
+                                               (self.U2*(self.U1*self.U0)))))
+        z_b = sympy_TMM.find_base_vector(self.Usys)
+        z_enc = self.U2*(self.U1*(self.U0*z_b))
         enc_gain = 180.0/pi*1024.0/360.0
         theta = z_enc[1]*enc_gain
 
-        z_a = U5*(U4*(U3*z_enc))
+        z_a = self.U5*(self.U4*(self.U3*z_enc))
         atip = s**2*z_a[0]*a_gain
         self.sym_bodes = [theta, atip]
-        self.Usys = Usys
+        self.Usys = self.Usys
         if save:
             self.cse_to_file()
         return self.sym_bodes
+
+
+    def Maxima_bodes(self):
+        sensor_inds = [2,5]
+        dofs = [1,0]
+        #enc_gain = 180.0/pi*1024.0/360.0
+        #enc_gain_str = str(enc_gain)
+        sensor_post = ['enc_gain', 's^2*a_gain']
+        return JVC_model.Maxima_bodes(self, sensor_inds, dofs, sensor_post)
 
         
     def __init__(self, mod_name='model_w_bm_bodes', \
@@ -775,3 +925,163 @@ class model_w_bm(model2b):
         ###override the c_beam row
         ###self.param_mat[:,2] = array([0.01, 0.05, 0.1])
         return self.param_mat
+
+
+    def Unc(self):
+        U0 = AVS.Get_Aug_Mat(s)
+        U1 = TSD.Get_Aug_Mat(s)
+        Unc = U1*U0
+        self.Unc = Unc
+        return Unc
+
+
+class model_w_bm_theta_FB(model_w_bm):
+    def __init__(self, mod_name='model_w_bm_bodes_ThetaFB', \
+                 pkl_name='model_w_bm_opt.pkl', start_pkl_name=None):
+        JVC_model.__init__(self, mod_name=mod_name, pkl_name=pkl_name, \
+                           con_dict={'K_act':(0,10), \
+                                     'p_act1':(0,1000), \
+                                     'a_gain':(0,100), \
+                                     'k_spring':(0.1, 1000), \
+                                     'c_spring':(0,100), \
+                                     'mu':(0.1, 0.16), \
+                                     'a_m':(0.006, 0.01), \
+                                     'EI':(0.12, 0.21)},
+                                     #'c_beam':(0,1.0)}, \
+                           maglims=[(-40,15),(-25,15),(-20,45)], \
+                           start_pkl_name=start_pkl_name)
+
+        self.bfkeys = ['k_spring','c_spring','mu','EI','a_m',\
+                       'K_act','p_act1']
+        self.logfile = 'model_w_bm_brute_force_params.txt'
+
+
+    def find_symbolic_bodes(self, save=1):
+        ## self.list = [self.avs, self.base_mass, \
+        ##              self.clamp_spring, \
+        ##              self.beam, self.accel, self.beam2]
+        U0 = AVS_ThetaFB.Get_Aug_Mat(s)
+        U1 = Base_Mass.Get_Aug_Mat(s)
+        U2 = TSD_clamp.Get_Aug_Mat(s)
+        U3 = beam1.Get_Aug_Mat(s)
+        U4 = Accel_Mass.Get_Aug_Mat(s)
+        U5 = beam2.Get_Aug_Mat(s)
+        Usys = U5*(U4*(U3*(U2*(U1*U0))))
+        z_b = sympy_TMM.find_base_vector(Usys)
+        z_enc = U1*(U0*z_b)
+        enc_gain = 180.0/pi*1024.0/360.0
+        theta = z_enc[1]*enc_gain
+
+        z_a = U4*(U3*(U2*z_enc))
+        atip = s**2*z_a[0]*a_gain
+        self.sym_bodes = [theta, atip]
+        self.Usys = Usys
+        if save:
+            self.cse_to_file()
+        return self.sym_bodes
+    
+
+    def Unc(self):
+        U0 = AVS_ThetaFB.Get_Aug_Mat(s)
+        U1 = Base_Mass.Get_Aug_Mat(s)
+        U2 = TSD_clamp.Get_Aug_Mat(s)
+        U3 = beam1.Get_Aug_Mat(s)
+        U4 = Accel_Mass.Get_Aug_Mat(s)
+        Unc = U4*(U3*(U2*(U1*U0)))
+        self.Unc = Unc
+        return Unc
+
+    
+    def Unc_row_to_file(self, pathout):
+        Unc = self.Unc
+        Unc00 = Unc[0,0]
+        Unc01 = Unc[0,1]
+        Unc02 = Unc[0,2]
+        Unc03 = Unc[0,3]
+        Unc04 = Unc[0,4]
+        outlabels = ['Unc00', 'Unc01', 'Unc02', 'Unc03', 'Unc04']
+        funcname = 'Unc_row0'
+        expr_list = [Unc00, Unc01, Unc02, Unc03, Unc04]
+        inputs = ['s', 'params', 'Gth']
+        replace_dict = {'Gth':'Gth(s)'}
+        sympy_TMM.cse_to_file(expr_list, \
+                              pathout, \
+                              outlabels, \
+                              funcname, \
+                              inputs, \
+                              headerfile='header.py', \
+                              replace_dict=replace_dict)
+        
+
+
+class model_w_bm_theta_FB_ND(model_w_bm_theta_FB):
+    """This class is setup to find the numerator and denominator of
+    the theta feedback transfer functions.  As such, it is important
+    that Gth is made up of GthNum/GthDen."""
+    ## def find_symbolic_bodes(self, save=1):
+    ##     ## self.list = [self.avs, self.base_mass, \
+    ##     ##              self.clamp_spring, \
+    ##     ##              self.beam, self.accel, self.beam2]
+    ##     U0 = AVS_ThetaFB2.Get_Aug_Mat(s)
+    ##     U1 = Base_Mass.Get_Aug_Mat(s)
+    ##     U2 = TSD_clamp.Get_Aug_Mat(s)
+    ##     U3 = beam1.Get_Aug_Mat(s)
+    ##     U4 = Accel_Mass.Get_Aug_Mat(s)
+    ##     U5 = beam2.Get_Aug_Mat(s)
+    ##     Usys = U5*(U4*(U3*(U2*(U1*U0))))
+    ##     z_b = sympy_TMM.find_base_vector(Usys)
+    ##     z_enc = U1*(U0*z_b)
+    ##     enc_gain = 180.0/pi*1024.0/360.0
+    ##     theta = z_enc[1]*enc_gain
+
+    ##     z_a = U4*(U3*(U2*z_enc))
+    ##     atip = s**2*z_a[0]*a_gain
+    ##     self.sym_bodes = [theta, atip]
+    ##     self.Usys = Usys
+    ##     if save:
+    ##         self.cse_to_file()
+    ##     return self.sym_bodes
+    
+
+
+    def find_sym_matrices(self):
+        self.U0 = AVS_ThetaFB2.Get_Aug_Mat(s)
+        self.U1 = Base_Mass.Get_Aug_Mat(s)
+        self.U2 = TSD_clamp.Get_Aug_Mat(s)
+        self.U3 = beam1.Get_Aug_Mat(s)
+        self.U4 = Accel_Mass.Get_Aug_Mat(s)
+        self.U5 = beam2.Get_Aug_Mat(s)
+
+
+    def to_Maxima(self, pathout, num_bodes=2, \
+                  base_mod_name='maxima_bode'):
+        attrlist = ['U0','U1','U2','U3','U4','U5']
+        JVC_model.to_Maxima(self, pathout, attrlist, \
+                            num_bodes=num_bodes, \
+                            base_mod_name=base_mod_name)
+
+
+    def find_symbolic_bodes(self, save=1):
+        self.Usys = self.U5*(self.U4*(self.U3*\
+                                (self.U2*(self.U1*self.U0))))
+        z_b = sympy_TMM.find_base_vector(self.Usys)
+        z_enc = self.U1*(self.U0*z_b)
+        enc_gain = 180.0/pi*1024.0/360.0
+        theta = z_enc[1]*enc_gain
+
+        z_a = self.U4*(self.U3*(self.U2*z_enc))
+        atip = s**2*z_a[0]*a_gain
+        self.sym_bodes = [theta, atip]
+        self.Usys = self.Usys
+        if save:
+            self.cse_to_file()
+        return self.sym_bodes
+
+
+    def Maxima_bodes(self):
+        sensor_inds = [1,4]
+        dofs = [1,0]
+        #enc_gain = 180.0/pi*1024.0/360.0
+        #enc_gain_str = str(enc_gain)
+        sensor_post = ['enc_gain', 's^2*a_gain']
+        return JVC_model.Maxima_bodes(self, sensor_inds, dofs, sensor_post)
