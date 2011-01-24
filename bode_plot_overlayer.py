@@ -233,6 +233,20 @@ class TMM_bode_object(exp_bode_object):
         self.label = label
 
 
+## class TMM_python_module_two_bodes(TMM_bode_object):
+##     """This class calculates and plots Bodes for a Python modules from
+##     either maxima or sympy.  The modules is assumed to have a function
+##     called Bodes that takes s and params as inputs and returns two
+##     Bodes.""" 
+##     def __init__(self, TMM_model, bode_opts, label='TMM'):
+##         self.model = TMM_model
+##         self.bode_opts = bode_opts
+##         self.bode_attr = self.model
+##         self.func = plot_bode_TMM
+##         self.label = label
+   
+
+
 class OL_TF_bode_object(exp_bode_object):
     def __init__(self, G_th, G_a_th, bode_opts, label='TF'):
         self.G_th = G_th
@@ -255,13 +269,11 @@ class OL_TF_bode_object(exp_bode_object):
                (output, input)
 
 
-    def calc_bodes(self, f):
-        th_v_comp = self.G_th.FreqResp(f, fignum=None)
-        a_v_comp = self.G_a_v.FreqResp(f, fignum=None)
+    def _bodes_from_comp(self, f):
         th_v_opts = self.find_opt('theta','v')
         self.th_v_bode = rwkbode.rwkbode(output='theta', \
                                          input='v', \
-                                         compin=th_v_comp, \
+                                         compin=self.th_v_comp, \
                                          seedfreq=th_v_opts.seedfreq, \
                                          seedphase=th_v_opts.seedphase)
         self.th_v_bode.PhaseMassage(f)
@@ -269,12 +281,18 @@ class OL_TF_bode_object(exp_bode_object):
         a_v_opts = self.find_opt('a','v')        
         self.a_v_bode = rwkbode.rwkbode(output='a', \
                                         input='v', \
-                                        compin=a_v_comp, \
+                                        compin=self.a_v_comp, \
                                         seedfreq=a_v_opts.seedfreq, \
                                         seedphase=a_v_opts.seedphase)
         self.a_v_bode.PhaseMassage(f)
         self.bodes = [self.th_v_bode, self.a_v_bode]
 
+        
+
+    def calc_bodes(self, f):
+        self.th_v_comp = self.G_th.FreqResp(f, fignum=None)
+        self.a_v_comp = self.G_a_v.FreqResp(f, fignum=None)
+        self._bodes_from_comp(f)
 
     def find_bode(self, output, input):
         found = 0
@@ -296,6 +314,27 @@ class OL_TF_bode_object(exp_bode_object):
             bode = self.find_bode(opt.output_label, opt.input_label)
             _plot_bode(bode, opt, f, fignum=fignum,
                        clear=clear, **kwargs)
+
+
+class TMM_model_with_Python_module(OL_TF_bode_object):
+    """This class represents a system whose Bodes are calculated from
+    a Python module created using Maxima or Sympy.  The module is
+    assumed to have a function called Bodes that takes s and params as
+    inputs and returns two complex vectors."""
+    def __init__(self, bode_func, params, bode_opts, label='TMM'):
+        self.bode_func = bode_func
+        self.params = params
+        self.bode_opts = bode_opts
+        self.func = plot_bode_TMM
+        self.label = label
+
+
+    def calc_bodes(self, f):
+        s = 2.0j*pi*f
+        self.th_v_comp, self.a_v_comp = self.bode_func(s, self.params)
+        self._bodes_from_comp(f)
+
+
 
 
 class SS_bode_object(TMM_bode_object):
