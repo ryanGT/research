@@ -1443,6 +1443,10 @@ class group_list(LabeledDataFile):
                  labelrow=0, dialect=None):
         CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect)
         self.labelrow=labelrow
+        self.GetLabelRow()
+        if self.labels[0] == "Team #":
+            team_name_col = 1
+            members_col = 2
         self.ReadData()
         self.Project_Name = txt_mixin.txt_list(self.get_col(team_name_col))
         self.Group_Members = txt_mixin.txt_list(self.get_col(members_col))
