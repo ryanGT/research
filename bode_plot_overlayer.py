@@ -22,10 +22,10 @@ import SFLR_TMM
 
 
 def _plot_bode(bode, bode_opt, f, fignum=1, clear=False, \
-               linetype='-', **kwargs):
+               linestyle='-', **kwargs):
     #print('kwargs = ' + str(kwargs))
     rwkbode.GenBodePlot(fignum, f, bode, clear=clear, \
-                        linetype=linetype, **kwargs)
+                        linestyle=linestyle, **kwargs)
     PU.set_Bode_opts(fignum, bode_opt, coh=False)
 
 

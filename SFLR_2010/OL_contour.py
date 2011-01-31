@@ -202,7 +202,29 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
             mylist = [0]*mydiff
             myvect = numpy.append(mylist, myvect)
             setattr(self, zero_vect_attr, myvect)
-            
+
+
+    def _build_full_list_of_poles_or_zeros_w_conj(self, myvect):
+        listout = []
+        for elem in myvect:
+            if imag(elem) > self.tol:
+                #we have a complex pole and need to append it and its
+                #complex conjugate
+                listout.append(elem)
+                listout.append(numpy.conj(elem))
+            elif imag(elem) > -self.tol:
+                #this is a pure real elem
+                listout.append(elem)
+            #deliberately skipping myvect with negative imag part (they
+            #should be in the conj of myvect with positive imag part)
+        return listout
+        
+
+    def build_SS_poles_and_zeros(self):
+        self.SS_poles = self._build_full_list_of_poles_or_zeros_w_conj(self.all_poles)
+        self.theta_SS_zeros = self._build_full_list_of_poles_or_zeros_w_conj(self.theta_OL_zeros)
+        self.accel_SS_zeros = self._build_full_list_of_poles_or_zeros_w_conj(self.accel_OL_zeros)
+        self.SS_zeros = [self.theta_SS_zeros, self.accel_SS_zeros]
         
 
     def append_origin_zeros(self):
