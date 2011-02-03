@@ -892,17 +892,87 @@ class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
         self.calc_bodes(ffit)
         for i, bode in enumerate(self.bodes):
             fit_bode = self.find_fit_bode(bode, fitbodes)
-            ig = fit_bode.mag/bode.mag
-
+            ig = numpy.average(fit_bode.dBmag()/bode.dBmag())
+            
             def my_cost(C):
                 X = C[0]
-                evect = fit_bode.mag-bode.mag*X
-                return sum(evect**2)
+                evect = fit_bode.dBmag()-(bode.dBmag()+20.0*log10(X))
+                e = sum(evect**2)
+                return e
 
             C_opt = optimize.fmin(my_cost, [ig])
             C_i = C_opt[0]
             self.C[i,:] *= C_i
-            
+
+
+    def phase_error_i(self, i, fitbodes, ffit, recalc=False):
+        """Calculate the phase error for output i.  This method
+        assumes that bode[i] corresponds to row i of self.C."""
+        if recalc:
+            self.calc_bodes(ffit)
+        bode = self.bodes[i]
+        fit_bode = self.find_fit_bode(bode, fitbodes)
+        phe_vect = fit_bode.phase - bode.phase
+        e = sum(phe_vect**2)
+        return e
+
+
+    def phase_error(self, fitbodes, ffit, recalc=True):
+        """Add up the phase error for each output.  This method
+        assumes that bode[i] corresponds to row i of self.C"""
+        if recalc:
+            self.calc_bodes(ffit)
+        e = 0
+        for i, bode in enumerate(self.bodes):
+            e_i = self.phase_error_i(i, fitbodes, ffit, recalc=0)
+            e += e_i
+        return e
+
+
+
+    def dBmag_error_i(self, i, fitbodes, ffit, recalc=False):
+        """Calculate the phase error for output i.  This method
+        assumes that bode[i] corresponds to row i of self.C."""
+        if recalc:
+            self.calc_bodes(ffit)
+        bode = self.bodes[i]
+        fit_bode = self.find_fit_bode(bode, fitbodes)
+        e_vect = fit_bode.dBmag() - bode.dBmag()
+        e = sum(e_vect**2)
+        return e
+
+
+    def dBmag_error(self, fitbodes, ffit, recalc=True):
+        """Add up the phase error for each output.  This method
+        assumes that bode[i] corresponds to row i of self.C"""
+        if recalc:
+            self.calc_bodes(ffit)
+        e = 0
+        for i, bode in enumerate(self.bodes):
+            e_i = self.dBmag_error_i(i, fitbodes, ffit, recalc=0)
+            e += e_i
+        return e
+
+
+    def total_error(self, fitbodes, ffit, recalc=True, \
+                    phaseweight=0.02):
+        mag_e = self.dBmag_error(fitbodes, ffit, recalc=recalc)
+        phase_e = self.phase_error(fitbodes, ffit, recalc=0)
+        total_e = mag_e + phase_e*phaseweight
+        return total_e
+    
+        
+    def check_C_signs(self, fitbodes, ffit):
+        """Determine whether or not the phase error could be
+        multipying each row of C by -1."""
+        for i, bode in enumerate(self.bodes):
+            e1 = self.phase_error_i(i, fitbodes, ffit, recalc=1)
+            self.C[i,:] *= -1.0
+            e2 = self.phase_error_i(i, fitbodes, ffit, recalc=1)
+            if e1 < e2:
+                self.C[i,:] *= -1.0
+        self.calc_bodes(ffit)
+
 
 class SFLR_CCF_model_closed_loop(SFLR_CCF_model):
     def __init__(self, *args, **kwargs):

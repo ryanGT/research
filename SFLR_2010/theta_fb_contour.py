@@ -23,7 +23,8 @@ class theta_fb_sys_contour(rwkmisc.object_that_saves):
         #sr = arange(1,5,0.01)
         #f = sr/(2*pi)
         mesh_change = 3.0
-        f0 = arange(-8, -2, 0.5)
+        #f0 = arange(-8, -2, 0.5)
+        f0 = arange(-15, -2, 0.5)
         f1 = arange(-2, mesh_change, 0.01)
         f2 = arange(mesh_change, 20, 0.5)
         f_hat = numpy.append(f1,f2)

@@ -232,7 +232,12 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
         self._append_origin_zeros('accel_origin_power', 'accel_OL_zeros')
         
         
-            
+
+
+    def find_nearest_pole(self, loc):
+        mydiffs = self.all_poles - loc
+        myind = abs(mydiffs).argmin()
+        return self.all_poles[myind]
 
 
 two_func_attrs = copy.copy(mysaveattrs)
@@ -254,14 +259,14 @@ class OL_sys_contour_two_funcs(OL_sys_contour):
         calculations."""
         self.params_pkl_path = params_pkl_path
         self.load_params()
+        self.theta_bode_func = theta_bode_func
+        self.accel_bode_func = accel_bode_func
         if saved_pklname is not None:
             self.load(saved_pklname)
         else:
             self.levels = levels
             self._initial_calcs()
         self.tol = tol
-        self.theta_bode_func = theta_bode_func
-        self.accel_bode_func = accel_bode_func
         self.f_contour = self.f
         self.im_contour = self.im
         self.saveattrs = mysaveattrs
