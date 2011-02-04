@@ -38,8 +38,10 @@ class theta_fb_sys_contour(rwkmisc.object_that_saves):
         #im = arange(-1, maxi, di)
         #im = si/(2*pi)
         im1 = arange(-0.5, mesh_change, 0.01)
-        im2 = arange(mesh_change, 20, 0.5)
-        im = numpy.append(im1,im2)
+        im2 = arange(mesh_change, 15, 0.5)
+        im3 = arange(15,20,0.01)
+        #im = numpy.append(im1,im2)
+        im = numpy.concatenate([im1,im2,im3])
         #im = im1
         nr = len(im)
         nc = len(f)

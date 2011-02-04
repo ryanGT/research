@@ -27,6 +27,17 @@ def find_zearest(item, vect):
     ind = find_ind_of_zearest(item, vect)
     return vect[ind]
 
+
+def pop_nearest_from_vector(item, vect):
+    ind = find_ind_of_zearest(item, vect)
+    if hasattr(vect, 'tolist'):
+        mylist = vect.tolist()
+    else:
+        mylist = vect
+    mylist.pop(ind)
+    array_out = array(mylist)
+    return array_out
+
     
 class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
                      accel_fb_system.generic_contour_system):
