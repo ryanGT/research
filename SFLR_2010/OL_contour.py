@@ -16,7 +16,18 @@ mysaveattrs = ['f','im','s', \
                'theta_dB_mat','accel_dB_mat', \
                'levels']
 
+def find_ind_of_zearest(item, vect):
+    mydiffs = vect - item
+    absdiffs = abs(mydiffs)
+    ind = absdiffs.argmin()
+    return ind
 
+
+def find_zearest(item, vect):
+    ind = find_ind_of_zearest(item, vect)
+    return vect[ind]
+
+    
 class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
                      accel_fb_system.generic_contour_system):
     def calc_theta_fb_contours(self):
@@ -230,9 +241,7 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
     def append_origin_zeros(self):
         self._append_origin_zeros('theta_origin_power', 'theta_OL_zeros')
         self._append_origin_zeros('accel_origin_power', 'accel_OL_zeros')
-        
-        
-
+    
 
     def find_nearest_pole(self, loc):
         mydiffs = self.all_poles - loc
@@ -240,6 +249,21 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
         return self.all_poles[myind]
 
 
+    def find_matching_zeros(self, tol=2.0):
+        """Find zeros that show up in both accel and theta.  These are
+        candidates for removal."""
+        #ind_list = []
+        zero_list = []
+        for i, zero in enumerate(self.theta_OL_zeros):
+            #ind = find_ind_of_zearest(zero, self.accel_OL_zeros)
+            closest = find_zearest(zero, self.accel_OL_zeros)
+            pdiff = abs(zero-closest)/abs(zero)*100.0
+            if pdiff < tol:
+                #ind_list.append(ind)
+                zero_list.append(closest)
+        return zero_list
+    
+        
 two_func_attrs = copy.copy(mysaveattrs)
 #two_func_attrs.append('theta_bode_func')
 #two_func_attrs.append('accel_bode_func')
