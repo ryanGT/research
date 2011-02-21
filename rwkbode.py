@@ -701,6 +701,7 @@ def _inccount():
     
 def _PlotMatrixvsF(freqvect, matin, linestyle='', \
                    linewidth=None, semilogx=True, \
+                   dashes=None, \
                    allsolid=False, axis=None, label=None):
     mykwargs={}
     usepylab = False
@@ -718,6 +719,8 @@ def _PlotMatrixvsF(freqvect, matin, linestyle='', \
             mykwargs['linewidth'] = linewidth
         if label is not None:
            mykwargs['label'] = label
+        if dashes is not None:
+           mykwargs['dashes'] = dashes
         if semilogx:
             curline,=axis.semilogx(*myargs,**mykwargs)
         else:
@@ -746,23 +749,26 @@ def _PlotMatrixvsF(freqvect, matin, linestyle='', \
 
 
 def _PlotMag(freqvect,bodein,linestyle='',linewidth=0, \
-             axis=None, label=None):
+             axis=None, label=None, **kwargs):
     if callable(bodein.dBmag):
         myvect=bodein.dBmag()
     else:
         myvect=bodein.dBmag
     return _PlotMatrixvsF(freqvect, myvect, linestyle=linestyle, \
-                          linewidth=linewidth, axis=axis, label=label)
+                          linewidth=linewidth, axis=axis, label=label, \
+                          **kwargs)
 
 def _PlotPhase(freqvect,bodein,linestyle='',linewidth=0, axis=None, \
-               label=None):
+               label=None, **kwargs):
     return _PlotMatrixvsF(freqvect,bodein.phase,linestyle=linestyle, \
-                          linewidth=linewidth, axis=axis, label=label)
+                          linewidth=linewidth, axis=axis, label=label, \
+                          **kwargs)
 
 def _PlotCoh(freqvect,bodein,linestyle='',linewidth=0, axis=None, \
-             label=None):
+             label=None, **kwargs):
     return _PlotMatrixvsF(freqvect,bodein.coh, linestyle=linestyle, \
-                          linewidth=linewidth, axis=axis, label=label)
+                          linewidth=linewidth, axis=axis, label=label, \
+                          **kwargs)
 
 #ttttttttttttttttttttttttttttttttttttttttttt
 #
@@ -888,7 +894,7 @@ def GenBodePlot(fignum, freqvect, bodein, clear=True, \
     if type(bodein)==type(arange(0,1,0.01)):
         bodein=rwkbode(compin=bodein)
     #myargs=['linestyle','colors','linewidth','label']
-    myargs=['linestyle','colors','linewidth','label']
+    myargs=['linestyle','colors','linewidth','label','dashes']
     subkwargs={}
     for key in myargs:
         if kwargs.has_key(key):
