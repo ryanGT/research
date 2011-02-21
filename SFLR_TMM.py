@@ -1,8 +1,8 @@
 from __future__ import division
 import TMM
-reload(TMM)
+#reload(TMM)
 import TMM.TMMSystem
-reload(TMM.TMMSystem)
+#reload(TMM.TMMSystem)
 from scipy import pi, sqrt, arange, vectorize, exp, c_, array, \
      transpose, real, imag, rand, cos, sin, sinh, cosh, argmax, \
      arange, eye, zeros, shape, poly1d, row_stack, squeeze
@@ -16,15 +16,15 @@ from rwkmisc import prettymat, colwise, SavePickle, LoadPickle
 from rwkos import FindFullPath
 import shutil, os, sys, glob
 import TMM.beam
-reload(TMM.beam)
+#reload(TMM.beam)
 import TMM.rigid
-reload(TMM.rigid)
+#reload(TMM.rigid)
 import TMM.spring
-reload(TMM.spring)
+#reload(TMM.spring)
 import TMM.velocitysource
-reload(TMM.velocitysource)
+#reload(TMM.velocitysource)
 import TMM.feedback
-reload(TMM.feedback)
+#reload(TMM.feedback)
 from TMM.beam import BeamElement, BeamElement_v2
 from TMM.rigid import RigidMass
 from TMM.spring import TorsionalSpringDamper
@@ -39,7 +39,7 @@ from rwkdataproc import datastruct
 import re
 import rwkparse
 import rwkbode
-reload(rwkbode)
+#reload(rwkbode)
 from rwkbode import bodeout
 import controls
 import copy

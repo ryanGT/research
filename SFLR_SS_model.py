@@ -13,26 +13,31 @@ from IPython.Debugger import Pdb
 import copy, sys, os
 
 import SFLR_TF_models
-reload(SFLR_TF_models)
+#reload(SFLR_TF_models)
 
 import plotting_mixin
 
 
 class SS_model(plotting_mixin.item_that_plots):
+    def _init2(self):
+        nr,nc = self.A.shape
+        self.N = nr
+        nrC, ncC = self.C.shape
+        self.M = nrC
+        self.I = eye(self.N)
+        
+
     def __init__(self, A, B, C, D=0.0):
         self.A = A
         self.B = B
         self.C = C
         self.D = D
-        nr,nc = A.shape
-        self.N = nr
-        nrC, ncC = C.shape
-        self.M = nrC
-        self.I = eye(self.N)
         self.use_dig = False
         self.mysat = 200.0
         self.accel = False
-
+        if self.A is not None:
+            self._init2()
+            
 
     def calc_Ghat(self, K):
         """Find the Ghat matrix that would correspond to using K for
@@ -702,11 +707,11 @@ class SFLR_model_w_bodes:
 
 
     def calc_bodes(self, f):
-        if hasattr(self, 'theta_C_ind'):
+        if hasattr(self, 'theta_C_ind') and (self.theta_C_ind is not None):
             theta_C_ind = self.theta_C_ind
         else:
             theta_C_ind = 0
-        if hasattr(self, 'accel_C_ind'):
+        if hasattr(self, 'accel_C_ind') and (self.accel_C_ind is not None):
             accel_C_ind = self.accel_C_ind
         else:
             accel_C_ind = 1
@@ -875,9 +880,37 @@ class OCF_from_TF_no_P_control(non_P_control_mixin, \
     pass
     
 
+class SFLR_model_that_saves(rwkmisc.object_that_saves):
+    def build_dict(self):
+        mydict = {}
+        for attr in self.saveattrs:
+            if hasattr(self, attr):
+                val = getattr(self, attr)
+            else:
+                val = None
+            mydict[attr] = val
+        return mydict
+    
+    def save(self, filepath, protocol=2):
+        if not hasattr(self, 'saveattrs'):
+            self.saveattrs = ['A','B','C','D',\
+                              'bode_opts', \
+                              'accel_C_ind', \
+                              'theta_C_ind']
+
+        rwkmisc.object_that_saves.save(self, \
+                                       filepath, \
+                                       protocol=protocol)
+
+
+    def load(self, filepath):
+        rwkmisc.object_that_saves.load(self, filepath)
+        self._init2()
+        
 
 class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
-                     SFLR_model_w_bodes):
+                     SFLR_model_w_bodes, \
+                     SFLR_model_that_saves):
     def __init__(self, poles, zeros=None, bode_opts=None):
         CCF_SS_Model_from_poles_and_zeros.__init__(self, poles, \
                                                    zeros=zeros)
@@ -1541,8 +1574,9 @@ class SFLR_SS_model(SFLR_model_w_bodes, \
 
 
 class SFLR_SS_model_ABCD(SFLR_model_w_bodes, \
-                         SS_model):
-    def __init__(self, A, B, C, D=0.0):
+                         SS_model, \
+                         SFLR_model_that_saves):
+    def __init__(self, A=None, B=None, C=None, D=0.0):
         SS_model.__init__(self, A, B, C, D=D)
         
 

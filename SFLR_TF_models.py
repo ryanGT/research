@@ -3,7 +3,7 @@ from scipy import *
 from scipy import optimize
 
 import pylab_util as PU
-reload(PU)
+#reload(PU)
 import os, sys
 
 import rwkos, rwkbode, rwkmisc

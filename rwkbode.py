@@ -15,7 +15,7 @@ from rwkmisc import my_import
 import pdb
 import os, copy
 import mplutil
-reload(mplutil)
+#reload(mplutil)
 import rwkmisc
 
 from  IPython.Debugger import Pdb
