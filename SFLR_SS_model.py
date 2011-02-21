@@ -702,9 +702,18 @@ class SFLR_model_w_bodes:
 
 
     def calc_bodes(self, f):
+        if hasattr(self, 'theta_C_ind'):
+            theta_C_ind = self.theta_C_ind
+        else:
+            theta_C_ind = 0
+        if hasattr(self, 'accel_C_ind'):
+            accel_C_ind = self.accel_C_ind
+        else:
+            accel_C_ind = 1
+            
         comp_mat = self.calc_freq_resp(f)
-        th_v_comp = comp_mat[0,:]
-        a_v_comp = comp_mat[1,:]
+        th_v_comp = comp_mat[theta_C_ind,:]
+        a_v_comp = comp_mat[accel_C_ind,:]
         if not hasattr(self, 'bode_input'):
             self.bode_input = 'v'
         in_str = self.bode_input
@@ -1530,6 +1539,12 @@ class SFLR_SS_model(SFLR_model_w_bodes, \
     ##     return comp_mat
 
 
+
+class SFLR_SS_model_ABCD(SFLR_model_w_bodes, \
+                         SS_model):
+    def __init__(self, A, B, C, D=0.0):
+        SS_model.__init__(self, A, B, C, D=D)
+        
 
 
 class closed_loop_SS_model(SFLR_SS_model):
