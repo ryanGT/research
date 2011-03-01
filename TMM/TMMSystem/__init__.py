@@ -5,7 +5,7 @@ from scipy import cos, cosh, sin, sinh, array, r_, c_, exp, pi, \
 from scipy.linalg import inv as inverse
 from scipy.linalg import inv
 import scipy.optimize
-from scipy.io import save
+#from scipy.io import save
 #import MLab
 import scipy
 import numpy

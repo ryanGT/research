@@ -46,6 +46,17 @@ class SS_model(plotting_mixin.item_that_plots):
         return self.Ghat
 
 
+    def calc_Ahat(self, K=None):
+        """Find the Ahat matrix that would correspond to using K for
+        feedback: Ahat = self.A - dot(self.B, K)
+
+        If K is None, use self.K"""
+        if K is None:
+            K = self.K
+        self.Ahat = self.A - dot(self.B, K)
+        return self.Ahat
+
+
     def build_K(self, C, inds=[0]):
         """Create a state feedback vector K by assigning the elements
         of C to the elements of K that correspond to inds."""
@@ -138,6 +149,14 @@ class SS_model(plotting_mixin.item_that_plots):
         
 
     def discretize(self, T):
+        """This function follows the approach of Ogata's
+        'Discrete-Time Control Systems 2nd Edition' pages 314-315.
+
+        x((k+1)T) = G(T)x(kT) + H(T)u(kT)
+        y(kT) = C(x(kT) + D u(kT)
+
+        G(T) = exp(A*T) (matrix exponential)
+        H(T) = (integral from 0 to T of exp(A*lambda) d lambda)*B"""
         self.T = T
         self.G = linalg.expm(self.A*T)
 
@@ -239,13 +258,14 @@ class SS_model(plotting_mixin.item_that_plots):
         return self.C
         
 
-    def observability(self, out_ind=0):
+    def observability(self, out_ind=0, tryMO=False):
         A, B = self._get_A_and_B()
         C = self._get_C()
         #force using only first output for now
         nrC, ncC = C.shape
-        if nrC > 1:
-            C = atleast_2d(C[0,:])
+        if not tryMO:
+            if nrC > 1:
+                C = atleast_2d(C[out_ind,:])
         N = self.N
         for n in range(N):
             if n == 0:
@@ -262,7 +282,7 @@ class SS_model(plotting_mixin.item_that_plots):
 
 
     def acker(self, despoles, discretize=True, \
-              obs=False, out_ind=0):
+              obs=False, out_ind=0, tryMO=False, debug=1):
         """obs True means find the observer gain vector L and is used
         in observer design.  obs False means find the state-feedback
         gain vector used in pole-placement control design."""
@@ -276,7 +296,15 @@ class SS_model(plotting_mixin.item_that_plots):
             descoeffs = poly(despoles)
         phi = self.phi_des_of_A(descoeffs)
         if obs:
-            Q = self.observability()
+            Q = self.observability(out_ind=out_ind, tryMO=tryMO)
+            u,s,v = linalg.svd(Q)
+            r = numpy.sum(s > 1e-9)
+            mytup = (self.N, r, str(s))
+            assert r == self.N, 'Problem with the rank of Q: self.N = %s, r = %s, singular values = %s' % mytup
+            if debug:
+                msg = 'self.N = %s, r = %s, singular values = %s' % mytup
+                print(msg)
+            
             Qinv = linalg.inv(Q)
             en = zeros((self.N,1))
             en[-1,0] = 1.0
@@ -294,14 +322,21 @@ class SS_model(plotting_mixin.item_that_plots):
         return K
 
 
-    def digital_lsim(self, u, X0=None):
+    def digital_lsim(self, u, X0=None, closed_loop=False):
+        self.r = u
+        if not hasattr(self, 'E'):
+            self.E = 1.0
         if X0 is None:
             X0 = zeros((self.N,1))
         N2 = len(u)
         X = zeros((self.N, N2))
         X[:,0] = squeeze(X0)
 
-        G = self.G
+        if closed_loop:
+            self.calc_Ghat(K=self.K)
+            G = self.Ghat
+        else:
+            G = self.G
         H = self.H
         C = self.C
 
@@ -311,7 +346,7 @@ class SS_model(plotting_mixin.item_that_plots):
         
         prev_x = X0
         for k in range(1,N2):
-            next_x = dot(G, prev_x) + H*u[k-1]
+            next_x = dot(G, prev_x) + H*u[k-1]*self.E
             Y[:,k] = squeeze(dot(C, next_x))
             X[:,k] = squeeze(next_x)
             prev_x = next_x
@@ -1573,12 +1608,167 @@ class SFLR_SS_model(SFLR_model_w_bodes, \
 
 
 
+def right_of_penalty(pole, line=-10.0):
+    penalty = 0.0
+    if real(pole) > line:
+        penalty = real(pole) - line
+    return penalty
+
+
+def pole_zero_sorter(pole_vect, r=6.0*2*pi, imag_tol=1e-5):
+    filt_poles = [pole for pole in pole_vect if imag(pole) > -1e-7]#only positive poles
+    small_poles = [pole for pole in filt_poles if abs(pole) < r]
+    small_imag = [pole for pole in small_poles if \
+                  abs(imag(pole)) > imag_tol]
+    small_real = [pole for pole in small_poles if abs(imag(pole)) <= imag_tol]
+    return small_imag, small_real
+
+
+def find_zetas(pole_vect):
+    z = abs(real(pole_vect))/(abs(pole_vect))
+    return z
+
+
 class SFLR_SS_model_ABCD(SFLR_model_w_bodes, \
                          SS_model, \
                          SFLR_model_that_saves):
     def __init__(self, A=None, B=None, C=None, D=0.0):
         SS_model.__init__(self, A, B, C, D=D)
+
+
+class SFLR_SS_model_GHCD(SFLR_model_w_bodes, \
+                         SS_model, \
+                         SFLR_model_that_saves):
+    def _init2(self):
+        nr,nc = self.G.shape
+        self.N = nr
+        nrC, ncC = self.C.shape
+        self.M = nrC
+        self.I = eye(self.N)
+
+
+    def __init__(self, G=None, H=None, C=None, D=0.0, T=1.0/500):
+        self.G = G
+        self.H = H
+        self.C = C
+        self.D = D
+        self.T = T
+        self.use_dig = True
+        self.mysat = 200.0
+        self.accel = True
+        if self.G is not None:
+            self._init2()
+
+
+
+class SS_pole_optimizer_mixin(object):
+    def find_CL_poles(self, K=None):
+        if K is None:
+            K = self.K
+        if self.use_dig:
+            self.calc_Ghat(K=K)
+            self.CL_poles = linalg.eigvals(self.Ghat)
+        else:
+            self.calc_Ahat(K=K)
+            self.CL_poles = linalg.eigvals(self.Ahat)
+        return self.CL_poles
+
+
+    def find_OL_poles(self, K=None):
+        self.OL_poles = linalg.eigvals(self.A)
+        return self.OL_poles
+    
         
+    def pole_sorter(self, r=6.0*2*pi, imag_tol=1e-5):
+        """Find the poles whose abs is less than r and sort them into real
+        and imaginary based on whether their imaginary part is greater
+        than or less than imag_tol."""
+        self.find_CL_poles()
+        small_imag, small_real = pole_zero_sorter(self.CL_poles, \
+                                                  r=r, imag_tol=imag_tol)
+        self.small_real = small_real
+        self.small_imag = small_imag
+        #self.small_real2 = self.filter_immovable(small_real)
+        return small_imag, small_real
+
+
+    def second_imag_penalty(self):
+        penalty = 0.0
+        imag_list = self.small_imag
+        if len(imag_list) > 1:
+            imag_vect = array(imag_list)
+            #drop the right most element
+            ind = real(imag_vect).argmax()
+            imag_list2 = copy.copy(imag_list)
+            imag_list2.pop(ind)
+            imag_vect2 = array(imag_list2)
+            zetas = find_zetas(imag_vect2)
+            mybool = zetas < self.second_imag_zeta
+            if mybool.any():
+                penalty = 1.0
+        return penalty
+
+
+    def unstable_check(self):
+        mybool = real(self.CL_poles) > 0.0
+        return mybool.any()
+    
+
+    def pole_cost(self, verbosity=0):
+        self.pole_sorter(r=20.0)
+        small_imag = self.small_imag
+        small_real = self.small_real
+        my_small_poles = small_imag + small_real
+        cost = 0.0
+        small_imag_penalties = [right_of_penalty(pole, line=self.imagline) for pole \
+                                in small_imag]
+        small_real_penalties = [right_of_penalty(pole, line=self.realline) for pole \
+                                in  small_real]
+        imag_cost = sum(small_imag_penalties)
+        real_cost = sum(small_real_penalties)
+        cost += imag_cost*self.imagweight + real_cost
+        if self.secondweight > 0.0:
+            second_imag_pen = self.second_imag_penalty()*self.secondweight
+            cost += second_imag_pen
+        if self.unstable_check():
+            cost += 1e3
+        return cost
+
+
+    def mycost(self, K, verbosity=0):
+        K = atleast_2d(K)
+        self.K = K
+        if verbosity > 10:
+            print('K = ' + str(K))
+        pcost = self.pole_cost()
+        cost = pcost
+        neg_K_penalty = 0.0
+        ## if (array(K) < 0.0).any():
+        ##     neg_K_penalty = 1.0e3
+        ##     cost += neg_K_penalty
+        if verbosity > 0:
+            print('pcost = %s' % pcost)
+            #print('zcost = %s' % zcost)
+            print('cost = %s' % cost)
+            #print('pole locs = %s' % pole_vect)
+            #print('zero locs = %s' % myzeros)
+            print('neg_K_penalty = %s' % neg_K_penalty)
+            print('-'*30)
+        if self.logger is not None:
+            self.logger.log(K, cost)
+        return cost
+
+
+class SFLR_SS_model_ABCD_pole_opt(SS_pole_optimizer_mixin, \
+                                  SFLR_SS_model_ABCD):
+    def __init__(self, *args, **kwargs):
+        SFLR_SS_model_ABCD.__init__(self, *args, **kwargs)
+        self.realline = -12.0
+        self.imagline = -12.0
+        self.imagweight = 10.0
+        self.secondweight = 50.0
+        self.second_imag_zeta = 0.95
+        self.logger = None
 
 
 class closed_loop_SS_model(SFLR_SS_model):

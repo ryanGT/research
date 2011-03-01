@@ -1,7 +1,7 @@
 from __future__ import division
 from scipy import cos, cosh, sin, sinh, array, r_, c_, exp, pi, real, imag, zeros, eye, alltrue, shape, atleast_1d, dot, vstack, isscalar
 from scipy.linalg import inv as inverse
-from scipy.io import save
+#from scipy.io import save
 #import MLab
 import scipy
 from scipy.linalg import det
