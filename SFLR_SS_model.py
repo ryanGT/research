@@ -1759,6 +1759,85 @@ class SS_pole_optimizer_mixin(object):
         return cost
 
 
+def digital_pole_zero_sorter(pole_vect, dig_radius=0.125, imag_tol=1e-5):
+    filt_poles = array([pole for pole in pole_vect if imag(pole) > -1e-7])#only positive poles
+    #distance from 1.0+0.0j seems to be closely related to wn
+    d_filt = abs(1.0-filt_poles)
+    small_poles = []
+    for pole, d in zip(filt_poles, d_filt):
+        if d < dig_radius:
+            small_poles.append(pole)
+    small_imag = [pole for pole in small_poles if \
+                  abs(imag(pole)) > imag_tol]
+    small_real = [pole for pole in small_poles if abs(imag(pole)) <= imag_tol]
+    return small_imag, small_real
+
+
+class SS_digital_pole_optimizer_mixin(SS_pole_optimizer_mixin):
+    """This class adapts the pole optimizer approach to a digital
+    system."""
+    def _find_dig_radius(self, wn):
+        """Convert continous wn into a radius from 1.0+0.0j that
+        defines small digital poles."""
+        zeta = arange(0,1,0.01)
+        wd = sqrt(1-zeta**2)*wn
+        s = -wn*zeta + 1.0j*wd
+        if hasattr(self,'T'):
+            dt = self.T
+        else:
+            dt = 1.0/500.0
+        z = exp(s*dt)
+        d = abs(1.0-z)
+        r = d.max()
+        self.dig_radius = r
+        return r
+
+
+    def pole_sorter(self, dig_radius=None, imag_tol=1e-5):
+        """Find the poles whose abs is less than r and sort them into real
+        and imaginary based on whether their imaginary part is greater
+        than or less than imag_tol."""
+        self.find_CL_poles()
+        if dig_radius is None:
+            if hasattr(self, 'dig_radius'):
+                dig_radius = self.dig_radius
+            else:
+                dig_radius = self._find_dig_radius(10.0*2*pi)
+        small_imag, small_real = digital_pole_zero_sorter(self.CL_poles, \
+                                                          dig_radius=dig_radius, \
+                                                          imag_tol=imag_tol)#<-- this function doesn't exist yet
+        self.small_real = small_real
+        self.small_imag = small_imag
+        #self.small_real2 = self.filter_immovable(small_real)
+        return small_imag, small_real
+
+    
+
+
+    def pole_cost(self, verbosity=0):
+        #raise NotImplementedError
+        #fix me:
+        self.pole_sorter(r=20.0)
+        small_imag = self.small_imag
+        small_real = self.small_real
+        my_small_poles = small_imag + small_real
+        cost = 0.0
+        small_imag_penalties = [right_of_penalty(pole, line=self.imagline) for pole \
+                                in small_imag]
+        small_real_penalties = [right_of_penalty(pole, line=self.realline) for pole \
+                                in  small_real]
+        imag_cost = sum(small_imag_penalties)
+        real_cost = sum(small_real_penalties)
+        cost += imag_cost*self.imagweight + real_cost
+        if self.secondweight > 0.0:
+            second_imag_pen = self.second_imag_penalty()*self.secondweight
+            cost += second_imag_pen
+        if self.unstable_check():
+            cost += 1e3
+        return cost
+
+    
+    
 class SFLR_SS_model_ABCD_pole_opt(SS_pole_optimizer_mixin, \
                                   SFLR_SS_model_ABCD):
     def __init__(self, *args, **kwargs):
@@ -1769,6 +1848,19 @@ class SFLR_SS_model_ABCD_pole_opt(SS_pole_optimizer_mixin, \
         self.secondweight = 50.0
         self.second_imag_zeta = 0.95
         self.logger = None
+
+
+class SFLR_SS_model_GHCD_digial_pole_opt(SS_digital_pole_optimizer_mixin, \
+                                         SFLR_SS_model_GHCD):
+    def __init__(self, *args, **kwargs):
+        SFLR_SS_model_GHCD.__init__(self, *args, **kwargs)
+        if not hasattr(self, 'dig_radius'):
+            if kwargs.has_key('wn'):
+                wn = kwargs['wn']
+            else:
+                wn = 10.0*2*pi
+            dig_radius = self._find_dig_radius(wn)
+        
 
 
 class closed_loop_SS_model(SFLR_SS_model):

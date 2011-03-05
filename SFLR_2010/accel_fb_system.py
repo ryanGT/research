@@ -377,6 +377,7 @@ class ga_theta_fb_system(generic_contour_system):
         if not hasattr(self, 'comp_afb'):
             self.calc_afb_compmat()
         self.theta_comp = self.comp_afb/self.a_theta_comp
+        self.afb_theta_db = comp_to_db(self.theta_comp)
         return self.theta_comp
 
 
