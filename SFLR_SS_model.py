@@ -180,13 +180,24 @@ class SS_model(plotting_mixin.item_that_plots):
             A = self.A
             B = self.B
         return A, B
+
             
-        
     def create_ax(self, fi=1, clear=True):
         fig = figure(fi)
         if clear:
             fig.clf()
         self.ax = fig.add_subplot(1,1,1)
+        return self.ax
+
+        
+    def get_or_create_ax(self, fi=1, clear=True):
+        fig = figure(fi)
+        if clear:
+            fig.clf()
+        if len(fig.axes) == 1:
+            self.ax = fig.axes[0]
+        else:
+            self.ax = fig.add_subplot(1,1,1)
         return self.ax
 
 
@@ -205,13 +216,31 @@ class SS_model(plotting_mixin.item_that_plots):
         return self.poles
 
 
-    def plot_poles(self, lt='bo', fi=1, clear=True, label=None):
-        if not hasattr(self, 'ax'):
-            self.create_ax(fi=fi, clear=clear)
+    def _plot_poles(self, poles, lt='bo', fi=1, clear=True, label=None):
+        #Pdb().set_trace()
+        ## if not hasattr(self, 'ax'):
+        ##     self.create_ax(fi=fi, clear=clear)
+        ## if self.ax.figure.number != fi:
+        ##    self.create_ax(fi=fi, clear=clear)#<-- I think we should do this no matter what
+        self.get_or_create_ax(fi=fi, clear=clear)
         if not hasattr(self, 'poles'):
             self.find_poles()
-        self.ax.plot(real(self.poles), imag(self.poles), \
+        self.ax.plot(real(poles), imag(poles), \
                      lt, label=label)
+
+
+    def plot_poles(self, *args, **kwargs):
+        self._plot_poles(self.poles, *args, **kwargs)
+
+
+    def plot_CL_poles(self, *args, **kwargs):
+        self._plot_poles(self.CL_poles, *args, **kwargs)
+
+
+    def plot_OL_poles(self, *args, **kwargs):
+        if not hasattr(self, 'OL_poles'):
+            self.find_OL_poles()
+        self._plot_poles(self.OL_poles, *args, **kwargs)
 
 
     def phi_des_of_A(self, descoeffs):
@@ -1675,7 +1704,10 @@ class SS_pole_optimizer_mixin(object):
 
 
     def find_OL_poles(self, K=None):
-        self.OL_poles = linalg.eigvals(self.A)
+        if self.use_dig:
+            self.OL_poles = linalg.eigvals(self.G)
+        else:
+            self.OL_poles = linalg.eigvals(self.A)
         return self.OL_poles
     
         
@@ -1773,9 +1805,22 @@ def digital_pole_zero_sorter(pole_vect, dig_radius=0.125, imag_tol=1e-5):
     return small_imag, small_real
 
 
+def digital_omega_penalty(pole, radius=0.98):
+    penalty = 0.0
+    if abs(pole) > radius:
+        penalty = abs(pole) - radius
+    return penalty
+
+
+
 class SS_digital_pole_optimizer_mixin(SS_pole_optimizer_mixin):
     """This class adapts the pole optimizer approach to a digital
     system."""
+    def unstable_check(self):
+        mybool = abs(self.CL_poles) > 1.0
+        return mybool.any()
+
+
     def _find_dig_radius(self, wn):
         """Convert continous wn into a radius from 1.0+0.0j that
         defines small digital poles."""
@@ -1797,7 +1842,7 @@ class SS_digital_pole_optimizer_mixin(SS_pole_optimizer_mixin):
         """Find the poles whose abs is less than r and sort them into real
         and imaginary based on whether their imaginary part is greater
         than or less than imag_tol."""
-        self.find_CL_poles()
+        self.find_CL_poles()#<-- this method calculates the CL poles
         if dig_radius is None:
             if hasattr(self, 'dig_radius'):
                 dig_radius = self.dig_radius
@@ -1815,21 +1860,20 @@ class SS_digital_pole_optimizer_mixin(SS_pole_optimizer_mixin):
 
 
     def pole_cost(self, verbosity=0):
-        #raise NotImplementedError
-        #fix me:
-        self.pole_sorter(r=20.0)
+        self.pole_sorter()
         small_imag = self.small_imag
         small_real = self.small_real
         my_small_poles = small_imag + small_real
         cost = 0.0
-        small_imag_penalties = [right_of_penalty(pole, line=self.imagline) for pole \
+        small_imag_penalties = [digital_omega_penalty(pole, radius=self.imag_radius) for pole \
                                 in small_imag]
-        small_real_penalties = [right_of_penalty(pole, line=self.realline) for pole \
+        small_real_penalties = [digital_omega_penalty(pole, radius=self.real_radius) for pole \
                                 in  small_real]
         imag_cost = sum(small_imag_penalties)
         real_cost = sum(small_real_penalties)
         cost += imag_cost*self.imagweight + real_cost
         if self.secondweight > 0.0:
+            raise NotImplementedError, "self.second_imag_penalty not written yet for the digital case"
             second_imag_pen = self.second_imag_penalty()*self.secondweight
             cost += second_imag_pen
         if self.unstable_check():
@@ -1860,8 +1904,75 @@ class SFLR_SS_model_GHCD_digial_pole_opt(SS_digital_pole_optimizer_mixin, \
             else:
                 wn = 10.0*2*pi
             dig_radius = self._find_dig_radius(wn)
-        
+        defaults = {'imag_radius':exp(-10.0*self.T), \
+                    'real_radius':exp(-10.0*self.T), \
+                    'imagweight':10.0, \
+                    'secondweight':0.0, \
+                    'logger':None, \
+                   }
 
+        for key, value in defaults.iteritems():
+            if kwargs.has_key(key):
+                curval = kwargs[key]
+            else:
+                curval = value
+            setattr(self, key, curval)
+
+            
+        
+class SFLR_SS_model_GHCD_7_pole_JCF_opt(SFLR_SS_model_GHCD_digial_pole_opt):
+    def __init__(self, *args, **kwargs):
+        SFLR_SS_model_GHCD_digial_pole_opt.__init__(self, *args, **kwargs)
+        self.N_conj = 5
+        self.N_real = 3
+        self.imag_inds = [3,5]
+        
+    def extract_K_i_from_C0(self):
+        C0 = self.C[0,:]
+        cvect = zeros((1,self.N), dtype=float64)
+        cvect[0,0:self.N_real] = C0[0:self.N_real]
+        for ind in self.imag_inds:
+            cvect[0,ind] = real(C0[ind])
+            cvect[0,ind+1] = imag(C0[ind])
+        return cvect
+
+
+    def build_K(self, cvect):
+        K = zeros((1,self.N), dtype=complex128)
+        K[0,0:self.N_real] = cvect[0:self.N_real]
+        for ind in self.imag_inds:
+            curcomp = cvect[ind] + 1.0j*cvect[ind+1]
+            K[0,ind] = curcomp
+            K[0,ind+1] = conj(curcomp)
+        return K
+    
+        
+    def mycost(self, cvect, verbosity=0):
+        K = self.build_K(cvect)
+        self.K = K
+        if verbosity > 10:
+            print('K = ' + str(K))
+        pcost = self.pole_cost()
+        cost = pcost
+        neg_K_penalty = 0.0
+        ## if (array(K) < 0.0).any():
+        ##     neg_K_penalty = 1.0e3
+        ##     cost += neg_K_penalty
+        if verbosity > 0:
+            print('pcost = %s' % pcost)
+            #print('zcost = %s' % zcost)
+            print('cost = %s' % cost)
+            #print('pole locs = %s' % pole_vect)
+            #print('zero locs = %s' % myzeros)
+            print('neg_K_penalty = %s' % neg_K_penalty)
+            print('-'*30)
+        if self.logger is not None:
+            self.logger.log(K, cost)
+        return cost
+
+
+
+    
 
 class closed_loop_SS_model(SFLR_SS_model):
     def lsim2(self, U, T, X0=None, returnall=False, hmax=None):
