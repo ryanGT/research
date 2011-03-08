@@ -243,6 +243,30 @@ class SS_model(plotting_mixin.item_that_plots):
         self._plot_poles(self.OL_poles, *args, **kwargs)
 
 
+
+    def try_K(self, K, u, pole_lt='k^', \
+              pole_fi=2, step_fi=31, \
+              clear_step=True, clear_poles=False, \
+              label=None):
+        self.K = K
+        self.find_CL_poles()
+        self.plot_CL_poles(lt=pole_lt, fi=pole_fi, \
+                           clear=clear_poles, \
+                           label=label)
+
+        self.E = 1.0
+        self.digital_lsim(u, closed_loop=True)
+        self.E = 200/self.Y_dig[0,-1]
+
+        self.digital_lsim_with_obs(u)
+        self.plot_digital_lsim_results(fi=step_fi, clear=clear_step)
+        
+        #self.digital_lsim(u, closed_loop=True)
+        #self.plot_digital_lsim_results(fi=step_fi, clear=clear_step)
+
+        
+
+        
     def phi_des_of_A(self, descoeffs):
         """Evalute the charcteristic polynominal using
         descoeffs[0]*A**n+descoeffs[1]*A**(n-1)"""
@@ -1918,15 +1942,140 @@ class SFLR_SS_model_GHCD_digial_pole_opt(SS_digital_pole_optimizer_mixin, \
                 curval = value
             setattr(self, key, curval)
 
-            
+
+class accel_ignorer(object):
+    def _get_C(self):
+        """For now, I am handling multiple output systems by using
+        just the first output.  So, this method just return self.C for
+        systems with one output, but grabs the first row of C for
+        multiple output systems."""
+        temp = atleast_2d(self.C)[0,:]
+        C = atleast_2d(temp)
+        return C
+    
         
-class SFLR_SS_model_GHCD_7_pole_JCF_opt(SFLR_SS_model_GHCD_digial_pole_opt):
+class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
+                                        SFLR_SS_model_GHCD_digial_pole_opt):
     def __init__(self, *args, **kwargs):
         SFLR_SS_model_GHCD_digial_pole_opt.__init__(self, *args, **kwargs)
         self.N_conj = 5
         self.N_real = 3
         self.imag_inds = [3,5]
         
+
+
+    def run_observer(self, i):
+        if hasattr(self, 'G_ol'):
+            G = self.G_ol
+        else:
+            G = self.G
+        if hasattr(self, 'H_ol'):
+            H = self.H_ol
+        else:
+            H = self.H
+
+        C = self._get_C()
+        
+        self.term1[:,i] = squeeze(colwise(dot(G, self.X_tilde[:,i-1])))
+        self.term2[:,i] = squeeze(colwise(H*self.vvect[i-1]))
+        Y_tilde_float_i = squeeze(dot(C, self.X_tilde[:,i-1]))
+        self.term3[:,i] = squeeze(colwise(dot(self.Ke, self.Y_dig[0,i-1]-Y_tilde_float_i)))
+        next_x_tilde = self.term1[:,i] + self.term2[:,i] + self.term3[:,i]
+        self.X_tilde[:,i] = squeeze(next_x_tilde)
+
+
+    def calc_v(self, i):
+        #self.Yvect[0,i-1] = self.Y_dig[i-1]
+        #self.Yvect[1,i] = self.avect[i]
+        self.run_observer(i)
+        vtemp = self.E*self.r[i] - dot(self.K, self.X_tilde[:,i])
+        if vtemp.shape == (1,):
+            vtemp = vtemp[0]
+        #vtemp = self.uvect[i] - self.yvect[i-1]#P control with kp=1.0
+            #for debugging
+        if abs(self.Y_dig[0,i-1]) > 1000:
+            vtemp = 0.0#instability software limit switch
+
+        self.vvect[i] = self.sat(real(vtemp))
+        return self.vvect[i]
+
+
+    def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None):
+        dtype = complex128
+        self.r = r
+        if X0 is None:
+            X0 = zeros((self.N,1), dtype=dtype)
+        if X0_tilde is None:
+            X0_tilde = zeros((self.N,1), dtype=dtype)
+        N2 = len(r)
+        V = zeros_like(r)
+        X = zeros((self.N, N2), dtype=dtype)
+        self.X_tilde = zeros((self.N, N2), dtype=dtype)
+        X[:,0] = squeeze(X0)
+        self.X_tilde[:,0] = squeeze(X0_tilde)
+        self.term1 = zeros((self.N, N2), dtype=dtype)
+        self.term2 = zeros((self.N, N2), dtype=dtype)
+        self.term3 = zeros((self.N, N2), dtype=dtype)
+        self.vvect = zeros((N2), dtype=float64)
+
+
+        if hasattr(self, 'G_ol'):
+            G = self.G_ol
+        else:
+            G = self.G
+
+        if hasattr(self, 'H_ol'):
+            H = self.H_ol
+        else:
+            H = self.H
+        #C = self.C
+        C = self._get_C()
+        Ke = self.Ke
+        K = self.K
+
+        Ny, Nx = self.C.shape
+        self.Y_dig = zeros((Ny, N2))
+        self.Y_dig[:,0] = squeeze(dot(C, X0))
+
+        FO = G - dot(Ke,C)
+        prev_x = X0
+        prev_x_tilde = X0_tilde
+        debug_ind = 0
+        for k in range(1,N2):
+            #V[k] = self.E*r[k] - squeeze(dot(K, prev_x_tilde))
+            self.vvect[k] = self.calc_v(k)
+            ## self.term1[:,k] = squeeze(dot(FO, prev_x_tilde))
+            ## self.term2[:,k] = squeeze(H*V[k-1])
+            ## self.term3[:,k] = squeeze(colwise(dot(Ke, self.Y_dig[0,k-3].astype(int))))
+            ## next_x_tilde =  self.term1[:,k] + self.term2[:,k] + self.term3[:,k]
+            ## if term1.any() or term2.any() or term3.any():
+            ##     if debug_ind < 2:
+            ##         print('k = '+str(k))
+            ##         print('term1 = ' + str(term1))
+            ##         print('term2 = ' + str(term2))
+            ##         print('term3 = ' + str(term3))
+            ##         print('next_x_tilde = ' + str(next_x_tilde))
+            ##         print('-'*20)
+            ##         debug_ind += 1
+
+
+            ## next_x_tilde = dot(FO, prev_x_tilde) + H*V[k] + \
+            ##                colwise(dot(Ke, self.Y_dig[0,k-1]))
+            next_x = dot(G, prev_x) + H*self.vvect[k]
+            self.Y_dig[:,k] = squeeze(dot(self.C, next_x))
+            X[:,k] = squeeze(next_x)
+            ##self.X_tilde[:,k] = squeeze(next_x_tilde)
+            prev_x = next_x
+            ##prev_x_tilde = next_x_tilde
+
+        self.X_dig = X
+        #self.Y_dig = Y
+        #self.v = squeeze(self.E*u + dot(self.K, self.X_dig))
+        self.v = self.vvect
+        self.theta = squeeze(self.Y_dig[0,:])
+        return self.Y_dig
+
+
     def extract_K_i_from_C0(self):
         C0 = self.C[0,:]
         cvect = zeros((1,self.N), dtype=float64)
