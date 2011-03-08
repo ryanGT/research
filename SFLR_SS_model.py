@@ -268,16 +268,19 @@ class SS_model(plotting_mixin.item_that_plots):
     def try_K(self, K, u, pole_lt='k^', \
               pole_fi=2, step_fi=31, \
               clear_step=True, clear_poles=False, \
-              label=None):
+              label=None, E=None):
         self.K = K
         self.find_CL_poles()
         self.plot_CL_poles(lt=pole_lt, fi=pole_fi, \
                            clear=clear_poles, \
                            label=label)
 
-        self.E = 1.0
-        self.digital_lsim(u, closed_loop=True)
-        self.E = 200/self.Y_dig[0,-1]
+        if E is None:
+            self.E = 1.0
+            self.digital_lsim(u, closed_loop=True)
+            self.E = 200/self.Y_dig[0,-1]
+        else:
+            self.E = E
 
         self.digital_lsim_with_obs(u)
         self.plot_digital_lsim_results(fi=step_fi, clear=clear_step)
@@ -2110,17 +2113,23 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
         return self.Y_dig
 
 
+    def build_cvect_from_K(self, K):
+        K = colwise(K)
+        cvect = zeros((1,self.N), dtype=float64)
+        cvect[0,0:self.N_real] = K[0:self.N_real,0]
+        for ind in self.imag_inds:
+            cvect[0,ind] = real(K[ind])
+            cvect[0,ind+1] = imag(K[ind])
+        return cvect
+        
+
     def extract_K_i_from_C0(self):
         C0 = self.C[0,:]
-        cvect = zeros((1,self.N), dtype=float64)
-        cvect[0,0:self.N_real] = C0[0:self.N_real]
-        for ind in self.imag_inds:
-            cvect[0,ind] = real(C0[ind])
-            cvect[0,ind+1] = imag(C0[ind])
-        return cvect
+        return self.build_cvect_from_K(C0)
 
 
     def build_K(self, cvect):
+        cvect = squeeze(cvect)
         K = zeros((1,self.N), dtype=complex128)
         K[0,0:self.N_real] = cvect[0:self.N_real]
         for ind in self.imag_inds:
@@ -2204,6 +2213,17 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt_w_integrator(SFLR_SS_model_GHCD_7_pole_J
         return eigs
 
 
+    def build_cvect_from_K(self, K=None, Ki=None):
+        if K is None:
+            K = self.K
+        if Ki is None:
+            Ki = self.Ki
+        cvect = SFLR_SS_model_GHCD_7_pole_JCF_opt.build_cvect_from_K(self, K)
+        cvect = numpy.append(cvect, [Ki])
+        return cvect
+
+
+
     def extract_K_i_from_C0(self):
         C0 = self.C[0,:]
         cvect = zeros((1,self.N+1), dtype=float64)
@@ -2257,6 +2277,43 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt_w_integrator(SFLR_SS_model_GHCD_7_pole_J
             self.Ki = kwargs['Ki']
         else:
             self.Ki = 0.1
+
+
+
+class SFLR_SS_model_GHCD_7_pole_JCF_opt_w_integrator2(SFLR_SS_model_GHCD_7_pole_JCF_opt_w_integrator):
+    def find_pole_nearest_to_1_0j(self):
+        d = abs(1.0 - self.CL_poles)
+        ind = d.argmin()
+        return self.CL_poles[ind]
+
+        
+        
+    def mycost(self, cvect, verbosity=0):
+        K, Ki = self.build_K(cvect)
+        self.K = K
+        self.Ki = Ki
+        if verbosity > 10:
+            print('K = ' + str(K))
+        pcost = self.pole_cost()
+        cost = pcost
+        neg_K_penalty = 0.0
+        slowest_pole = self.find_pole_nearest_to_1_0j()
+        slowest_cost = digital_omega_penalty(slowest_pole, radius=self.imag_radius)
+        cost += slowest_cost*20#triple count the slowest one
+        ## if (array(K) < 0.0).any():
+        ##     neg_K_penalty = 1.0e3
+        ##     cost += neg_K_penalty
+        if verbosity > 0:
+            print('pcost = %s' % pcost)
+            #print('zcost = %s' % zcost)
+            print('cost = %s' % cost)
+            #print('pole locs = %s' % pole_vect)
+            #print('zero locs = %s' % myzeros)
+            print('neg_K_penalty = %s' % neg_K_penalty)
+            print('-'*30)
+        if self.logger is not None:
+            self.logger.log(K, cost)
+        return cost
 
 
 class SFLR_SS_model_GHCD_7_pole_JCF_opt_K0_max(SFLR_SS_model_GHCD_7_pole_JCF_opt):
