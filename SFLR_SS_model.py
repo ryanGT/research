@@ -27,7 +27,9 @@ class SS_model(plotting_mixin.item_that_plots):
         self.I = eye(self.N)
         
 
-    def __init__(self, A, B, C, D=0.0):
+    def __init__(self, A, B, C, D=0.0, **kwargs):
+        """Note that kwargs is just used to ignore extra keyword
+        arguements passed in by inherited classes."""
         self.A = A
         self.B = B
         self.C = C
@@ -242,6 +244,25 @@ class SS_model(plotting_mixin.item_that_plots):
             self.find_OL_poles()
         self._plot_poles(self.OL_poles, *args, **kwargs)
 
+
+    def state_space_digital_root_locus(self, fi=2, clear=False, \
+                                       K_mul=None, pole_lt='k^'):
+        orig_K = copy.copy(self.K)
+        if K_mul is None:
+            steps = 10.0
+            dK = 1.0/steps
+            K_mul = arange(0,1+dK/2.0, dK)
+        if clear:
+            figure(fi)
+            clf()
+            
+        for mul in K_mul:
+            self.K = mul*orig_K
+            self.find_CL_poles()
+            self.plot_CL_poles(lt=pole_lt, fi=fi, \
+                               clear=False)
+        self.K = orig_K
+        self.find_CL_poles()
 
 
     def try_K(self, K, u, pole_lt='k^', \
@@ -1700,7 +1721,10 @@ class SFLR_SS_model_GHCD(SFLR_model_w_bodes, \
         self.I = eye(self.N)
 
 
-    def __init__(self, G=None, H=None, C=None, D=0.0, T=1.0/500):
+    def __init__(self, G=None, H=None, C=None, D=0.0, T=1.0/500, \
+                 **kwargs):
+        """Note that kwargs is just used to ignore extra keyword
+        arguments from child class __init__ methods."""
         self.G = G
         self.H = H
         self.C = C
@@ -2000,23 +2024,35 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
         return self.vvect[i]
 
 
-    def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None):
+
+    def _init_sim_vectors(self):
         dtype = complex128
-        self.r = r
-        if X0 is None:
-            X0 = zeros((self.N,1), dtype=dtype)
-        if X0_tilde is None:
-            X0_tilde = zeros((self.N,1), dtype=dtype)
-        N2 = len(r)
-        V = zeros_like(r)
-        X = zeros((self.N, N2), dtype=dtype)
+        N2 = len(self.r)
         self.X_tilde = zeros((self.N, N2), dtype=dtype)
-        X[:,0] = squeeze(X0)
-        self.X_tilde[:,0] = squeeze(X0_tilde)
         self.term1 = zeros((self.N, N2), dtype=dtype)
         self.term2 = zeros((self.N, N2), dtype=dtype)
         self.term3 = zeros((self.N, N2), dtype=dtype)
         self.vvect = zeros((N2), dtype=float64)
+        Ny, Nx = self.C.shape
+        self.Y_dig = zeros((Ny, N2))
+        
+
+        
+    def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None):
+        dtype = complex128
+        self.dtype = dtype
+        self.r = r
+        self.N2 = len(r)
+
+        if X0 is None:
+            X0 = zeros((self.N,1), dtype=dtype)
+        if X0_tilde is None:
+            X0_tilde = zeros((self.N,1), dtype=dtype)
+        self._init_sim_vectors()
+        #V = zeros_like(r)
+        X = zeros((self.N, self.N2), dtype=dtype)        
+        X[:,0] = squeeze(X0)
+        self.X_tilde[:,0] = squeeze(X0_tilde)
 
 
         if hasattr(self, 'G_ol'):
@@ -2033,15 +2069,13 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
         Ke = self.Ke
         K = self.K
 
-        Ny, Nx = self.C.shape
-        self.Y_dig = zeros((Ny, N2))
         self.Y_dig[:,0] = squeeze(dot(C, X0))
 
         FO = G - dot(Ke,C)
         prev_x = X0
         prev_x_tilde = X0_tilde
         debug_ind = 0
-        for k in range(1,N2):
+        for k in range(1,self.N2):
             #V[k] = self.E*r[k] - squeeze(dot(K, prev_x_tilde))
             self.vvect[k] = self.calc_v(k)
             ## self.term1[:,k] = squeeze(dot(FO, prev_x_tilde))
@@ -2120,7 +2154,123 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
         return cost
 
 
+class SFLR_SS_model_GHCD_7_pole_JCF_opt_w_integrator(SFLR_SS_model_GHCD_7_pole_JCF_opt):
+    def _init_sim_vectors(self):
+        SFLR_SS_model_GHCD_7_pole_JCF_opt._init_sim_vectors(self)
+        self.evect = zeros(self.N2, dtype=self.dtype)
+        self.esum = zeros(self.N2, dtype=self.dtype)
+        
+        
+    def calc_v(self, i):
+        #self.Yvect[0,i-1] = self.Y_dig[i-1]
+        #self.Yvect[1,i] = self.avect[i]
+        self.run_observer(i)
+        self.evect[i] = self.r[i] - self.Y_dig[0,i-1]
+        if i > 0:
+            self.esum[i] = self.esum[i-1] + self.evect[i]
+        vtemp = self.E*self.r[i] - dot(self.K, self.X_tilde[:,i]) + self.Ki*self.esum[i]
+        if vtemp.shape == (1,):
+            vtemp = vtemp[0]
+        #vtemp = self.uvect[i] - self.yvect[i-1]#P control with kp=1.0
+            #for debugging
+        if abs(self.Y_dig[0,i-1]) > 1000:
+            vtemp = 0.0#instability software limit switch
 
+        self.vvect[i] = self.sat(real(vtemp))
+        return self.vvect[i]
+
+
+    def find_CL_poles(self, K=None, Ki=None):
+        if K is None:
+            K = self.K
+        if Ki is None:
+            Ki = self.Ki
+        C = self._get_C()
+        G = self.G
+        H = self.H
+
+        UL = G- dot(H,K)
+        UR = H*Ki
+        Upper = column_stack([UL,UR])
+
+        LL = -dot(C,G)+dot(C, dot(H,K))
+        LR = 1-Ki*dot(C,H)
+        Lower = column_stack([LL,LR])
+
+        big_mat = row_stack([Upper, Lower])
+
+        eigs = linalg.eigvals(big_mat)
+        self.CL_poles = eigs
+        return eigs
+
+
+    def extract_K_i_from_C0(self):
+        C0 = self.C[0,:]
+        cvect = zeros((1,self.N+1), dtype=float64)
+        cvect[0,0:self.N_real] = C0[0:self.N_real]
+        for ind in self.imag_inds:
+            cvect[0,ind] = real(C0[ind])
+            cvect[0,ind+1] = imag(C0[ind])
+        cvect[0,self.N] = self.Ki
+        return cvect
+
+
+    def build_K(self, cvect):
+        K = zeros((1,self.N), dtype=complex128)
+        K[0,0:self.N_real] = cvect[0:self.N_real]
+        for ind in self.imag_inds:
+            curcomp = cvect[ind] + 1.0j*cvect[ind+1]
+            K[0,ind] = curcomp
+            K[0,ind+1] = conj(curcomp)
+        Ki = cvect[-1]
+        return K, Ki
+
+
+    def mycost(self, cvect, verbosity=0):
+        K, Ki = self.build_K(cvect)
+        self.K = K
+        self.Ki = Ki
+        if verbosity > 10:
+            print('K = ' + str(K))
+        pcost = self.pole_cost()
+        cost = pcost
+        neg_K_penalty = 0.0
+        ## if (array(K) < 0.0).any():
+        ##     neg_K_penalty = 1.0e3
+        ##     cost += neg_K_penalty
+        if verbosity > 0:
+            print('pcost = %s' % pcost)
+            #print('zcost = %s' % zcost)
+            print('cost = %s' % cost)
+            #print('pole locs = %s' % pole_vect)
+            #print('zero locs = %s' % myzeros)
+            print('neg_K_penalty = %s' % neg_K_penalty)
+            print('-'*30)
+        if self.logger is not None:
+            self.logger.log(K, cost)
+        return cost
+
+
+    def __init__(self, *args, **kwargs):
+        SFLR_SS_model_GHCD_7_pole_JCF_opt.__init__(self, *args, **kwargs)
+        if kwargs.has_key('Ki'):
+            self.Ki = kwargs['Ki']
+        else:
+            self.Ki = 0.1
+
+
+class SFLR_SS_model_GHCD_7_pole_JCF_opt_K0_max(SFLR_SS_model_GHCD_7_pole_JCF_opt):
+    def mycost(self, cvect, mygoal=1.5e12, \
+               verbosity=0):
+        cost = SFLR_SS_model_GHCD_7_pole_JCF_opt.mycost(self, \
+                                                        cvect, \
+                                                        verbosity=verbosity)
+        K0_penalty =0.0
+        K0 = cvect[0]
+        if K0 < mygoal:
+            K0_penalty = (mygoal-K0)/mygoal*0.1
+        cost += K0_penalty
+        return cost
     
 
 class closed_loop_SS_model(SFLR_SS_model):
