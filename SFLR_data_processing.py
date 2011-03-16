@@ -137,21 +137,26 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
         
     def plot(self, fi=1, fig=None, clear=True, \
              plot_vars=None, linestyles=None, \
+             linewidths=None, \
              **kwargs):
         if plot_vars is None:
             plot_vars = self.plot_vars
 
         if linestyles is None:
             linestyles = ['-']*len(plot_vars)
+
+        if linewidths is None:
+            linewidths = [1.0]*len(plot_vars)
             
         ax = self._prep_ax(fi=fi, fig=fig, clear=clear)
         t = self.t
-        for key, ls in zip(plot_vars, linestyles):
+        for key, ls, lw in zip(plot_vars, linestyles, linewidths):
             if hasattr(self, key):
                 vect = getattr(self, key)
                 label = self._get_label(key)
                 ax.plot(t, vect, label=label, \
-                        linestyle=ls, **kwargs)
+                        linestyle=ls, linewidth=lw, \
+                        **kwargs)
 
         self.label_axis()
 
