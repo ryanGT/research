@@ -2118,7 +2118,7 @@ class Survey_Answer(object):
         
     
     def plot_histogram(self, fig=None, fignum=1, clear=True, \
-                       title=None, xlim=None, use_percentages=True, \
+                       title=None, xlim=None, use_percentages=False, \
                        figsize=None):
         fig = self._get_fig(fig, fignum, figsize=figsize)
                 
@@ -2148,7 +2148,7 @@ class Survey_Answer(object):
 
 
     def plot_pie_chart(self, fig=None, fignum=1, clear=True, title=None, \
-                       figsize=(11,8)):
+                       figsize=(11,8), use_percentages=False):
         fig = self._get_fig(fig, fignum, figsize=figsize)
         if title is None:
             title = self.question
@@ -2162,8 +2162,25 @@ class Survey_Answer(object):
         for value in arange(1,0,-0.15):
             mytup = (value, value, value)
             mygrays.append(mytup)
-        ax.pie(self.nonempty_percentages, labels=self.clean_pie_labels, \
-               autopct='%1.1f%%', colors=mygrays, shadow=True)
+
+        if use_percentages:
+            slices = self.nonempty_percentages
+        else:
+            slices = self.nonempty_histogram
+
+        ret = ax.pie(slices, labels=self.clean_pie_labels, \
+                     autopct='%i', colors=mygrays, shadow=True)
+
+        apcts = ret[-1]
+        if not use_percentages:
+            for a, label in zip(apcts, self.nonempty_histogram):
+                a.set_text('%i' % label)
+            
+        print('ret = ' + str(ret))
+        print('len(ret) = ' + str(len(ret)))
+
+        ## ax.pie(self.nonempty_percentages, labels=self.clean_pie_labels, \
+        ##        autopct='%1.1f%%', colors=mygrays, shadow=True)
         t = ax.set_title(title)
         t.set_position((0.5, 1.05))        
 
@@ -2179,8 +2196,15 @@ class Survey_Answer(object):
         
         NE = len(self.empty_percentages) 
         if (NE > 0) and (NE < 3):
-            for label, value in zip(self.empty_labels, self.empty_percentages):
-                msg = '%s: %0.1f' % (label, value) + '%'
+            if use_percentages:
+                values = self.empty_percentages
+            else:
+                values = self.empty_histogram
+            for label, value in zip(self.empty_labels, values):
+                if use_percentages:
+                    msg = '%s: %0.1f' % (label, value) + '%'
+                else:
+                    msg = '%s: %i' % (label, value)
                 ax.text(empty_x, empty_y, msg)
                 empty_y += dy
 
@@ -2212,13 +2236,17 @@ class Survey_Answer(object):
         self.empty_percentages = []
         self.empty_labels = []
         self.nonempty_percentages = copy.copy(self.percentages)
+        self.nonempty_histogram = copy.copy(self.histogram)
+        self.empty_histogram = []
         N = len(self.nonempty_percentages)
         i = 0
         while i < N:
             value = self.nonempty_percentages[i]
             if value == 0:
                 self.nonempty_percentages = numpy.delete(self.nonempty_percentages, i)
+                self.nonempty_histogram = numpy.delete(self.nonempty_histogram, i)
                 self.empty_percentages.append(value)
+                self.empty_histogram.append(value)
                 label = self.clean_pie_labels[i]
                 self.clean_pie_labels = numpy.delete(self.clean_pie_labels, i)
                 label = label.replace('\n',' ')

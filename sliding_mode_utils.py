@@ -2,7 +2,8 @@ from scipy import *
 
 from IPython.Debugger import Pdb
 
-def my_smooth_s(delta_x, max_v, max_a, cushion=2.0, dt=0.002):
+def my_smooth_s(delta_x, max_v, max_a, cushion=2.0, dt=0.002, \
+                t=None):
     if delta_x < 0:
         return_neg = True
         delta_x = abs(delta_x)
@@ -40,10 +41,14 @@ def my_smooth_s(delta_x, max_v, max_a, cushion=2.0, dt=0.002):
         v1 = max_v
         dxa = 2*x1+x12
         round_e = delta_x-dxa
-        
+
+
     T = t2+cushion
 
-    t = arange(0,T,dt)
+    if t is None:
+        t = arange(0,T,dt)
+    else:
+        assert t.max() > t2, 'the t sent to s shaper is not long enough'
     #n1 = t1/dt
     n2 = t2/dt
 
