@@ -357,17 +357,25 @@ class SpreadSheet(object):
         myrow = self.data[index]
         return self.GetDataFromRow(myrow, labels)
 
-
-    def SearchCol(self, value, collabel):
-        """Return a boolean vector corresponding to whether or not
-        self[collabel] == value."""
-        myvect = self[collabel]
+    def _search_vect(self, value, myvect):
         if type(myvect)==numpy.ndarray:
             return myvect == value
         else:
             boolist = [item==value for item in myvect]
             return array(boolist)
+        
 
+    def SearchCol(self, value, collabel):
+        """Return a boolean vector corresponding to whether or not
+        self[collabel] == value."""
+        myvect = self[collabel]
+        return self._search_vect(value, myvect)
+
+
+    def SearchAttr(self, value, attr):
+        myvect = getattr(self, attr)
+        return self._search_vect(value, myvect)
+    
 
     def GetMatches(self, vallist, collist):
         """Return a boolean vector corresponding to rows of self.data
@@ -2148,7 +2156,8 @@ class Survey_Answer(object):
 
 
     def plot_pie_chart(self, fig=None, fignum=1, clear=True, title=None, \
-                       figsize=(11,8), use_percentages=False):
+                       figsize=(11,8), use_percentages=False, \
+                       use_title=True, labeldistance=1.1, shadow=True):
         fig = self._get_fig(fig, fignum, figsize=figsize)
         if title is None:
             title = self.question
@@ -2156,7 +2165,7 @@ class Survey_Answer(object):
             fig.clf()
 
         #ax = fig.add_subplot(1,1,1)
-        ax = fig.add_axes([0.25,0.1,0.5,0.7])
+        ax = fig.add_axes([0.2,0.1,0.55,0.85])
         #Pdb().set_trace()
         mygrays = []
         for value in arange(1,0,-0.15):
@@ -2169,7 +2178,8 @@ class Survey_Answer(object):
             slices = self.nonempty_histogram
 
         ret = ax.pie(slices, labels=self.clean_pie_labels, \
-                     autopct='%i', colors=mygrays, shadow=True)
+                     autopct='%i', colors=mygrays, shadow=shadow, \
+                     labeldistance=labeldistance)
 
         apcts = ret[-1]
         if not use_percentages:
@@ -2181,10 +2191,12 @@ class Survey_Answer(object):
 
         ## ax.pie(self.nonempty_percentages, labels=self.clean_pie_labels, \
         ##        autopct='%1.1f%%', colors=mygrays, shadow=True)
-        t = ax.set_title(title)
-        t.set_position((0.5, 1.05))        
+        if use_title:
+            t = ax.set_title(title)
+            t.set_position((0.5, 1.05))        
 
         empty_x = -2.0
+        #empty_x = 2.0
         empty_y = -1.5
         dy = 0.15
         if hasattr(self, 'empty_x'):
@@ -2215,7 +2227,18 @@ class Survey_Answer(object):
         for answer, num, percent in \
                 zip(self.choices, self.histogram, self.percentages):
             print('%s : %i (%0.2f percent)' % (answer, num, percent))
-            
+
+
+    def build_table_row(self, question=None):
+        if question is None:
+            question = self.question
+
+        histfloatlist = self.histogram.tolist()
+        histstrlist = ['%i' % item for item in histfloatlist]
+        mylist = [question] + histstrlist
+        myrow = ' & '.join(mylist) + ' \\\\'
+        return myrow
+
             
     def __init__(self, number, question, answers, choices=None, pretty_labels={}):
         self.number = number
