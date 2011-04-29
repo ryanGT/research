@@ -237,7 +237,10 @@ def interp(x, x1, x2, y1, y2, eps=1e-16):
     
 
 class SpreadSheet(object):
-    def __init__(self, pathin=None, skiprows=0, collabels=None, colmap=None, datafunc=float, picklekeys=[]):
+    def __init__(self, pathin=None, skiprows=0, \
+                 collabels=None, colmap=None, \
+                 datafunc=float, picklekeys=[], \
+                 labelsin=None, datain=None):
 #        print('pathin='+pathin)
         self.path = pathin
         self.labelrow = -1
@@ -252,7 +255,18 @@ class SpreadSheet(object):
         self.colmap = colmap
         self.collabels = collabels
         self.datafunc = datafunc
+        if (labelsin is not None) and (datain is not None):
+            self._init_from_data_and_labels(labelsin, datain)
+            
 
+    def _init_from_data_and_labels(self, labelsin, datain):
+        self.labels = labelsin
+        self.alldata = datain
+        self.data = copy.copy(datain)
+        self.labelrow = 0
+        if self.colmap is not None:
+            self.MapCols()
+        
 
     def FindColLabel(self, label):
         """Search self.labels for label and return the index if found.
@@ -572,7 +586,7 @@ class SpreadSheet(object):
                 n+=1
 
     def ReadRows(self, maxrows=None, startrow=0, parsefunc=None, \
-                 stop_on_blank=True):
+                 stop_on_blank=True, minrows=-1):
         i=0
         dataout = []
         first = 1
@@ -580,7 +594,7 @@ class SpreadSheet(object):
 #        appendtime = 0.0
         for row in self.iterrows():
             if i>=startrow:
-                if stop_on_blank and (row[0] == ''):
+                if stop_on_blank and ((i-startrow) > minrows) and (row[0] == ''):
                     print('stopping based on blank cell in first column, i=%i' % i)
                     break
 
@@ -717,7 +731,7 @@ class SpreadSheet(object):
         return colnums
 
 
-    def ReadData(self, skiprows=None, maxrows=None, parsefunc=None):
+    def ReadData(self, skiprows=None, maxrows=None, parsefunc=None, **kwargs):
         """Read in all the data below labelrow starting at row
         labelrow+skiprows+1.  Stop after maxrows or read all if
         maxrows is None.  If parsefunc is not None, map parsefunc onto
@@ -727,7 +741,9 @@ class SpreadSheet(object):
                 skiprows = self.skiprows
             else:
                 skiprows = 0
-        data = self.ReadRows(startrow=(self.labelrow+1+skiprows), maxrows=maxrows, parsefunc=parsefunc)
+        data = self.ReadRows(startrow=(self.labelrow+1+skiprows), \
+                             maxrows=maxrows, parsefunc=parsefunc, \
+                             **kwargs)
         self.alldata = data
 
 
@@ -774,12 +790,14 @@ class SpreadSheet(object):
         return self.GetColFromArrayorNestedList(label, self.data, self.collabels, exact=exact)
 
     
-    def ReadDataColumn(self, label, skiprows=None, maxrows=None, parsefunc=None, exact=False, removeempty=False):
+    def ReadDataColumn(self, label, skiprows=None, maxrows=None, \
+                       parsefunc=None, exact=False, \
+                       removeempty=False, **kwargs):
         """Read in one column of data with the label label and return
         the data, passing it through parsefunc if it is not None."""
         if self.alldata==[]:
             print('reading data')
-            self.ReadData(skiprows=skiprows)
+            self.ReadData(skiprows=skiprows, **kwargs)
         assert self.labels, "You must call self.FindLabelRow before trying to read a data column."
         ind = -1
         #search first in collabels and return the appropriate column of
@@ -1045,10 +1063,10 @@ class CSVSpreadSheet(SpreadSheet):
     specify the delimitter explicitly.  So, if you are not sure about
     your delimitter, use CSVSpreadSheet."""
     def __init__(self, pathin=None, dialect=None, skiprows=0, \
-                 collabels=None, colmap=None):
+                 collabels=None, colmap=None, **kwargs):
         self.dialect = dialect
         SpreadSheet.__init__(self, pathin=pathin, skiprows=skiprows, \
-                             colmap=colmap, collabels=collabels)
+                             colmap=colmap, collabels=collabels, **kwargs)
 
 
     def sniff(self, sniffbytes=1000, resniff=False):
@@ -1079,16 +1097,19 @@ class CSVSpreadSheet(SpreadSheet):
             yield row
 
 
-    def ReadRows(self, maxrows=None, startrow=0, parsefunc=None, tryfast=True):
+    def ReadRows(self, maxrows=None, startrow=0, parsefunc=None, \
+                 tryfast=True, **kwargs):
         """Attempt to read floating point text data files very
         quickly, if tryfast is True by calling ReadFloatRows."""
         if tryfast:
-            return self.ReadFloatRows(startrow=startrow, maxrows=maxrows)
+            return self.ReadFloatRows(startrow=startrow, \
+                                      maxrows=maxrows, **kwargs)
         else:
-            return SpreadSheet.ReadRows(self, startrow=startrow)
+            return SpreadSheet.ReadRows(self, startrow=startrow, \
+                                        **kwargs)
 
         
-    def ReadFloatRows(self, startrow=0, maxrows=None):
+    def ReadFloatRows(self, startrow=0, maxrows=None, **kwargs):
         """After some tinkering, this is the fastest approach I have
         come up with for reading large data files containing ascii
         representations of floating point data."""
@@ -1110,11 +1131,13 @@ class CSVSpreadSheet(SpreadSheet):
             float(testrow[0])
         except ValueError:
 #            print('In ReadFloatRows, the first element of testrow could not be made into a float:'+testrow[0])
-            return SpreadSheet.ReadRows(self, startrow=startrow, maxrows=maxrows)
+            return SpreadSheet.ReadRows(self, startrow=startrow, \
+                                        maxrows=maxrows, **kwargs)
         try:
             map(float,testrow)
         except ValueError:
-            return SpreadSheet.ReadRows(self, startrow=startrow, maxrows=maxrows)
+            return SpreadSheet.ReadRows(self, startrow=startrow, \
+                                        maxrows=maxrows, **kwargs)
         row1 = fromstring(contents[0],sep=delim)
         mymat = zeros((len(contents), len(row1)))
 
@@ -1182,10 +1205,10 @@ class DynatupSpreadSheet(CSVSpreadSheet):
     def FindDataColumns(self):
         CSVSpreadSheet.FindDataColumns(self, self.collabels, exact=True)
 
-    def ReadDataColumns(self):
+    def ReadDataColumns(self, **kwargs):
         if not self.datacolumns:
             self.FindDataColumns()
-        CSVSpreadSheet.ReadDataColumns(self, skiprows=1)
+        CSVSpreadSheet.ReadDataColumns(self, skiprows=1, **kwargs)
         self.tms = self.data[:,0]
         self.FkN = self.data[:,1]
         self.Fraw = self.data[:,2]
