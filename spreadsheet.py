@@ -314,7 +314,7 @@ class SpreadSheet(object):
         self.WriteCSV(outpath, labels, data)
                       
 
-    def MapCols(self, colmap = None):
+    def MapCols(self, colmap = None, minrows=-1):
         if colmap is None:
             colmap = self.colmap
         else:
@@ -325,7 +325,7 @@ class SpreadSheet(object):
         if not self.datacolumns:
             self.FindDataColumns(self.collabels)
         if self.alldata == []:
-            self.ReadData()
+            self.ReadData(minrows=minrows)
         if self.data == []:
             self.ReadDataColumns()
         for key, val in colmap.iteritems():
@@ -595,6 +595,7 @@ class SpreadSheet(object):
         for row in self.iterrows():
             if i>=startrow:
                 if stop_on_blank and ((i-startrow) > minrows) and (row[0] == ''):
+                    print('in SpreadSheet.ReadRows, i=%s, startrow=%i, minrows=%s' % (i, startrow, minrows))
                     print('stopping based on blank cell in first column, i=%i' % i)
                     break
 
