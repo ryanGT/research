@@ -2179,9 +2179,23 @@ class Survey_Answer(object):
             ax.set_xlim(xlim)
 
 
+    def add_percentages_to_labels_for_1_student(self, N):
+        """If only 1 student gave a certain answer, move the apct with
+        percentage out to the label."""
+
+        for i, label in enumerate(self.nonempty_histogram):
+            cur_n = float(label)
+            if cur_n == 1:
+                cur_label = self.clean_pie_labels[i]
+                p = 100.0*cur_n/N
+                p_label = '%i (%0.4g' % (cur_n, p) + '%)'
+                new_label = cur_label + ':\n ' + p_label
+                self.clean_pie_labels[i] = new_label
+                
+
     def plot_pie_chart(self, fig=None, fignum=1, clear=True, title=None, \
                        figsize=(11,8), use_percentages=False, \
-                       use_title=True, labeldistance=1.1, shadow=True):
+                       use_title=True, labeldistance=1.1, shadow=True, N=None):
         fig = self._get_fig(fig, fignum, figsize=figsize)
         if title is None:
             title = self.question
@@ -2189,7 +2203,7 @@ class Survey_Answer(object):
             fig.clf()
 
         #ax = fig.add_subplot(1,1,1)
-        ax = fig.add_axes([0.2,0.1,0.55,0.85])
+        ax = fig.add_axes([0.25,0.15,0.45,0.625])
         #Pdb().set_trace()
         mygrays = []
         for value in arange(1,0,-0.15):
@@ -2201,14 +2215,28 @@ class Survey_Answer(object):
         else:
             slices = self.nonempty_histogram
 
+        if (N is not None) and (not use_percentages):
+            self.add_percentages_to_labels_for_1_student(N)
+            
+
         ret = ax.pie(slices, labels=self.clean_pie_labels, \
                      autopct='%i', colors=mygrays, shadow=shadow, \
                      labeldistance=labeldistance)
 
+        wedges = ret[0]
         apcts = ret[-1]
         if not use_percentages:
-            for a, label in zip(apcts, self.nonempty_histogram):
-                a.set_text('%i' % label)
+            for a, w, label in zip(apcts, wedges, self.nonempty_histogram):
+                if N is not None:
+                    val = float(label)
+                    p = 100.0*val/N
+                    mylabel = '%i\n(%0.4g' % (label, p) + '%)'
+                    if val > 1:
+                        a.set_text(mylabel)
+                    else:
+                        a.set_text('')
+                else:
+                    a.set_text('%i' % label)
             
         print('ret = ' + str(ret))
         print('len(ret) = ' + str(len(ret)))
