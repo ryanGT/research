@@ -297,6 +297,20 @@ class Sympy_AVS_ThetaFB_Element(Sympy_AVS_Element):
         return U
 
 
+class Sympy_Forcing_Element(Sympy_TMM_Element):
+    def Get_Mat(self, s):
+        U = eye(self.N)
+        self.U = U
+        return U
+
+    def Get_Aug_Mat(self, s):
+        fv = self.params['fv']
+        U = eye(self.N+1)
+        U[0:4,4] = fv
+        self.augU = U
+        return U
+
+
 def find_submat(Uin):
     submat = Uin[2:4, 2:4]
     return submat
