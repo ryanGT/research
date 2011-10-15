@@ -2403,7 +2403,7 @@ def dump(matrix, pathout, labels=[], delim='\t', append=False):
         dialect=tabdelim
     else:
         dialect=mycsv
-    writer = csv.writer(f,dialect)
+    writer = csv.writer(f,dialect, escapechar='~')
     if labels:
         writer.writerow(labels)
     writer.writerows(matrix)

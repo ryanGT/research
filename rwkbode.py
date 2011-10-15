@@ -692,7 +692,8 @@ def _getlinestyle(ax=None):
     if ax is None:
        import pylab
        ax = pylab.gca()
-    myind=ax._get_lines.count
+    #myind=ax._get_lines.count
+    myind = len(ax.lines)
     return {'color':colors[myind % len(colors)],'linestyle':mytypes[myind % len(mytypes)]}
 
 def _inccount():
@@ -904,7 +905,7 @@ def GenBodePlot(fignum, freqvect, bodein, clear=True, \
     ax1 = fig.add_subplot(2,1,1)
     if clear:
         ax1.cla()
-    myind=ax1._get_lines.count
+    #myind=ax1._get_lines.count
     mylines=_PlotMag(freqvect,bodein, axis=ax1,**subkwargs)
     ax1.set_ylabel('Mag. Ratio (dB)')
 #    ax=gca()
@@ -947,7 +948,7 @@ def GenCohPlot(fignum, freqvect, bodein, \
     ax = fig.add_subplot(1,1,1)
     if clear:
         ax.cla()
-    myind=ax._get_lines.count
+    #myind=ax._get_lines.count
     mylines=_PlotCoh(freqvect,bodein, axis=ax,**subkwargs)
     ax.set_ylabel('Coherence')
 #    ax=gca()
