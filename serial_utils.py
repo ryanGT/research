@@ -46,7 +46,7 @@ def my_pause(n=100):
 def Open_Serial(portname='COM1', baud=115200):
     """Open a serial connection on port portname with baud rate baud."""
     if amiLinux():
-        portname = '/dev/ttyS0'
+        #portname = '/dev/ttyS0'
         ser = serial.Serial(portname, baud, timeout=None)
     else:
         ser = serial.Serial(portname, baud)
