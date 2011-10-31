@@ -1,4 +1,4 @@
-import serial
+import serial, socket
 
 from rwkos import amiLinux
 
@@ -43,8 +43,14 @@ def my_pause(n=100):
         i+=1
         
 
-def Open_Serial(portname='COM1', baud=115200):
+def Open_Serial(portname=None, baud=115200):
     """Open a serial connection on port portname with baud rate baud."""
+    if portname is None:
+        hostname = socket.gethostname()
+        if hostname == 'ryan-CNC':
+            portname = '/dev/ttyS0'
+        else:
+            portname = 'COM1'
     if amiLinux():
         #portname = '/dev/ttyS0'
         ser = serial.Serial(portname, baud, timeout=None)
