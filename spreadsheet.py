@@ -2195,7 +2195,8 @@ class Survey_Answer(object):
 
     def plot_pie_chart(self, fig=None, fignum=1, clear=True, title=None, \
                        figsize=(11,8), use_percentages=False, \
-                       use_title=True, labeldistance=1.1, shadow=True, N=None):
+                       use_title=True, labeldistance=1.1, shadow=True, N=None, \
+                       empty_x=None, empty_y=None):
         fig = self._get_fig(fig, fignum, figsize=figsize)
         if title is None:
             title = self.question
@@ -2247,9 +2248,11 @@ class Survey_Answer(object):
             t = ax.set_title(title)
             t.set_position((0.5, 1.05))        
 
-        empty_x = -2.0
-        #empty_x = 2.0
-        empty_y = -1.5
+        if empty_x is None:
+            empty_x = -2.0
+            #empty_x = 2.0
+        if empty_y is None:
+            empty_y = -1.5
         dy = 0.15
         if hasattr(self, 'empty_x'):
             empty_x = self.empty_x
