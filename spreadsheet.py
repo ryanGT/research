@@ -1055,6 +1055,23 @@ class SpreadSheet(object):
 ## class DataSpreadSheet:
 ##     """This mix in class overrides the ReadData, ReadDataColumn, and ReadDataColumns methods for Spreadsheets that contain only numeric data."""
 
+class spreadsheet_from_data(SpreadSheet):
+    """This class seeks to make it possible to have spreadsheet
+    functionality even if the data isn't read from a spreadsheet file.
+    This might be usefull if data is pulled from a larger database
+    file."""
+    def __init__(self, labels, alldata, data=[], colmap={}, datafunc=float):
+        self.labels = labels
+        self.alldata = alldata
+        self.colmap = colmap
+        self.data = data
+        self.labelrow = 0
+        self.datacolumns = None
+        self.datafunc = datafunc
+        if colmap:
+            self.collabels = [item for item in self.labels if item in self.colmap.keys()]
+
+        
 
 class CSVSpreadSheet(SpreadSheet):
     """Note that following the example of OpenOffice and the Python

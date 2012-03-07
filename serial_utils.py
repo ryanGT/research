@@ -99,6 +99,12 @@ def Start_Test(ser):
     WriteByte(ser, 113)
     th0 = Read_Two_Bytes_Twos_Comp(ser)
     return th0
+    
+    
+def Get_Theta(ser):
+    WriteByte(ser, 114)
+    th0 = Read_Two_Bytes_Twos_Comp(ser)
+    return th0
 
 def Reset_Theta(ser):
     WriteByte(ser, 55)
@@ -111,3 +117,4 @@ def Stop_PSoC_ser(ser):
 def Send_One_Voltage(ser, v=0):
     WriteByte(ser, 47)
     WriteInt(ser, v)
+    
