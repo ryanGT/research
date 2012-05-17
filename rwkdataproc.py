@@ -24,7 +24,7 @@ import pdb
 import scipy
 from rwkmisc import my_import
 import types
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 #import rwkmplutil
 
 def is_1D(arrayin):
@@ -33,7 +33,7 @@ def is_1D(arrayin):
         return False
     else:
         return True
-    
+
 
 def colwise(matin, makecopy=1):
     if type(matin) != ndarray:
@@ -107,11 +107,11 @@ def DownSampleTimeDomain(vector, factor, axis=0):
     mask=CreateDownSampleMask(vector, factor)
     return vector.compress(mask, axis)
 
-   
+
 class Spectra:
    def __init__(self, input=None, output=None, \
                 Gxx=None, Gyy=None, Gxy=None, ave=False):
-      """Note that input and output are just labels.""" 
+      """Note that input and output are just labels."""
       self.input=input
       self.output=output
       self.Gxx=Gxx
@@ -158,7 +158,7 @@ class Spectra:
          curitem=curitem[0:ind,:]
          setattr(self,curkey,squeeze(curitem))
       return fout
-      
+
 
 def thresh_py(iterin, value, startind=0, above=1,reverse=0):
     myiter=iterin[startind:]
@@ -231,7 +231,7 @@ def edges(iterin, mythresh=2.5, startind=0, edges='rising'):
         return risingedges
     elif edges=='falling':
         return fallingedges
-        
+
 
 def thresh(iterin, value, startind=0, above=1):
     if above:
@@ -255,7 +255,7 @@ def thresh(iterin, value, startind=0, above=1):
         return -1
     else:
         return keep2.min()
-    
+
 ## def thresh_old(iterin, value, startind=0, above=1):
 ## #        ind=-1
 ##     stopind=len(iterin)
@@ -330,7 +330,7 @@ class datastruct(dict):
 def BuildDataSet(pattern,directory='',ext='',xlabel='t'):
     extpattern=''
     if len(ext)>0 and ext[0]!='*':
-        extpattern='*'+ext 
+        extpattern='*'+ext
     relpattern=os.path.join(directory,pattern)
     fullpattern=relpattern+extpattern
     temp=fullpattern.replace("**","*")
@@ -339,7 +339,7 @@ def BuildDataSet(pattern,directory='',ext='',xlabel='t'):
         temp=fullpattern.replace("**","*")
 #    print('fullpattern='+fullpattern)
     filelist=glob.glob(fullpattern)
-    
+
     mystruct=datastruct()
     mystruct.filenames=filelist
     mystruct.ynames=[]
@@ -426,14 +426,14 @@ def TruneOneFile(filepath, signames, sigdict, truncsig='ce2', startcush=500, end
     save_as_module(outpath,outdict)
     print('path='+outpath)
     return outdict
-    
+
 
 
 #=============================
 #
-#   Data Processing Scripts 
+#   Data Processing Scripts
 #   intended for gui or script
-#   based interface.  
+#   based interface.
 #   Started 10/5/05
 #=============================
 
@@ -442,8 +442,8 @@ def mystack(listin):
     myN=min(slist)
     newlist=[item[0:myN] for item in listin]
     return column_stack(newlist)
-    
-   
+
+
 def ReadSigMap(filename):
     f = open(filename)
     mylines = f.readlines()
@@ -459,7 +459,7 @@ def _initializedict(deschannels):
     for sig in deschannels:
         outdict[sig]=[]
     return outdict
- 
+
 def LoadDatafromSavedModules(filelist,deschannels,xlabel='t'):
     """Builds matrices for each channel assuming that each filename
     has been saved to a module using scipy.io.save.  filelist is a
@@ -471,7 +471,7 @@ def LoadDatafromSavedModules(filelist,deschannels,xlabel='t'):
         mod=my_import(modname)
         mydict=ConvertSaveModuletoDict(mod)
         for chn in deschannels:
-           outdict[chn].append(mydict[chn])        
+           outdict[chn].append(mydict[chn])
     for key, value in outdict.iteritems():
         if key != xlabel:
 #           print('key='+str(key))
@@ -486,7 +486,7 @@ def LoadDatafromUntrunc(filelist,deschannels,namedict={},xlabel='t'):
     """Loads data from *.mat files and builds
     a datastructure with matrices of the signals.
     The files in filelist are loaded using
-    loadmat(filename) without any attempt to 
+    loadmat(filename) without any attempt to
     search for the file.  So, filelist should either
     contain fullpaths or the files should be
     in the current directory.
@@ -537,8 +537,8 @@ def MakeLongTime(t, N):
     tout=arange(0,N,dtype='f')
     tout=tout*dt
     return tout
-    
-            
+
+
 def ConnectDataSets(dictin, N, xlabel='t'):
     """String datasets from different tests into longer sets to
     increase total time T and reduce bias error.
@@ -556,7 +556,7 @@ def ConnectDataSets(dictin, N, xlabel='t'):
     nro=shape(outdict[key])[0]
     outdict[xlabel]=MakeLongTime(dictin[xlabel],nro)
     return outdict
-    
+
 def BuildDataSetfromList(filelist, xlabel='t'):
     """Loads data from *.mat files and builds a datastructure with
     matrices of the signals.  The files in filelist are loaded using
@@ -589,7 +589,7 @@ def BuildDataSetfromList(filelist, xlabel='t'):
 def FilelistfromPattern(pattern,directory='',ext=''):
     extpattern=''
     if len(ext)>0 and ext[0]!='*':
-        extpattern='*'+ext 
+        extpattern='*'+ext
     relpattern=os.path.join(directory,pattern)
     fullpattern=relpattern+extpattern
     temp=fullpattern.replace("**","*")
@@ -700,7 +700,7 @@ def CalcBodesFromDataset(tddict, bodelist, description='', \
        curavebode.phase=Hphase_ave
        bodedict['bodes'].append(outbode)
        avedict['bodes'].append(curavebode)
-    return bodedict,avedict 
+    return bodedict,avedict
 
 #    if len(datapath)>0:
 #        os.chdir(datapath)
@@ -718,7 +718,7 @@ def ConvertSaveModuletoDict(modulein):
         if key.find('__')!=0 and type(item)!=types.ModuleType:
             dictout[key]=item
     return dictout
-        
+
 #=============================
 #
 #   End new scripts
@@ -764,7 +764,7 @@ def CalcBiasEror(dsvect,fds,vect,f,zeroorder=True):
        return fb, evect/squeeze(vect[n:-n])
 
 #-----------------------------------
- 
+
 def PreviewData(datastructin, fig=None):
     x=getattr(datastructin,datastructin.xname)
     usepylab = False
@@ -773,8 +773,8 @@ def PreviewData(datastructin, fig=None):
        fig = figure(fi)
        usepylab = True
     ax = fig.gca()
-    
-       
+
+
     for key, curset in datastructin.datasets.iteritems():
         for channel in curset.ynames:
             ax.cla()
@@ -792,7 +792,7 @@ def PreviewData(datastructin, fig=None):
                ion()
                show()
             raw_input('Please press return to continue...\n')
-   
+
 def makefreqvect(timevect):
     tspan=timevect.max()-timevect.min()
     N = timevect.shape[0]
@@ -832,8 +832,8 @@ def BodefromTwoTimeDomainVectors(timevector,output,input,truncfreq=100):
     calculation time and return only useful information.  Input and
     output are time domain vectors.
 
-    The return values are 
-    freq, magnitude ratio, phase, complex 
+    The return values are
+    freq, magnitude ratio, phase, complex
 
     The goal of this function is to be useful for small amounts of
     data and/or as part of a routine to calculate a Bode response from
@@ -867,8 +867,8 @@ def PhaseMassageFilter(phin, N=2, Wn=0.1, jump=250,freqvect=[],chkind=0, fig=Non
     if fig is None:
        from pylab import figure
        fig = figure(fi)
-       
-    phun=colwise(phin)    
+
+    phun=colwise(phin)
     phout=zeros(shape(phun),'d')#+0.0j
     (b,a)=scipy.signal.butter(N,Wn)
     phfilt=scipy.signal.lfilter(b,a,phun,axis=0)
@@ -902,8 +902,8 @@ def PhaseMassage(phin, freqin, seedfreq, seedphase,jump=250.0):
     vect2=phin[0:ind]
     vect2=phaseengine(vect2,seedphase,ind,1,-1,jump=jump)
     return r_[vect2,vect1]
-    
-    
+
+
 ## def PhaseMassage_old(phin, freqin, seedfreq, seedphase,jump=250.0):
 ## #    print('calling PhaseMassage')
 ## #    phout=copy.deepcopy(phin)
@@ -1036,7 +1036,7 @@ def PhaseMassage(phin, freqin, seedfreq, seedphase,jump=250.0):
 ##         aveout=zeros(shape(phout),'f')
 ##         code="""
 ##             #line 215 "rwkdataproc.py"
-##             int previ;  
+##             int previ;
 ##             previ=startind-step;
 ##             //std::cout<<"using C imp."<<std::endl;
 ##             //std::cout<<"I am not averaging"<<std::endl;
@@ -1073,7 +1073,7 @@ def PhaseMassage(phin, freqin, seedfreq, seedphase,jump=250.0):
 ## #        mylist.append(curline)
 ## #    mylist.tofile(0)
 ##     return phout
-        
+
 ## def phaseengine_w_ave(phmat,step=1,nave=5.0,jumpave=120.0):
 ##     #Note that this function only does averaging, it does not use a seedphase or look for jumps from one element to the next.  It only looks at the current element compared to the average of the nave previous elements.  It is expected that this function is called only after first calling the regular phaseengine to first clean up the data.
 ## #    print('jumpave='+str(jumpave))
@@ -1101,7 +1101,7 @@ def PhaseMassage(phin, freqin, seedfreq, seedphase,jump=250.0):
 ##     code="""
 ##         #line 314 "rwkdataproc.py"
 ##         //std::ofstream outfile("log.txt");
-##         int previ; 
+##         int previ;
 ##         int rind;
 ##         int q;
 ##         double cursum;
@@ -1127,12 +1127,12 @@ def PhaseMassage(phin, freqin, seedfreq, seedphase,jump=250.0):
 ##                     numin+=1.0;
 ##                     //outfile<<"i="<<i<<" numin="<<numin<<std::endl;
 ##                 }
-##                 else 
+##                 else
 ##                 {
 ##                     remove=true;
 ##                 }
 ##                 cursum+=phout(previ,j);
-##                 if ( remove ) 
+##                 if ( remove )
 ##                 {
 ##                     //outfile<<"i="<<i<<" stopind="<<stopind<<" previ="<<previ<<" nave="<<nave<<" step="<<step;
 ##                     rind=static_cast<int>(previ-nave*step);
@@ -1175,7 +1175,7 @@ def PhaseMassage(phin, freqin, seedfreq, seedphase,jump=250.0):
 ## #        mylist.append(curline)
 ## #    mylist.tofile(0)
 ##     return phout
- 
+
 ## def AveMessage(phin, freqin, seedfreq, seedphase,jump=250.0,nave=5.0):
 ##     #Note: Run PhaseMassage first and then pass the data to AveMessage as a second clean up step
 ##     phout=copy.deepcopy(phin)
@@ -1254,8 +1254,8 @@ def mat_atan2(y,x):
 ##     code = """
 ##            for(int i = 0; i < nr; i++)
 ##                for(int j = 0; j < nc; j++)
-##                    outmat(i,j) = atan2(y(i,j),x(i,j));  
-##            """ 
+##                    outmat(i,j) = atan2(y(i,j),x(i,j));
+##            """
 ##     inline_tools.inline(code,['outmat','y','x','nr','nc'],
 ##                         type_converters = cblitz,
 ##                         compiler='gcc',

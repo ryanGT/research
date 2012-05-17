@@ -1,6 +1,6 @@
 from scipy import *
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 def my_smooth_s(delta_x, max_v, max_a, cushion=2.0, dt=0.002, \
                 t=None):

@@ -9,7 +9,7 @@ import rwkos, rwkdataproc, rwkbode
 
 from rwkmisc import rowwise, my_import, LoadPickle
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 import sys, os, copy
 
@@ -149,7 +149,7 @@ def build_Gth_TMM_model(pklpathin=None):
 
     import Gth
     reload(Gth)
-    
+
     Gth_TMM = SFLR_TMM.model_w_bm_with_theta_feedback_comp(pklpathin, \
                                                            p=Gth.p, \
                                                            z=Gth.z, \
@@ -168,7 +168,7 @@ def build_ThetaFB_exp_Bode_plotter():
     ThetaFB_Exp_Bode_Plotter = BPO.exp_bode_object(thetafb_mod_name, \
                                                    ThetaFB_Bode_opts)
     return ThetaFB_Exp_Bode_Plotter
-    
+
 
 def ThetaFB_bode_plots(fi=3, resave=1):
     ThetaFB_Exp_Bode_Plotter = build_ThetaFB_exp_Bode_plotter()
@@ -176,16 +176,16 @@ def ThetaFB_bode_plots(fi=3, resave=1):
 
     if design_dir not in sys.path:
         sys.path.append(design_dir)
-        
+
 
     Gth_TMM = build_Gth_TMM_model()
 
     import Gth
     reload(Gth)
-    
+
     ThetaFB_TMM_Bode_Plotter = BPO.TMM_bode_object(Gth_TMM, \
                                                    ThetaFB_Bode_opts)
-    
+
     ThetaFB_Plotters =[ThetaFB_Exp_Bode_Plotter, \
                        ThetaFB_TMM_Bode_Plotter, \
                       ]
@@ -210,12 +210,12 @@ def ThetaFB_bode_plots(fi=3, resave=1):
     th_bode = BPO.comp_to_Bode(th_comp, f, bode_opt=th_bode_opt)
     a_bode = BPO.comp_to_Bode(a_comp, f, bode_opt=a_bode_opt)
     BPO._plot_bode(th_bode, th_bode_opt, f, fignum=fi, linetype='k:')
-    BPO._plot_bode(a_bode, a_bode_opt, f, fignum=fi+1, linetype='k:')    
+    BPO._plot_bode(a_bode, a_bode_opt, f, fignum=fi+1, linetype='k:')
 
 
 
 
-    
+
 def build_Accel_TMM_model(pklpathin=None, Ga=None):
     if pklpathin is None:
         pklpathin = pkl_path
@@ -231,7 +231,7 @@ def build_Accel_TMM_model(pklpathin=None, Ga=None):
 
     if Ga is None:
         Ga = Ga5.Ga5
-        
+
     Gth_Ga_TMM = SFLR_TMM.model_w_bm_accel_and_theta_FB(pkl_path, \
                                                         Gth=Gth.Gth, \
                                                         Ga=Ga, \
@@ -268,7 +268,7 @@ def AccelFB_bode_plots(fi=5, resave=1):
     if design_dir not in sys.path:
         sys.path.append(design_dir)
 
-    
+
     import Gth
     reload(Gth)
 
@@ -280,9 +280,9 @@ def AccelFB_bode_plots(fi=5, resave=1):
 
     def myfunc(s):
         return 0.0
-    
+
     Gth_Ga_TMM = build_Accel_TMM_model()
-    
+
     AccelFB_TMM_Bode_Plotter = BPO.TMM_bode_object(Gth_Ga_TMM, \
                                                    AccelFB_Bode_opts)
 
@@ -299,12 +299,12 @@ def AccelFB_bode_plots(fi=5, resave=1):
     if resave:
         mysave('accelfb_theta_thd_bode.eps', fi)
         mysave('accelfb_a_thd_bode.eps', fi+1)
-    
+
 
 
 if __name__ == '__main__':
     OL_bode_plots()
     ThetaFB_bode_plots()
     AccelFB_bode_plots()
-    
+
     show()

@@ -2,7 +2,7 @@ from scipy import *
 from scipy import signal
 from pylab import figure, cla, clf, plot, subplot, show, ylabel, xlabel, xlim, ylim, semilogx, legend, title, savefig, yticks, grid, rcParams
 
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 import copy, os, sys, time
 
@@ -38,8 +38,8 @@ def staythreshbackwd(vectin, thresh, staypoints=20, above=True, startind=None):
     myvect = reverse(myvect)
     ind1 = _staythresh(myvect, thresh, staypoints=staypoints, above=above)
     return startind-ind1
-    
-    
+
+
 
 class FilterChannel:
     def __init__(self, signal, cutoff_freq, sample_freq, order=2, tvect=None):
@@ -71,8 +71,8 @@ class FilterChannel:
         ax.plot(self.t, self.signal, self.t, self.filtered)
         return ax
 
-    
-    
+
+
 class Trigger:
     """This class is used to create various triggers off of digital or
     analog signals."""
@@ -113,7 +113,7 @@ class DropDownLightGateTrigger(Trigger):
         self.dt = self.t1-self.t0
         return secondedge
 
-        
+
 class ForwardBackwardTrigger(Trigger):
     """This class implements a trigger I found very useful in dealing
     with FMH impact data.  It first searches forward until a vector
@@ -146,12 +146,12 @@ class StayTrigger(Trigger):
         ind1 = staythreshfwd(self.signal, self.thresh, above=above, staypoints=self.staypoints, startind=startind)
         return ind1
 
-        
+
 class AnalogTruncateChannel:
     def __init__(self, signal, timevector):
         self.signal = signal
         self.t = timevector
-        
+
     def Trunc(self, trigger, threshlevel=None, duration=0.05, backup=0.01):
         """Truncate channel based on a trigger time that comes from
         trigger.FindTrig(threshlevel).  trigger is expected to be an
@@ -164,7 +164,7 @@ class AnalogTruncateChannel:
             ind2 = thresh(self.t, self.t[ind0]+duration)
         except:
             ind2 = len(self.t)
-        
+
         self.sigtrunc = copy.copy(self.signal[ind0:ind2])
         self.ttrunc = copy.copy(self.t[ind0:ind2])-t0
         return ind0, ind2
@@ -218,7 +218,7 @@ class FFTChannel:
         ax.set_ylabel('Magnitude (dB)')
         return ax
 
-    
+
     def _Plot_Mag(self, ax, semilog=False, clear=True, label=None, freqlim=None):
         self._Plot_prop('mag', ax, semilog=semilog, clear=clear, label=label, freqlim=freqlim)
 
@@ -238,7 +238,7 @@ class FFTChannel:
         if freqlim:
             ax.set_xlim(freqlim)
 
-        
+
 
 
 class AccelMixin:
@@ -319,4 +319,4 @@ class AveBodeResponse(BodeResponse):
 
     def PlotBodeCoh(self, fig, clear=True):
         rwkbode.BodeCohPlot(1, self.f, self.bode, fig=fig, clear=clear)
-    
+

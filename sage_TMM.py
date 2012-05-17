@@ -1,7 +1,7 @@
 from sage.all import *
 import numpy
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 import txt_mixin
 reload(txt_mixin)
@@ -100,13 +100,13 @@ class sage_TMM_Element(object):
 
     def Get_Mat(self, s):
         raise NotImplementedError
-        
+
     def Get_Aug_Mat(self, s):
         U = self.Get_Mat(s)
         augU = aug_wrap(U, self.N)
         self.augU = augU
         return augU
-        
+
 
 class sage_Beam_Element(sage_TMM_Element):
     def Get_Mat(self, s):
@@ -337,7 +337,7 @@ def find_base_vector(Uin):
     z_b[-1] = 1.0
     return z_b
 
-    
+
 def cse_tuples_to_txtlist(tuplelist, ws=" "*4):
     """Take a list of tuples returned as the first output from
     sympy.cse and convert it to a txtlist of valid Python code."""
@@ -426,8 +426,8 @@ def cse_to_file(expr_list, filename, outlabels, funcname, \
     mylist = preamble + mylist#don't do the search and replace in the
                               #preamble
     txt_mixin.dump(filename, mylist)
-    
-                  
+
+
 
 if __name__ == '__main__':
 
@@ -560,7 +560,7 @@ if __name__ == '__main__':
 ##     U33 = U[3,3]
 ##     U23 = U[2,3]
 ##     U32 = U[3,2]
-    
+
 ##     det = U22*U33-U23*U32
 ##     cse_to_file(U, 'Usympy.py', 'U', 'U_sympy', inputs=['s','params'])
 ##     cse_to_file(Bz, 'Bzsympy.py','B','Bz_sympy', inputs=['s','params'])

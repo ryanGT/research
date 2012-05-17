@@ -1,7 +1,7 @@
 from scipy import *
 import sympy
 
-#from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 #my_syms = ['Gact','v','c','s','k','th_d', 'tha','xb','thb','Mb','Vb']
 
 

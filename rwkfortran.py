@@ -5,7 +5,7 @@ import pdb
 import copy
 from scipy import shape
 import txt_mixin
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 #mytrace=Pdb().set_trace
 
 rwkpydir='/home/ryan/rwkpython'
@@ -39,15 +39,15 @@ def fix_scientific_notation(pathin, pathout=None):
     if pathout is None:
         pathout = pathin
     myfile.save(pathout)
-                
-            
-    
-    
+
+
+
+
 def _CleanList(listin):
     listin.replace('%PI','pi')
     return listin
 
-    
+
 def GetHeader(filename='header.f'):
     return rwkreadfile(os.path.join(rwkpydir,filename))
 
@@ -193,16 +193,16 @@ def FortranToTextList(filename,newretval='',whitespace='\t'):
     return outlist.list,retval
 
 def GetOptimizeVariableNames(filename,varprefix='a_'):
-    """This function searched through a FORTRAN 
-    file that was created by Maxima and the 
-    Maxima function fortran_optimize, and 
+    """This function searched through a FORTRAN
+    file that was created by Maxima and the
+    Maxima function fortran_optimize, and
     creates a list of all of the intermediate
     variables created by the fortran_optimize
-    function.  These variables will all be 
+    function.  These variables will all be
     on the left hand side of equations at the
     begining of the file and will all start
     with varprefix.
-    
+
     The list of variables is returned."""
     flist=rwkreadfile(filename)
     outlist=[line for line in flist if line]
@@ -236,10 +236,10 @@ def WrapLines(listin):
 
 def WrapFortranLine(linein, operators=['+','-','**',',','*','/']):
     """This function wraps lines longer than
-    72 characters by looking for the right 
+    72 characters by looking for the right
     most occurance of an operator in curline[0:73].
-    
-    Even if len(linein)<=72, this function will 
+
+    Even if len(linein)<=72, this function will
     still return a list of lines - but in that
     case the list will have only one line in it."""
     linesout=[]
@@ -267,7 +267,7 @@ def GetAllRealVariables(allparams, alldefs, allcomp=[],unknownparams=[]):
     double precision or double complex.  allparams is a list of
     variable names. allcomp is a list of complex variables.  This is
     used to filter out complex values from allparams+GetLHS(alldefs).
-    
+
     The return value is a list of real variables."""
     defvars=map(GetLHS,alldefs)
     myparams=allparams+defvars
@@ -327,7 +327,7 @@ def _ReplaceTagwithList(listin, tag, replist):
         listout.pop(curind)
         listout[curind:curind]=replist
     return listout
-        
+
 def _GetLengths(listin):
     strout=''
     for item in listin:
@@ -450,8 +450,8 @@ def _CompensatorLines(complist, inputlist):
     defline=ws+'double complex poly,'+','.join(deflist)
     deflines=WrapFortranLine(defline)
     return deflines+linesout
-                    
-    
+
+
 ##       subroutine bodevect(svect,ucv,outvect,n1,n2)
 ## Cf2py integer intent(hide),depend(svect) :: n1 = len(svect)
 ## Cf2py integer intent(hide),depend(ucv) :: n2 = len(ucv)
@@ -467,7 +467,7 @@ def MakeFortranFunction(filename, TMMsysmodel, curvefit=1, \
     """This function takes a filename that refers to a raw FORTRAN
     file output by Maxima and makes it into a file ready for f2py and
     Bode analysis."""
-    
+
     print('curvefit='+str(curvefit))
     print('headername='+str(headername))
 #    Pdb().set_trace()
@@ -518,7 +518,7 @@ def MakeFortranFunction(filename, TMMsysmodel, curvefit=1, \
     excludelist = fplist+complist
     filtparams=[item for item in myparams if (item in filtdict.keys()) and (item not in excludelist)]
     paramlines=[ws+item +' = '+ str(filtdict[item]) for item in filtparams]
-    linesout.extend(paramlines)    
+    linesout.extend(paramlines)
     mydefs=map(MyFortranFilter,alldefs)
     mydefs=[ws+item for item in mydefs]
     linesout.extend(mydefs)
@@ -565,13 +565,13 @@ def ReplaceReturnName(filename,newname, oldname='RESULT',makecopy=False):
     """Replace the return value of a FORTRAN
     program (presumably one created by Maxima),
     by searching for a line that starts with
-    6 spaces and then 'RESULT =' (where the 
+    6 spaces and then 'RESULT =' (where the
     space is optional) and replacing RESULT on
-    that line with newname.  
+    that line with newname.
 
     Returns a textlist.  filename can also be a
     textlist or a list of text lines.
-    
+
     If makecopy=True, a copy of the list is made
     before it is changed.  Otherwise, both the
     the list in and the list out will reflect

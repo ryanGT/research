@@ -12,7 +12,7 @@ import txt_mixin
 import rwkdataproc
 import rwkbode
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 pat = '\$\\\\(.*)\$'
 p = re.compile(pat)
@@ -153,8 +153,8 @@ class object_with_n_vector(object):
                 assert mybool.all(), "Not all the jumps where equal to -65535: " + str(jumps)
             self.njumps = jumps
             return True
-    
-    
+
+
 class Data_File(object_with_n_vector):
     """A class for representing one txt data file assumed to be
     composed of data in columns with a certain number of initial rows
@@ -194,7 +194,7 @@ class Data_File(object_with_n_vector):
         temp = txt_mixin.txt_file_with_list(self.path)
         self.raw_list = temp.list
         self.N = len(self.raw_list)
-        
+
 
     def sniff(self):
         """Attempt to determine the correct value for self.skiprows by
@@ -229,7 +229,7 @@ class Data_File(object_with_n_vector):
 
     def _get_header(self):
         self.header = self.raw_list[0:self.skiprows]
-        
+
 
     def get_labels(self):
         """Read the labels from the data file, assuming they are in
@@ -241,7 +241,7 @@ class Data_File(object_with_n_vector):
         labels = self.raw_list[self.skiprows-1]
         raw_labels = labels.split(self.delim)
         self.labels = map(clean_key, raw_labels)
-        
+
 
 
     def _load_data(self):
@@ -257,7 +257,7 @@ class Data_File(object_with_n_vector):
                 return self.data
             except ValueError:
                 skip += 1
-        
+
 
     def Load_Data(self):
         """Load the data and store the columns in appropriate
@@ -302,13 +302,13 @@ class Data_File(object_with_n_vector):
         mplutil.mysave(fig_path, fig, ext=ext)
         return fig_path
 
-        
+
     def Time_Plot(self, labels=None, ax=None, fignum=1,
                   clear=True, legloc=None, legend_dict={}, \
                   ylabel='Voltage (counts)', \
                   basename=None, save=False, \
                   ext='.png', fig_dir='', title=None, \
-                  **plot_opts):                  
+                  **plot_opts):
         if ax is None:
             ax = self.get_time_axis(fignum)
         if clear:
@@ -379,7 +379,7 @@ class Data_Set(object):
         from pylab import figure
         fig = figure(fignum, size)
         return fig
-            
+
 
     def _get_list_of_figs(self, N, fignum=1, size=None):
         from pylab import figure
@@ -388,7 +388,7 @@ class Data_Set(object):
             fig = figure(fignum+i, size)
             figs.append(fig)
         return figs
-            
+
 
 
     def Append_One_File(self, path):
@@ -423,12 +423,12 @@ class Data_Set(object):
         matrices in the corresponding attributes of self."""
         for filename in self.filepaths:
             self.Append_One_File(filename)
-                
-            
+
+
     def Time_Plot(self, labels=['y'], ax=None, fignum=1,
                   legend_dict={}, ylabel=None, \
                   basename=None, savefigs=True, \
-                  ext='.png', fig_dir=''):                  
+                  ext='.png', fig_dir=''):
         if ax is None:
             from pylab import figure
             fig = figure(fignum)
@@ -463,8 +463,8 @@ class Data_Set(object):
             col_list.append(cur_mat)
         data = column_stack(col_list)
         return data
-    
-        
+
+
     def Time_Plots(self, labels=None, figs=None, fignum=1, \
                    exclude=['n'], overlay=False, **kwargs):
         if labels is None:
@@ -495,7 +495,7 @@ class Data_Set(object):
             ax.clear()
         data = self._build_data_matrix(labels)
         mplutil.plot_cols(ax, self.t, data)
-        
+
 
 
 
@@ -532,15 +532,15 @@ def load_time_domain_data_set(module_name):
     t = getattr(my_mod, my_mod.time_label)
     setattr(my_data_set, my_data_set.time_label, t)
     my_data_set.filepaths = my_mod.filepaths
-    all_attrs = my_mod.signal_names + td_map_attrs 
+    all_attrs = my_mod.signal_names + td_map_attrs
     for attr in all_attrs:
         mat = getattr(my_mod, attr)
         setattr(my_data_set, attr, mat)
     return my_data_set
-        
-    
-    
-        
+
+
+
+
 
 class Bode_Options(object):
     """This class exists to encapsulate the options associated with
@@ -586,7 +586,7 @@ class Bode_Options(object):
             val = getattr(self, attr)
             outstr += attr + ' : ' + str(val) + '\n'
         return outstr
-    
+
 
 class Bode_Data_Set(Data_Set):
     """A class for loading a group of related txt data files and
@@ -631,7 +631,7 @@ class Bode_Data_Set(Data_Set):
                 dict_list.append(cur_dict)
             dict_in[save_attr] = dict_list
         return dict_in
-        
+
 
     def _f_into_dict(self, f_attr, dict_in={}, save_f_attr=None):
         """Similar to _ave_dict above, get the attribute f_attr and
@@ -643,15 +643,15 @@ class Bode_Data_Set(Data_Set):
             fvect = getattr(self, f_attr)
             dict_in[save_f_attr] = fvect
         return dict_in
-        
+
 
     def _copy_bode_keys(self, dict_in={}, key_list=None):
         if key_list is None:
             key_list = bode_keys
         for key in key_list:
             dict_in[key] = getattr(self, key)
-            
-        
+
+
     def build_ave_dict(self, attrs=['avebodes', 'trunc_avebodes', \
                                     'compressed_avebodes'],
                        f_attrs=['f','trunc_f','compressed_f']):
@@ -695,7 +695,7 @@ class Bode_Data_Set(Data_Set):
         old_files = glob.glob(mod_name+'.*')
         for curfile in old_files:
             os.remove(curfile)
-        
+
 
     def save_ave(self, mod_name, **kwargs):
         mydict = self.build_ave_dict(**kwargs)
@@ -722,9 +722,9 @@ class Bode_Data_Set(Data_Set):
         my_keys = copy.copy(bode_keys)
         my_keys.remove('f')
         self._copy_bode_keys(dict_in=mydict, key_list=my_keys)
-        self._delete_old(mod_name)        
+        self._delete_old(mod_name)
         io.save_as_module(mod_name, mydict)
-    
+
 
     def Calc_Spectra(self):
         self.spectra = []
@@ -766,7 +766,7 @@ class Bode_Data_Set(Data_Set):
         self.PhaseMassage(attr)#this won't do anything if
                                   #self.seed_freqs and
                                   #self.seed_phases aren't set
-        
+
 
     def Calc_Bodes(self):
         myfunc = rwkbode.BodeFromSpectra
@@ -804,14 +804,14 @@ class Bode_Data_Set(Data_Set):
         if title_dict.has_key(bode.output):
             outstr = title_dict[bode.output]
         else:
-            outstr = bode.output 
+            outstr = bode.output
         if title_dict.has_key(bode.input):
             instr = title_dict[bode.input]
         else:
             instr = bode.input
         titlestr = '%s/%s' % (outstr, instr)
         return titlestr
-    
+
 
     def _set_title(self, fig, bode, title=None, autotitle=True,
                    title_dict=None):
@@ -855,15 +855,15 @@ class Bode_Data_Set(Data_Set):
             #note that the 100 is a dummy, it won't be used since fig
             #is passed in
         return figs
-        
+
 
 
     def _set_plot_opts(self, bode_attr, figs):
         bode_list = getattr(self, bode_attr)
         #Pdb().set_trace()
         for bode, fig in zip(bode_list, figs):
-            mplutil.set_Bode_opts(fig, bode, coh=self.coh)  
-        
+            mplutil.set_Bode_opts(fig, bode, coh=self.coh)
+
 
     def _set_titles(self, bode_attr, figs, \
                     title=None, autotitle=True, title_dict=None):
@@ -898,7 +898,7 @@ class Bode_Data_Set(Data_Set):
         fig = self._get_fig(fignum)
         mplutil.set_Bode_opts(fig, bode_opt, coh=False)
         return bode
-        
+
 
     def Bode_Plot2(self, attr='avebodes', f_attr='f', \
                    figs=None, fignum=1, size=None, \
@@ -910,12 +910,12 @@ class Bode_Data_Set(Data_Set):
         self._set_titles(attr, figs)
         return figs
 
- 
+
     def trunc_Bode_Plot2(self, attr='trunc_avebodes', \
                          f_attr='trunc_f', \
                          **kwargs):
         return self.Bode_Plot2(attr=attr, f_attr=f_attr, **kwargs)
-       
+
 
     def Bode_Plot(self, overlay_ave=True, figs=None, fignum=1, \
                   title=None, autotitle=True, coh=False, \
@@ -976,8 +976,8 @@ class Bode_Data_Set(Data_Set):
                     rst_file.add_figure(relpath, caption=caption)
         return figs
 
-                
-            
+
+
 
 ##     def Report(self, startfi=1, timedomain=True, bode=True, \
 ##                overlay_ave=True, coh=True, bode_coh_only=False, \
@@ -1068,7 +1068,7 @@ class Bode_Data_Set(Data_Set):
         for bode in bodes_out:
             self.trunc_f = bode.truncate(self.f, flow=flow, fhigh=fhigh)
         setattr(self, trunc_attr, bodes_out)
-        
+
 
     def Truncate_bodes(self, flow, fhigh):
         self._truncate(flow, fhigh, attr='bodes', \
@@ -1077,8 +1077,8 @@ class Bode_Data_Set(Data_Set):
     def Truncate_avebodes(self, flow, fhigh):
         self._truncate(flow, fhigh, attr='avebodes', \
                        trunc_attr='trunc_avebodes')
-        
-        
+
+
     def Truncate(self, flow, fhigh):
         self.Truncate_bodes(flow, fhigh)
         self.Truncate_avebodes(flow, fhigh)
@@ -1089,7 +1089,7 @@ class Bode_Data_Set(Data_Set):
         ##     self.trunc_f = bode.truncate(self.f, flow=flow, fhigh=fhigh)
         ## for bode in self.trunc_avebodes:
         ##     bode.truncate(self.f, flow=flow, fhigh=fhigh)
-        
+
 
 
     def Overlay_Trunc_Bodes(self, ave=True, figs=None, fignum=1, \
@@ -1107,7 +1107,7 @@ class Bode_Data_Set(Data_Set):
         assert hasattr(self, trunc_attr), \
                "You must call self.Truncate before calling\n " + \
                "self.Overlay_Trunc_Bodes."
-            
+
         figs = self._bode_plot(attr, f_attr='f', figs=figs, \
                    fignum=fignum, size=size, clear=True, \
                    func=func)
@@ -1117,7 +1117,7 @@ class Bode_Data_Set(Data_Set):
         self._set_titles(attr, figs, title=None, autotitle=True, \
                          title_dict=title_dict)
         return figs
-    
+
 
 
     def Truncate_and_Review(self, flow, fhigh, figs=None, fignum=1):
@@ -1169,9 +1169,9 @@ class Bode_Data_Set(Data_Set):
         msg = '%i: %s/%s'
         for i, bode in enumerate(bode_list):
             print(msg % (i, bode.output, bode.input))
-            
 
-    
+
+
 allkeys = ['delim', \
            'trunc_avebodes', \
            'trunc_bodes', \
@@ -1208,7 +1208,7 @@ def list_of_dicts_to_bodes(mod_in, attr='avebodes'):
         bodelist.append(curbode)
     return bodelist
 
-        
+
 def load_avebode_data_set(module_name):
     """Load an avebodes data set that was saved to a module using
     the save_ave method of Bode_Data_Set."""
@@ -1261,7 +1261,7 @@ def overlay_trunc_bodes(mod_name_list, startfi=1, linetype='-'):
         cur_exp.trunc_Bode_Plot2(clear=clear, \
                                  fignum=startfi, \
                                  linetype=linetype)
-    
+
 
 def merge_trunc_ave_data_sets(data_set1, data_set2):
     """Merge data_set1 and data_set2, which are presumed to be
@@ -1300,5 +1300,5 @@ def merge_trunc_ave_data_sets(data_set1, data_set2):
     my_data_set.f = f
     my_data_set.filepaths = data_set1.filepaths+data_set2.filepaths
     return my_data_set
-        
+
 

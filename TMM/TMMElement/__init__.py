@@ -21,7 +21,7 @@ import rwkfortran
 reload(rwkfortran)
 from rwkfortran import FortranToTextList, GetLHS
 #from rwkmisc import null, norm2
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 from rwkmisc import symstr, SymstrMattoMaxima, rwkstr
 import rwkmisc
 
@@ -55,7 +55,7 @@ class TMMElement:
         self.symname=symname
         self.symsub=symsub
         self.subparams=subparams
-    
+
         if functionparams is not None:
             if not shape(functionparams):
                 functionparams=[functionparams]
@@ -116,7 +116,7 @@ class TMMElement:
         visualization of mode shapes.  This method must be overridden
         in derived classes."""
         raise NotImplementedError
-    
+
     def SubstituteUnknowns(self, unknowndict):
         """This method is used to substitute the results from system
         identification into the proper place in the TMM model.  The
@@ -216,12 +216,12 @@ class TMMElement:
         with an element that would need to be declared complex in a
         FORTRAN funciton that includes the element in a Bode model.
         This funcion is used in symbolic work.
-        
+
         This is the default function defined in the top level
         TMMElement class.  It assumes that most elements have only
         real parameters and returns an empty list."""
         return []
-    
+
     def GetFortranDefs(self):
         """This method is used to specify definitions that need to go
         at the beginning of automatically generated FORTRAN functions,
@@ -231,7 +231,7 @@ class TMMElement:
 ########
 #    These should be illiminated, but that would mean re-writing all existing elements to use symstr based stuff
 ########
-    def GetMaximaString(self,name=None,label=None,N=None):#omit 
+    def GetMaximaString(self,name=None,label=None,N=None):#omit
         raise NotImplementedError
 
     def GetAugMaximaString(self,name=None,label=None,N=None):#omit
@@ -309,7 +309,7 @@ class TMMElement:
         This one is sort of a hack.  See GetDefs."""
         maximalines, defs, params, sublines = self.GetMaximaLatexString(**kwargs)
         return sublines
-                
+
 
     def GetMaximaLatexString(self,name=None,label=None,wrap=0,N=None,intro=None,aug=0,optargs={}):#omit
         maximalines=[]

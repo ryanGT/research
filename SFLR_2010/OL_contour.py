@@ -5,7 +5,7 @@ from numpy import arange, zeros, array, pi, log10, real, \
 import rwkmisc
 import SFLR_TMM
 import copy
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 import theta_fb_contour
 import accel_fb_system
@@ -38,7 +38,7 @@ def pop_nearest_from_vector(item, vect):
     array_out = array(mylist)
     return array_out
 
-    
+
 class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
                      accel_fb_system.generic_contour_system):
     def calc_theta_fb_contours(self):
@@ -60,7 +60,7 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
 
     def calc_contours(self):
         self.theta_comp_mat, self.accel_comp_mat = self.bode_func(self.s, self.params)
-        
+
 
 
     def plot_dB_contours(self, startfi=1, titles=None, \
@@ -70,14 +70,14 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
         if titles is None:
             titles = ['Open-Loop Contour Plot for $\\theta/v$', \
                       'Open-Loop Contour Plot for $\\ddot{x}/v$']
-        
+
         self.plot_db_mat_contour(self.theta_dB_mat, startfi, titles[0], \
                                  myxlim=myxlim, myylim=myylim, \
                                  zoomin=zoomin)
         self.plot_db_mat_contour(self.accel_dB_mat, startfi+1, titles[1], \
                                  myxlim=myxlim, myylim=myylim, \
                                  zoomin=zoomin)
-        
+
 
 
     def _initial_calcs(self):
@@ -87,7 +87,7 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
         self.theta_dB_mat = 20*log10(abs(self.theta_comp_mat))
         self.accel_abs_mat = abs(self.accel_comp_mat)
         self.accel_dB_mat = 20*log10(abs(self.accel_comp_mat))
-        
+
 
     def __init__(self, mod, params_pkl_path=None, saved_pklname=None, \
                  levels=None, tol=1e-4):
@@ -147,7 +147,7 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
                 myarray[i] = real(elem)
             elif abs(real(elem)) < self.tol:
                 myarray[i] = imag(elem)
-                
+
 
     def clean_poles_and_zeros(self):
         attrlist = ['theta_poles', 'accel_poles', \
@@ -168,12 +168,12 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
             return False
         else:
             return True
-        
+
 
     def pole_filter_accel(self, pole):
         return self.pole_filter(pole, attr='accel_poles')
 
-    
+
     def find_all_poles(self):
         if not hasattr(self, 'theta_poles'):
             self.find_theta_OL_poles()
@@ -212,7 +212,7 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
             if abs(elem) < self.tol:
                 count += 1
         return count
-    
+
 
     def _append_origin_zeros(self, exp_attr, zero_vect_attr):
         myexp = getattr(self, exp_attr)
@@ -240,19 +240,19 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
             #deliberately skipping myvect with negative imag part (they
             #should be in the conj of myvect with positive imag part)
         return listout
-        
+
 
     def build_SS_poles_and_zeros(self):
         self.SS_poles = self._build_full_list_of_poles_or_zeros_w_conj(self.all_poles)
         self.theta_SS_zeros = self._build_full_list_of_poles_or_zeros_w_conj(self.theta_OL_zeros)
         self.accel_SS_zeros = self._build_full_list_of_poles_or_zeros_w_conj(self.accel_OL_zeros)
         self.SS_zeros = [self.theta_SS_zeros, self.accel_SS_zeros]
-        
+
 
     def append_origin_zeros(self):
         self._append_origin_zeros('theta_origin_power', 'theta_OL_zeros')
         self._append_origin_zeros('accel_origin_power', 'accel_OL_zeros')
-    
+
 
     def find_nearest_pole(self, loc):
         mydiffs = self.all_poles - loc
@@ -273,8 +273,8 @@ class OL_sys_contour(theta_fb_contour.theta_fb_sys_contour, \
                 #ind_list.append(ind)
                 zero_list.append(closest)
         return zero_list
-    
-        
+
+
 two_func_attrs = copy.copy(mysaveattrs)
 #two_func_attrs.append('theta_bode_func')
 #two_func_attrs.append('accel_bode_func')
@@ -284,7 +284,7 @@ class OL_sys_contour_two_funcs(OL_sys_contour):
         self.theta_comp_mat = self.theta_bode_func(self.s, self.params)
         self.accel_comp_mat = self.accel_bode_func(self.s, self.params)
 
-    
+
     def __init__(self, theta_bode_func, accel_bode_func, \
                  params_pkl_path=None, saved_pklname=None, \
                  levels=None, tol=1e-4):

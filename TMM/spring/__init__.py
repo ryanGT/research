@@ -17,7 +17,7 @@ from TMM.TMMElement import TMMElementIHT
 from rwkmisc import symstr, SymstrMattoMaxima
 import rwkmisc
 
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 #TMMElement=TMM.TMMElement
 
 class TorsionalSpringDamper(TMMElementIHT):
@@ -109,7 +109,7 @@ class TorsionalSpringDamper(TMMElementIHT):
         if intro is None:
             intro='The transfer matrix for a spring/damper element is given by'
         return TMMElementIHT.GetMaximaLatexString(self,name=name,label=label,wrap=wrap,N=N,intro=intro,aug=aug)
-        
+
 #    def GetHT(self):
 #        return HT4()
 
@@ -138,7 +138,7 @@ class SpringToGround(TMMElementIHT):
         matout[N-1,0]=k
         return matout
 
-        
+
 class MajetteActuator(TorsionalSpringDamper):#omit me
     def __init__(self,params,maxsize=12,label='',):
         params['k']=atleast_1d(params['k'])

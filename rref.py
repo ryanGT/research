@@ -2,7 +2,7 @@ from scipy import shape,argmax, c_, zeros, dot
 from rwkmisc import reverse
 from rwkmisc import RowSwap
 import pdb
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 import copy
 
 def uppertri(matin,vectin=[],eps=1e-8):

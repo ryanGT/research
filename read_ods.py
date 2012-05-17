@@ -1,20 +1,20 @@
 #!/usr/bin/env python
- 
+
 # import the needed modules
 import zipfile
 import xml.parsers.expat
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 import copy
 # get content xml data from OpenDocument file
 mypath = '/home/ryan/siue/classes/484/2010/final_report_grades_and_assessment.ods'
 #mypath = 'test_sheet.ods'
- 
+
 class Element(list):
     def __init__(self, name, attrs):
         self.name = name
         self.attrs = attrs
- 
+
 class TreeBuilder:
     def __init__(self):
         self.root = Element("root", None)
@@ -31,7 +31,7 @@ class TreeBuilder:
 
     def char_data(self, data):
         self.path[-1].append(data)
- 
+
 
 
 def showtree(node, prefix=""):
@@ -51,7 +51,7 @@ def find_body(root):
             found_content = 1
             content = root[i]
     assert found_content, 'Did not find an element in root with name office:document-content'
-    
+
 
     N2 = len(content)
     found_body = 0
@@ -61,7 +61,7 @@ def find_body(root):
             body = content[i]
     assert found_body, 'Did not find an element in content with name office:body'
     return body
-    
+
 
 def find_spreadsheet(body):
     N1 = len(body)
@@ -89,10 +89,10 @@ def nonempty_table(table):
             found_any = True
             break
     return found_any
-    
+
 def nonempty_first_cell(row):
     return bool(row[0])
-    
+
 #showtree(treebuilder.root)
 
 def process_nested(nested_in):
@@ -112,8 +112,8 @@ def process_nested(nested_in):
         else:
             nested_out.append(row_out)
     return nested_out
-            
-        
+
+
 def read_ods(pathin):
     #open zip archive
     ziparchive = zipfile.ZipFile(pathin, "r")
@@ -127,7 +127,7 @@ def read_ods(pathin):
     parser.StartElementHandler  = treebuilder.start_element
     parser.EndElementHandler    = treebuilder.end_element
     parser.CharacterDataHandler = treebuilder.char_data
- 
+
     # parse the data
     parser.Parse(xmldata, True)
 
@@ -147,7 +147,7 @@ mydata = read_ods(mypath)
 #that isn't simple:
 
 ## In [128]: s
-## Out[128]: 
+## Out[128]:
 ## [[[],
 ##   [[[u'Col1']], [[u'Col2']], [[u'Col3']], [[u'Col4']]],
 ##   [[[u'team1']], [[u'1']], [[u'2']], [[u'3']]],

@@ -6,7 +6,7 @@ import copy
 import pylab as PL
 import pylab_util as PU
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 import os, sys, glob
 
@@ -150,7 +150,7 @@ class ga_theta_fb_system(generic_contour_system):
         filename = filename.replace('__','_')
         self.subfilename = filename
         return filename
-        
+
 
     def build_contour_filename(self, pre='', post='', ext='.eps'):
         self.substr_to_filename()
@@ -168,13 +168,13 @@ class ga_theta_fb_system(generic_contour_system):
         self.substr_to_filename()
         self.step_name = 'step_plot_' + pre + self.subfilename + post + ext
         return self.step_name
-        
+
 
     def build_step_path(self, folder='', pre='', post='', ext='.eps'):
         self.build_step_filename(pre=pre, post=post)
         self.step_path = os.path.join(folder, self.step_name)
         return self.step_path
-    
+
 
     def _abs_pdf_contour_path(self, folder, pre='', post=''):
         temppath = os.path.join(folder, self.build_contour_path(pre=pre, post=post))
@@ -195,7 +195,7 @@ class ga_theta_fb_system(generic_contour_system):
         pdfpath = pne + '.pdf'
         self.step_pdf_path = pdfpath
         return self.step_pdf_path
-    
+
 
     def abs_zoom_pdf_contour_path(self, folder, pre='', post='_zoom'):
         pdfpath = self._abs_pdf_contour_path(folder, pre=pre, post=post)
@@ -237,7 +237,7 @@ class ga_theta_fb_system(generic_contour_system):
                       (self.labelstr, self.labelstr)
 
         return self.rst_plot(self.step_pdf_path, caption)
-        
+
     def _map_from_tfb_contour_sys(self):
         self.comp_mat = self.tfb_contour_sys.comp_mat
         self.ol_db_mat = comp_to_db(self.comp_mat)
@@ -245,7 +245,7 @@ class ga_theta_fb_system(generic_contour_system):
         self.f_contour = self.tfb_contour_sys.f
         self.im_contour = self.tfb_contour_sys.im
         self.a_theta_comp = self.tfb_contour_sys.a_theta_comp
-        
+
 
     def calc_ga_comp(self, s):
         Ga_comp = self.Ga(s)
@@ -256,7 +256,7 @@ class ga_theta_fb_system(generic_contour_system):
         s = 2.0j*pi*f
         self.calc_ga_comp(s)
 
-        
+
     def update_rom(self, Ga=None):
         assert self.ROM is not None, msg2
         if Ga is not None:
@@ -284,7 +284,7 @@ class ga_theta_fb_system(generic_contour_system):
             fig = figure(1)
         if clear:
             fig.clf()
-            
+
         if fig.get_axes():
             ax = fig.get_axes()[0]
         else:
@@ -292,9 +292,9 @@ class ga_theta_fb_system(generic_contour_system):
         if plotu:
             ax.plot(self.t, self.u, label='$u$')
         plot(self.t, self.theta_t, label='$\\theta_{%s}$' % self.substr)
-        plot(self.t, self.accel_t, label='$\\ddot{x}_{%s}$' % self.substr)        
-        
-        
+        plot(self.t, self.accel_t, label='$\\ddot{x}_{%s}$' % self.substr)
+
+
     def calc_accel_comp_bode(self, f):
         assert self.thfb_a_comp is not None, msg1
         if not hasattr(self, 'Ga_comp'):
@@ -318,7 +318,7 @@ class ga_theta_fb_system(generic_contour_system):
         BPO._plot_bode(self.Accel_comp_Bode, \
                        self.accel_comp_bode_opts, \
                        f, fignum=fi, **kwargs)
-        
+
 
     def calc_afb_bode(self, f):
         assert self.thfb_a_comp is not None, msg1
@@ -334,7 +334,7 @@ class ga_theta_fb_system(generic_contour_system):
     def plot_afb_bode(self, f, fi=1, **kwargs):
         if not hasattr(self, 'Accel_AFB_Bode'):
             self.calc_afb_bode(f)
-        kwargs = self._set_kwargs(**kwargs)    
+        kwargs = self._set_kwargs(**kwargs)
         BPO._plot_bode(self.Accel_AFB_Bode, \
                        self.afb_bode_opts, \
                        f, fignum=fi, **kwargs)
@@ -356,7 +356,7 @@ class ga_theta_fb_system(generic_contour_system):
         s = self.s_contour
         Ga_comp = self.Ga(s)
         self.Ga_comp_contour = Ga_comp
-    
+
 
     def calc_afb_compmat(self):
         self.calc_ga_comp_contour()
@@ -411,7 +411,7 @@ class ga_theta_fb_system(generic_contour_system):
         self.ol_poles = self.find_poles(self.ol_db_mat)
         return self.ol_poles
 
-        
+
 
 class kp_accel_theta_fb_system(ga_theta_fb_system):
     def __init__(self, Ga, **kwargs):
@@ -472,7 +472,7 @@ def pole_zero_sorter(pole_vect, r=6.0*2*pi, imag_tol=1e-5):
                   abs(imag(pole)) > imag_tol]
     small_real = [pole for pole in small_poles if abs(imag(pole)) <= imag_tol]
     return small_imag, small_real
-    
+
 
 class ga_pole_optimizer(ga_theta_fb_system):
     """This is a class for optimizing the poles of a
@@ -488,7 +488,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
     def _find_poles_if_necessary(self):
         if not hasattr(self, 'afb_poles'):
             self.find_afb_poles()
-        
+
 
     def unstable_check(self, tol=1e-7):
         self._find_poles_if_necessary()
@@ -503,7 +503,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         loc = -0.062831853071807081+15.393804002590004j
         rloc = real(loc)
         iloc = abs(imag(loc))
-        
+
         def myfunc(zero):
             rp = real(zero)
             ip = abs(imag(zero))
@@ -512,11 +512,11 @@ class ga_pole_optimizer(ga_theta_fb_system):
                 if (iloc - eps) < ip < (iloc + eps):
                     keep = False
             return keep
-        
+
         filtered = filter(myfunc, zvect)
         #self.filt_afb_theta_zeros = filtered
         return filtered
-        
+
 
 
     def filter_immovable(self, pole_vect=None, \
@@ -534,7 +534,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
                 loc = -1.38230077
             else:
                 loc = -1.3194689145077254
-        
+
         def myfunc(pole):
             rp = real(pole)
             ignore = loc
@@ -555,7 +555,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         self.immovable_small = [pole for pole in self.small_real
                                 if pole not in self.small_real2]
         return self.immovable_small
-    
+
 
     def pole_sorter(self, r=6.0*2*pi, imag_tol=1e-5):
         """Find the poles whose abs is less than r and sort them into real
@@ -606,7 +606,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         other_poles = [pole for pole in self.afb_poles if pole not in already_included]
         filt_other_poles = [pole for pole in other_poles if imag(pole) > -1e-6]
         return filt_other_poles
-    
+
 
     def find_other_zeros(self):
         mylist = self.afb_theta_zeros.tolist()
@@ -625,7 +625,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
             cfmt =  rfmt+ ' \pm' + ifmt + 'j'
             return cfmt % (real(pz), imag(pz))
 
-        
+
     def rst_one_pole_zero_set(self, pzlist, label):
         """Convert one list of poles or zeros to rst using label as
         the label."""
@@ -634,7 +634,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         matrix_str = ' & '.join(list_of_strs)
         return myline % matrix_str
 
-        
+
     def pole_zero_report(self):
         self.pole_sorter(r=20.0)
         mylist = []
@@ -675,7 +675,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
 
         mylist = ['.. latex-math::', \
                   '']
-        
+
 
         def append_one(pzlist, label):
             curline = self.rst_one_pole_zero_set(pzlist, label)
@@ -688,11 +688,11 @@ class ga_pole_optimizer(ga_theta_fb_system):
         append_one(other_poles, 'other poles')
         append_one(self.small_imag_zeros, 'small imag. zeros')
         append_one(self.small_real_zeros, 'small real zeros')
-        append_one(other_zeros, 'other zeros')        
+        append_one(other_zeros, 'other zeros')
         mylist.append('')
 
         return mylist
-    
+
 
     def pole_cost(self, verbosity=0):
         self.pole_sorter(r=20.0)
@@ -780,7 +780,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         Ga = controls.TF([b1,b0],[1,a2,a1,a0])*gain2
         self.Ga = Ga
         return Ga
-        
+
 
     def mycost(self, C, verbosity=0):
         if verbosity > 10:
@@ -807,7 +807,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         if self.logger is not None:
             self.logger.log(C, cost)
         return cost
-    
+
 
     def create_ig(self):
         return Ga_to_C5(self.Ga)
@@ -856,7 +856,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         header.append(cline2)
         self.header = header
         return header
-        
+
 
     def report_list(self):
         report = []
@@ -877,7 +877,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         #mylist.append('class: ' + str(self.__class__))
         #mylist.append('')
         return mylist
-        
+
 
     def C_to_rst(self, fmt='%0.3f'):
         fmt_list = [fmt]*5
@@ -899,7 +899,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
                                                           self.df.u)
         return self.overshoot
 
-    
+
 
     def rst_report(self, figfolder):
         rst_list = self.rst_header()
@@ -926,7 +926,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         rst_list.append('')
         rst_list.append('Overshoot = %0.1f' % self.overshoot + '%')
         rst_list.append('')
-        
+
 
         return rst_list
 
@@ -937,7 +937,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         pat = '*' + tail + '_SLFR_RTP_Motor_Comp_Gth.txt'#<-- no star means passing over some files
         self.step_pat = pat
         return pat
-    
+
 
     def get_opt_filename(self, dir):
         pat = self.build_step_glob_pattern()
@@ -970,7 +970,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         xlabel('Time (s)')
         PU.SetLegend(fi, loc=legloc)
 
-    
+
 
     def create_table_nested_list(self):
         """Create a row for the system comparison table.  The columns
@@ -987,12 +987,12 @@ class ga_pole_optimizer(ga_theta_fb_system):
         for curlist in pz_list:
             if len(curlist) > NR:
                 NR = len(curlist)
-        
+
         nested_list = []
         for i in range(NR):
             currow = [None]*NC
             nested_list.append(currow)
-            
+
         nested_list[0][0] = self.labelstr
 
         for r, pole in enumerate(self.small_imag):
@@ -1019,18 +1019,18 @@ class ga_pole_optimizer(ga_theta_fb_system):
     def row_to_string(self, row):
         str_row = ['%s' % item for item in row]
         return str_row
-    
+
 
     def nested_list_to_strings(self):
         self.nested_string_list = [self.row_to_string(row) for \
                                    row in self.nested_list]
-        
+
 
     def clean_None_from_strings(self, table_strings):
         self.clean_nested_strings = [item.replace('None', ' ') for \
-                                     item in table_strings]    
+                                     item in table_strings]
 
-        
+
     def create_table_rows(self):
         self.create_table_nested_list()
         self.nested_list_to_strings()
@@ -1040,8 +1040,8 @@ class ga_pole_optimizer(ga_theta_fb_system):
         self.table_strings = self.clean_nested_strings
         return self.table_strings
 
-        
-        
+
+
 class Ga5_pole_optimizer(ga_pole_optimizer):
     def rst_header(self):
         mylist = section_dec('Bode-based Design')
@@ -1062,7 +1062,7 @@ class noA_pole_optimizer(ga_pole_optimizer):
     feedback to optimized Ga results."""
     def __init__(self, **kwargs):
         ga_pole_optimizer.__init__(self, Ga=None, **kwargs)
-        
+
 
     def set_C_from_Ga(self):
         self.C_opt = [0]*5
@@ -1086,7 +1086,7 @@ class noA_pole_optimizer(ga_pole_optimizer):
 
     def calc_ga_comp(self, s):
         self.Ga_comp = 0.0
-        
+
 
     def calc_accel_comp_bode(self, f):
         assert self.thfb_a_comp is not None, msg1
@@ -1094,7 +1094,7 @@ class noA_pole_optimizer(ga_pole_optimizer):
         a_bode = BPO.comp_to_Bode(a_comp, f, \
                                   bode_opt=self.accel_comp_bode_opts)
         self.Accel_comp_Bode = a_bode
-        
+
 
     def calc_afb_compmat(self):
         self.comp_afb = self.comp_mat
@@ -1126,8 +1126,8 @@ class first_pole_optimizer(ga_pole_optimizer):
         ga_pole_optimizer.__init__(self, *args, **kwargs)
         self.optcase = 31
         self.use_zcost = False
-        
-        
+
+
     def pole_cost(self, verbosity=0):
         self.pole_sorter(r=20.0)
         small_imag = self.small_imag
@@ -1323,7 +1323,7 @@ class pole_optimizer10(pole_optimizer_with_zcost):
                                            secondweight=50.0, \
                                            **kwargs)
 
-    
+
 class pole_optimizer11(pole_optimizer_with_zcost):
     def __init__(self, Ga, **kwargs):
         pole_optimizer_with_zcost.__init__(self, Ga, \
@@ -1366,7 +1366,7 @@ class optimizer_comparison(object):
                 ['Case','Poles','Poles','Zeros','Zeros','Time','Overshoot']]
         rowstrs = [" & ".join(row) + '\\\\' for row in rows]
         return rowstrs
-        
+
 
     def build_table_header(self):
         self.header = ['\\begin{table}', \

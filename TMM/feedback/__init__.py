@@ -8,7 +8,7 @@ import pdb
 
 from TMM.TMMElement import TMMElement, HT4, TMMElementLHT
 
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 import rwkmisc
 reload(rwkmisc)
@@ -77,7 +77,7 @@ class SAMIIAccelFB(TMMElementLHT):
         matrix returned will be complex."""
         s=rwkmisc.symstr(s)
         return self.GetAugMat(s,self.symparams)
-    
+
     def GetComplexList(self):
         """This function returns a list of all variables associated
         with this element that would need to be declared complex in a
@@ -126,7 +126,7 @@ class SAMIIAccelFB(TMMElementLHT):
         maximalines.append(self.symname+':matrix('+matstr+')')
         params.append('Ga')
         return maximalines, self.symname, defs, params, self.symlabel
-        
+
 
     def GetMat(self,s):#omit
         raise NotImplementedError, 'AngularVelocitySource must use augmented transfer matrix'

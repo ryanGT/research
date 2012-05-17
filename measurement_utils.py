@@ -1,7 +1,7 @@
 from pylab import *
 from scipy import *
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 #from RTP_utils import *
 #from RTP_utils import dt
 
@@ -53,7 +53,7 @@ def get_t_limits(t):
     t1 = t.max()
     return array([t0,t1])
 
-    
+
 def plot_overshoot(u, t, Mp, fignum=1):
     final_value = u[-1]
     max_allowed = final_value*(1.0+Mp/100.0)
@@ -89,7 +89,7 @@ def find_steady_state_error(y, u):
     y_f = y[-1]
     e_ss = 100*float(fv-y_f)/float(fv)
     return e_ss
-    
+
 def main(y, u, t, Mp=10.0, p=0.01, fignum=1):
     ts = find_settling_time(y, u, t, p)
     overshoot = find_overshoot(y, u)
@@ -131,7 +131,7 @@ def find_e_ss_penalty(y, u, t, p=0.01):
         penalty = 0.0
     return penalty
 
-    
+
 def find_overshoot_penalty(y, u, t, Mp=10.0):
     overshoot = find_overshoot(y, u)
     if overshoot > Mp:
@@ -140,7 +140,7 @@ def find_overshoot_penalty(y, u, t, Mp=10.0):
         penalty = 0.0
     return penalty
 
-    
+
 def ts_with_penalties(y, u, t, Mp=10.0, p=0.01, fignum=1):
     #print('steady state error penalty = %0.4f' % penalty1)
     ts = find_settling_time(y, u, t, p)
@@ -149,14 +149,14 @@ def ts_with_penalties(y, u, t, Mp=10.0, p=0.01, fignum=1):
     Mp_penalty = find_overshoot_penalty(y, u, t, Mp=Mp)
 
     #print('overshoot = %0.2f percent' % overshoot)
-    
+
     #print('overshoot penalty = %0.4f' % penalty2)
     penalty = e_ss_penalty + Mp_penalty
     if ts is None:
         ts = penalty
     else:
         ts += penalty
-        
+
     #print('total penalty = %0.4f' % penalty)
     #print('final ts = %0.4f' % ts)
     return ts, overshoot, penalty
@@ -196,7 +196,7 @@ def plot_results(u, y, v, n, fignum=1, clear=True, plotu=True, \
     xlabel('Time (sec)')
     ylabel('Signal Amp. (counts)')
     legend(loc=5)
-    
+
 
 
 ## class step_response_measurer(object):
@@ -207,7 +207,7 @@ def plot_results(u, y, v, n, fignum=1, clear=True, plotu=True, \
 ##         self.fignum = fignum
 ##         self.label = label
 
-    
+
 ##     def find_settling_time(self):
 ##         self.ts = find_settling_time(self.y, self.u, self.t, self.p)
 ##         return self.ts
@@ -216,7 +216,7 @@ def plot_results(u, y, v, n, fignum=1, clear=True, plotu=True, \
 ##     def find_overshoot(self):
 ##         self.percent_overshoot = find_overshoot(self.y, self.u)
 
-    
+
 ##     def find_settling_index(self):
 ##         self.index_settled = find_settling_index(self.y, \
 ##                                                  self.u, \

@@ -14,7 +14,7 @@ import plotting_mixin
 
 from rwkmisc import rowwise, colwise
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 
 class SFLR_Data_File(txt_data_processing.Data_File, \
@@ -54,7 +54,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
             mat_code.append(cur_lines)
             prev_ind = ind
         self.mat_chunks = mat_code
-        
+
 
     def chunk_to_key_and_code(self, chunk):
         """One of several functions to extract the system matrices
@@ -93,7 +93,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
             key, code = self.chunk_to_key_and_code(chunk)
             mydict[key] = code
         self.mat_code_dict = mydict
-        
+
 
     def assign_mat_code_to_attrs(self):
         """One of several functions to extract the system matrices
@@ -102,8 +102,8 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
         for key, code in self.mat_code_dict.iteritems():
             temp = eval(code)
             setattr(self, key, temp)
-            
-        
+
+
     def _find_matrices_in_header(self):
         """This is the main method for extracting the system matrices
         from the comments at the beginning of the data file."""
@@ -114,7 +114,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
         self.find_ind_mat_lines()
         self.build_mat_code_dict()
         self.assign_mat_code_to_attrs()
-        
+
 
     def __init__(self, path=None, **kwargs):
         txt_data_processing.Data_File.__init__(self, path, **kwargs)
@@ -133,8 +133,8 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
                 return self.plot_labels[key]
         if not found:
             return key
-        
-        
+
+
     def plot(self, fi=1, fig=None, clear=True, \
              plot_vars=None, linestyles=None, \
              linewidths=None, \
@@ -147,7 +147,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
 
         if linewidths is None:
             linewidths = [1.0]*len(plot_vars)
-            
+
         ax = self._prep_ax(fi=fi, fig=fig, clear=clear)
         t = self.t
         for key, ls, lw in zip(plot_vars, linestyles, linewidths):
@@ -164,7 +164,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
     def set_legend(self, loc=1):
         self.ax.legend(loc=loc)
 
-        
+
     def plot_states_all_on_one(self, fi=2, fig=None, clear=True):
         ax = self._prep_ax(fi=fi, fig=fig, clear=clear)
         keep_going = True
@@ -191,7 +191,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
             attr = 'X_tilde%i' % n
             label = label_fmt % n
             if hasattr(self, attr):
-                ax = self._prep_ax(fi=fi, fig=fig, clear=clear)                
+                ax = self._prep_ax(fi=fi, fig=fig, clear=clear)
                 vect = getattr(self, attr)
                 ax.plot(self.t, vect, label=label)
                 ax.set_title(attr)
@@ -215,7 +215,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
         for n in range(nc):
             cur_col = mat[:,n]
             label = label_attr + '%i' % n
-            ax = self._prep_ax(fi=fi, clear=clear)                
+            ax = self._prep_ax(fi=fi, clear=clear)
             ax.plot(self.t, cur_col, label=label)
             #ax.set_title(label)
             fi += 1
@@ -231,7 +231,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
             attr = 'term%i' % n
             label_attr = attr + label_suffix
             if hasattr(self, attr):
-                ax = self._prep_ax(fi=fi, clear=clear)                
+                ax = self._prep_ax(fi=fi, clear=clear)
                 vect = getattr(self, attr)
                 ax.plot(self.t, vect[ind,:], label=label_attr)
                 ax.set_title(attr)
@@ -246,7 +246,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
                 break
         if many_plots:
             ax = self._prep_ax(fi=fi, clear=clear)
-            #vect = self.term1[ind, :] + self.term2[ind,:] + self.term3[ind,:]        
+            #vect = self.term1[ind, :] + self.term2[ind,:] + self.term3[ind,:]
             vect = self.term1[ind, :] + self.term3[ind,:]
             ax.plot(self.t, vect, label='all terms '+label_suffix)
             ax.plot(self.t, self.X_tilde[ind, :], label='X_tile_' + str(ind) + ' ' + label_suffix)
@@ -278,7 +278,7 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
         ##         self.debug_ind += 1
 
         self.X_tilde[:,i] = squeeze(next_x_tilde)
-    
+
 
     def check_observer(self):
         nr, nc = self.G.shape
@@ -294,11 +294,11 @@ class SFLR_Data_File(txt_data_processing.Data_File, \
         #self.FO = self.G - dot(self.Ke, self.C)
 
         self.debug_ind = 0
-        
+
         for i in range(1,n):
             self.run_observer(i)
-        
-        
+
+
 #collables:
 #t	n	u	v	$\theta$	a	$\hat{\theta}_d$
 SFLR_col_map =  {0:'t', 1:'n', 2:'u', 3:'v', \
@@ -308,7 +308,7 @@ SFLR_col_map =  {0:'t', 1:'n', 2:'u', 3:'v', \
 class SFLR_Exp_Data_File(SFLR_Data_File):
     def __init__(self, path=None, substr=None, \
                  col_map=SFLR_col_map, plot_vars=None, \
-                 labels=None, **kwargs):        
+                 labels=None, **kwargs):
         txt_data_processing.Data_File.__init__(self, path, \
                                                col_map=col_map, \
                                                **kwargs)
@@ -337,7 +337,7 @@ class SFLR_Exp_Data_File_no_theta_hat(SFLR_Exp_Data_File):
                                     path=path, substr=substr, \
                                     col_map=col_map, plot_vars=plot_vars, \
                                     labels=labels, **kwargs)
-    
+
 
 class SFLR_Exp_Step_Response_Set(txt_data_processing.Data_Set):
     """A class for loading a group of experimental SFLR step response
@@ -352,7 +352,7 @@ class SFLR_Exp_Step_Response_Set(txt_data_processing.Data_Set):
         self.folder, filename = os.path.split(self.filepaths[0])
         self.Load_Data()
 
-    
+
     def Load_One_File(self, path, substr=None):
         curfile = SFLR_Exp_Data_File(path, col_map=self.col_map,\
                                      substr=substr)
@@ -365,7 +365,7 @@ class SFLR_Exp_Step_Response_Set(txt_data_processing.Data_Set):
             curfile = self.Load_One_File(filename, substr=substr)
             data_files.append(curfile)
         self.data_files = data_files
-    
+
 
     def Overlay_Step_Responses(self, fi=1, \
                                plot_vars=['theta','a'], \
@@ -384,4 +384,4 @@ class SFLR_Exp_Step_Response_Set(txt_data_processing.Data_Set):
                 df.plot(fi=fi, fig=None, clear=False, \
                         plot_vars=plot_vars, linestyles=[lt])
 
-        
+

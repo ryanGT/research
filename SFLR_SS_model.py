@@ -8,7 +8,7 @@ import controls
 
 import rwkmisc, rwkbode, txt_mixin
 from rwkmisc import colwise, rowwise
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 import copy, sys, os
 
@@ -25,7 +25,7 @@ class SS_model(plotting_mixin.item_that_plots):
         nrC, ncC = self.C.shape
         self.M = nrC
         self.I = eye(self.N)
-        
+
 
     def __init__(self, A, B, C, D=0.0, **kwargs):
         """Note that kwargs is just used to ignore extra keyword
@@ -39,7 +39,7 @@ class SS_model(plotting_mixin.item_that_plots):
         self.accel = False
         if self.A is not None:
             self._init2()
-            
+
 
     def calc_Ghat(self, K):
         """Find the Ghat matrix that would correspond to using K for
@@ -73,7 +73,7 @@ class SS_model(plotting_mixin.item_that_plots):
         poles = eigvals(Ghat)
         return poles
 
-    
+
     def pole_cost(self, C, inds=[0]):
         K = self.build_K(C, inds=inds)
         Ghat = self.calc_Ghat(K)
@@ -94,7 +94,7 @@ class SS_model(plotting_mixin.item_that_plots):
             cost += 1e6
         return cost
 
-        
+
 
     def plot_states_many_figs(self, fi=3, clear=True, \
                               attr='X_dig'):
@@ -104,7 +104,7 @@ class SS_model(plotting_mixin.item_that_plots):
         for n in range(nc):
             cur_col = mat[:,n]
             label = attr + '%i' % n
-            ax = self._prep_ax(fi=fi, clear=clear)                
+            ax = self._prep_ax(fi=fi, clear=clear)
             ax.plot(self.t, cur_col, label=label)
             ax.set_title(label)
             fi += 1
@@ -114,7 +114,7 @@ class SS_model(plotting_mixin.item_that_plots):
         for i in range(self.N-1):
             mat[i, i+1] = 1.0#ones on super-diagonal
         return mat
-        
+
 
     def calc_freq_resp_one_s(self, s_i):
         mat = s_i*self.I - self.A
@@ -144,11 +144,11 @@ class SS_model(plotting_mixin.item_that_plots):
             mydict[key] = val
         return mydict
 
-    
+
     def save_params(self, pklpath, attrlist):
         mydict = self.get_params(attrlist)
         rwkmisc.SavePickle(mydict, pklpath)
-        
+
 
     def discretize(self, T):
         """This function follows the approach of Ogata's
@@ -183,7 +183,7 @@ class SS_model(plotting_mixin.item_that_plots):
             B = self.B
         return A, B
 
-            
+
     def create_ax(self, fi=1, clear=True):
         fig = figure(fi)
         if clear:
@@ -191,7 +191,7 @@ class SS_model(plotting_mixin.item_that_plots):
         self.ax = fig.add_subplot(1,1,1)
         return self.ax
 
-        
+
     def get_or_create_ax(self, fi=1, clear=True):
         fig = figure(fi)
         if clear:
@@ -255,7 +255,7 @@ class SS_model(plotting_mixin.item_that_plots):
         if clear:
             figure(fi)
             clf()
-            
+
         for mul in K_mul:
             self.K = mul*orig_K
             self.find_CL_poles()
@@ -284,13 +284,13 @@ class SS_model(plotting_mixin.item_that_plots):
 
         self.digital_lsim_with_obs(u)
         self.plot_digital_lsim_results(fi=step_fi, clear=clear_step)
-        
+
         #self.digital_lsim(u, closed_loop=True)
         #self.plot_digital_lsim_results(fi=step_fi, clear=clear_step)
 
-        
 
-        
+
+
     def phi_des_of_A(self, descoeffs):
         """Evalute the charcteristic polynominal using
         descoeffs[0]*A**n+descoeffs[1]*A**(n-1)"""
@@ -333,7 +333,7 @@ class SS_model(plotting_mixin.item_that_plots):
         most systems, but grabs the first row of C for
         systems deliberately ignoring the accel or other outputs."""
         return self.C
-        
+
 
     def observability(self, out_ind=0, tryMO=False):
         A, B = self._get_A_and_B()
@@ -381,7 +381,7 @@ class SS_model(plotting_mixin.item_that_plots):
             if debug:
                 msg = 'self.N = %s, r = %s, singular values = %s' % mytup
                 print(msg)
-            
+
             Qinv = linalg.inv(Q)
             en = zeros((self.N,1))
             en[-1,0] = 1.0
@@ -420,7 +420,7 @@ class SS_model(plotting_mixin.item_that_plots):
         Ny, Nx = self.C.shape
         Y = zeros((Ny, N2))
         Y[:,0] = squeeze(dot(C, X0))
-        
+
         prev_x = X0
         for k in range(1,N2):
             next_x = dot(G, prev_x) + H*u[k-1]*self.E
@@ -433,7 +433,7 @@ class SS_model(plotting_mixin.item_that_plots):
         self.v = squeeze(self.E*u - dot(self.K, self.X_dig))
         return self.Y_dig
 
-        
+
     def calc_feeback_matrices(self, K, E=1.0):
         """Calculate feedback matrices for A and B or G and H
         depending on whether or not self.use_dig is True."""
@@ -490,7 +490,7 @@ class SS_model(plotting_mixin.item_that_plots):
             return vmin
         else:
             return vin
-    
+
 
     def calc_v(self, k):
         vtemp = self.E*self.r[k] - squeeze(dot(self.K, self.X_tilde[:,k-1]))
@@ -501,7 +501,7 @@ class SS_model(plotting_mixin.item_that_plots):
         N2 = len(self.r)
         self.nvect = arange(N2)
         self.t = self.nvect*self.T
-        
+
 
     def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None, \
                               exp_Y=None):
@@ -582,7 +582,7 @@ class SS_model(plotting_mixin.item_that_plots):
         y_comp = y_fft/denom
         self.lsim_Y_bode = rwkbode.rwkbode(compin=y_comp)
         return self.lsim_bodes
-        
+
 
     def plot_digital_lsim_results(self, fi=1, clear=True, \
                                   legloc=5):
@@ -597,9 +597,9 @@ class SS_model(plotting_mixin.item_that_plots):
             ax.plot(self.t, Yi, label=label)
         ax.plot(self.t, self.v, label='$v$')
         self.label_axis()
-        self.ax.legend(loc=legloc)            
-        
-        
+        self.ax.legend(loc=legloc)
+
+
     def lsim_from_exp_file_w_obs(self, filepath, fi=1, plot=True, \
                                  clear=True):
         self.load_exp_time_file(filepath)
@@ -654,8 +654,8 @@ class SS_model(plotting_mixin.item_that_plots):
         K = dot(mat1i, mat2)
         self.Ricatti_P = P
         return K
-        
-        
+
+
 class SFLR_Motor_Only_Model(SS_model, \
                             SFLR_TF_models.SFLR_Time_File_Mixin):
     def __init__(self, *args, **kwargs):
@@ -663,7 +663,7 @@ class SFLR_Motor_Only_Model(SS_model, \
         self.accel = False
         self.E = 1.0
 
-        
+
     def load_exp_time_file(self, filepath, \
                            col_map={0:'t', 1:'n', 2:'u', \
                                     3:'v', 4:'theta'}):
@@ -676,16 +676,16 @@ class SS_P_control_mixin(object):
         vtemp = self.r[k] - self.Y_dig[0,k-1]
         return self.sat(vtemp)
 
-    
+
 class SS_model_P_control(SS_P_control_mixin, SS_model):
     pass
 
 class SFLR_Motor_Only_P_Control_Model(SS_model_P_control, SFLR_Motor_Only_Model):
     pass
 
-    
 
-    
+
+
 def model_from_pickle(pklpath, model_class=SS_model):
     mydict = rwkmisc.LoadPickle(pklpath)
     ss = model_class(**mydict)
@@ -719,7 +719,7 @@ class CCF_SS_Model_from_poles_and_zeros(SS_model):
             curline = pat % (n, curval)
             mylist.append(curline)
         return mylist
-                          
+
     def dump_params_to_file(self, pathout, a_prefix='a', \
                             b_prefix_list=['bth','ba'], \
                             fmt = '%0.12e', eps=1.0e-10):
@@ -736,8 +736,8 @@ class CCF_SS_Model_from_poles_and_zeros(SS_model):
             big_list.extend(blist)
             big_list.append('')
         txt_mixin.dump(pathout, big_list)
-        
-        
+
+
     def _build_A(self):
         self.A = zeros((self.N,self.N))
         for i in range(self.N-1):
@@ -772,7 +772,7 @@ class CCF_SS_Model_from_poles_and_zeros(SS_model):
             for i, val in enumerate(row):
                 self.C[r,N-i] = val
 
-                
+
     def __init__(self, poles, zeros=None):
         self.poles_in = poles
         self.zeros_in = zeros
@@ -788,9 +788,9 @@ class CCF_SS_Model_from_poles_and_zeros(SS_model):
         nrC, junk = self.C.shape
         self.M = nrC
         self.I = eye(self.N)
-                
-                
-    
+
+
+
 class SFLR_model_w_bodes:
     def find_opt(self, output, input):
         found = 0
@@ -827,7 +827,7 @@ class SFLR_model_w_bodes:
             accel_C_ind = self.accel_C_ind
         else:
             accel_C_ind = 1
-            
+
         comp_mat = self.calc_freq_resp(f)
         th_v_comp = comp_mat[theta_C_ind,:]
         a_v_comp = comp_mat[accel_C_ind,:]
@@ -842,7 +842,7 @@ class SFLR_model_w_bodes:
                                          seedphase=th_v_opts.seedphase)
         self.th_v_bode.PhaseMassage(f)
 
-        a_v_opts = self.find_opt('a',in_str)        
+        a_v_opts = self.find_opt('a',in_str)
         self.a_v_bode = rwkbode.rwkbode(output='a', \
                                         input=in_str, \
                                         compin=a_v_comp, \
@@ -853,8 +853,8 @@ class SFLR_model_w_bodes:
 
         return self.bodes
 
-    
-    
+
+
 class CCF_SFLR_model_from_TF_coeffs(SS_P_control_mixin, \
                                     CCF_SS_Model_from_poles_and_zeros, \
                                     SFLR_model_w_bodes):
@@ -866,7 +866,7 @@ class CCF_SFLR_model_from_TF_coeffs(SS_P_control_mixin, \
         self.A = zeros((self.N,self.N))
         self._build_A()
         self.B = zeros((self.N, 1))
-        self.B[-1,0] = 1.0 
+        self.B[-1,0] = 1.0
         self.M = len(b_prefixes)
         self.C = zeros((self.M, self.N))
         for r, prefix in enumerate(b_prefixes):
@@ -888,7 +888,7 @@ class CCF_SFLR_model_from_TF_coeffs(SS_P_control_mixin, \
         #import params_mod_name as TF_params
         reload(TF_params)
         self.TF_params = TF_params
-        self.a_coeffs = self.build_coeff_list('a')        
+        self.a_coeffs = self.build_coeff_list('a')
         for r, prefix in enumerate(b_prefixes):
             attr = prefix + '_coeffs'
             vect = self.build_coeff_list(prefix)
@@ -925,7 +925,7 @@ class CCF_SFLR_model_from_TF_coeffs(SS_P_control_mixin, \
                                          seedphase=th_v_opts.seedphase)
         self.th_v_bode.PhaseMassage(f)
 
-        ## a_v_opts = self.find_opt('a','v')        
+        ## a_v_opts = self.find_opt('a','v')
         ## self.a_v_bode = rwkbode.rwkbode(output='a', \
         ##                                 input='v', \
         ##                                 compin=a_v_comp, \
@@ -950,7 +950,7 @@ class OCF_SFLR_model_from_TF_coeffs(CCF_SFLR_model_from_TF_coeffs):
         self._build_A()
         self._build_B()
         self._build_C()
-        
+
 
     def _build_A(self):
         A = self._ones_on_super()
@@ -981,16 +981,16 @@ class non_P_control_mixin:
         vtemp = self.E*self.r[k] - squeeze(dot(self.K, self.X_tilde[:,k-1]))
         return self.sat(vtemp)
 
-    
+
 class CCF_from_TF_no_P_control(non_P_control_mixin, \
                                CCF_SFLR_model_from_TF_coeffs):
     pass
 
-    
+
 class OCF_from_TF_no_P_control(non_P_control_mixin, \
                                OCF_SFLR_model_from_TF_coeffs):
     pass
-    
+
 
 class SFLR_model_that_saves(rwkmisc.object_that_saves):
     def build_dict(self):
@@ -1002,7 +1002,7 @@ class SFLR_model_that_saves(rwkmisc.object_that_saves):
                 val = None
             mydict[attr] = val
         return mydict
-    
+
     def save(self, filepath, protocol=2):
         if not hasattr(self, 'saveattrs'):
             self.saveattrs = ['A','B','C','D',\
@@ -1018,7 +1018,7 @@ class SFLR_model_that_saves(rwkmisc.object_that_saves):
     def load(self, filepath):
         rwkmisc.object_that_saves.load(self, filepath)
         self._init2()
-        
+
 
 class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
                      SFLR_model_w_bodes, \
@@ -1039,7 +1039,7 @@ class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
     def set_fit_parames(self, fitbodes, ffit):
         self.fitbodes = fitbodes
         self.ffit = ffit
-        
+
 
     def get_fit_params(self, fitbodes=None, ffit=None):
         if fitbodes is None:
@@ -1047,8 +1047,8 @@ class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
         if ffit is None:
             ffit = self.ffit
         return fitbodes, ffit
-    
-        
+
+
     def find_C_gains(self, fitbodes=None, ffit=None):
         """Find the best gain to use for each output (i.e. a scaling
         factor for each row of C), by comparing the model bode
@@ -1057,12 +1057,12 @@ class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
         This method assumes that bode[i] corresponds to row i of
         self.C"""
         fitbodes, ffit = self.get_fit_params(fitbodes, ffit)
-        
+
         self.calc_bodes(ffit)
         for i, bode in enumerate(self.bodes):
             fit_bode = self.find_fit_bode(bode, fitbodes)
             ig = numpy.average(fit_bode.dBmag()/bode.dBmag())
-            
+
             def my_cost(C):
                 X = C[0]
                 evect = fit_bode.dBmag()-(bode.dBmag()+20.0*log10(X))
@@ -1137,8 +1137,8 @@ class SFLR_CCF_model(CCF_SS_Model_from_poles_and_zeros, \
         phase_e = self.phase_error(fitbodes, ffit, recalc=0)
         total_e = mag_e + phase_e*phaseweight
         return total_e
-    
-        
+
+
     def check_C_signs(self, fitbodes=None, ffit=None):
         """Determine whether or not the phase error could be
         multipying each row of C by -1."""
@@ -1157,8 +1157,8 @@ class SFLR_CCF_model_closed_loop(SFLR_CCF_model):
     def __init__(self, *args, **kwargs):
         SFLR_CCF_model.__init__(self, *args, **kwargs)
         self.bode_input = 'u'
-        
-    
+
+
 class SFLR_CCF_model_theta_only(SFLR_CCF_model):
     def __init__(self, poles, \
                  theta_zeros=None, \
@@ -1205,7 +1205,7 @@ class SFLR_CCF_model_w_accel_semi_Jordan(SFLR_CCF_model_theta_only):
         self.C[i,:] *= C_i
         self.C_theta *= C_i
         return C_i
-    
+
 
     def find_accel_C_row(self, fitbodes, ffit):
         """This method assumes that the accel/v bode is self.bodes[1]."""
@@ -1214,7 +1214,7 @@ class SFLR_CCF_model_w_accel_semi_Jordan(SFLR_CCF_model_theta_only):
         bode = self.bodes[i]
         fit_bode = self.find_fit_bode(bode, fitbodes)
         ig = [self.B1, self.B2]
-        
+
         def my_cost(C):
             self.B1 = C[0]
             self.B2 = C[1]
@@ -1267,7 +1267,7 @@ class SFLR_CCF_model_w_accel_semi_Jordan(SFLR_CCF_model_theta_only):
         self.C_accel = C_accel
         self.C = row_stack([self.C_theta, self.C_accel])
         return self.C
-        
+
 
     def find_accel_C_row(self, fitbodes, ffit):
         """This method assumes that the accel/v bode is self.bodes[1]."""
@@ -1292,7 +1292,7 @@ class SFLR_CCF_model_w_accel_semi_Jordan(SFLR_CCF_model_theta_only):
         self._build_accel_C()
         return self.C[1,:]
 
-        
+
 class SFLR_CCF_model_arb_accel(SFLR_CCF_model_w_accel_semi_Jordan):
     def __init__(self, poles, \
                  theta_zeros=None, \
@@ -1344,7 +1344,7 @@ class SFLR_CCF_model_arb_accel(SFLR_CCF_model_w_accel_semi_Jordan):
         self._build_accel_C()
         return self.C[1,:]
 
-        
+
 class digital_SS_model(SS_model):
     def __init__(self, G, H, C, D=0.0, T=1.0/500):
         self.G = G
@@ -1376,7 +1376,7 @@ class digital_SFLR_SS_model(digital_SS_model, \
         self.N = nr
         self.use_dig = True
 
-    
+
     def lsim_from_exp_file(self, filepath, fi=1, plot=True, \
                            clear=True):
         self.load_exp_time_file(filepath)
@@ -1424,7 +1424,7 @@ class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
             attr = 'term%i' % n
             label_attr = attr + label_suffix
             if hasattr(self, attr):
-                ax = self._prep_ax(fi=fi, clear=clear)                
+                ax = self._prep_ax(fi=fi, clear=clear)
                 vect = getattr(self, attr)
                 ax.plot(self.t, vect[ind,:], label=label_attr)
                 ax.set_title(attr)
@@ -1434,7 +1434,7 @@ class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
             else:
                 keep_going = False
                 break
-        ax = self._prep_ax(fi=fi, clear=clear)                
+        ax = self._prep_ax(fi=fi, clear=clear)
         #vect = self.term1[ind, :] + self.term2[ind,:] + self.term3[ind,:]
         vect = self.term1[ind, :] + self.term3[ind,:]
         ax.plot(self.t, vect, label='all terms '+label_suffix)
@@ -1442,7 +1442,7 @@ class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
 
 
         self.label_axis()
-        
+
 
     def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None):
         self.r = r
@@ -1499,8 +1499,8 @@ class digital_SFLR_SS_model_ignoring_accel(digital_SFLR_SS_model):
             ##         print('next_x_tilde = ' + str(next_x_tilde))
             ##         print('-'*20)
             ##         debug_ind += 1
-                    
-            
+
+
             ## next_x_tilde = dot(FO, prev_x_tilde) + H*V[k] + \
             ##                colwise(dot(Ke, self.Y_dig[0,k-1]))
             next_x = dot(G, prev_x) + H*V[k]
@@ -1539,10 +1539,10 @@ class digital_SFLR_SS_model_ignoring_accel_P_control(digital_SFLR_SS_model_ignor
         vtemp = self.r[k] - self.Y_dig[0,k-1]
         return vtemp
 
-    
+
 def digital_SFLR_model_from_pickle(pklpath):
     return model_from_pickle(pklpath, model_class=digital_SFLR_SS_model)
-    
+
 
 def digital_SFLR_model_from_pickle_ignore_accel(pklpath):
     return model_from_pickle(pklpath, digital_SFLR_SS_model_ignoring_accel)
@@ -1554,14 +1554,14 @@ def digital_SFLR_model_from_pickle_ignore_accel_P_control(pklpath):
 
 class SFLR_SS_model(SFLR_model_w_bodes, \
                     SFLR_TF_models.SFLR_Time_File_Mixin_w_accel, \
-                    SS_model):        
+                    SS_model):
     def plot_model_data(self):
         SFLR_TF_models.SFLR_Time_File_Mixin_w_accel.plot_model_data(self)
         ax = self.ax
         t = self.t
         ax.plot(t, self.v, label='$v_{model}$')
 
-    
+
     def calc_num(self):
         p_act1 = self.p_act1
         p_act2 = self.p_act2
@@ -1571,7 +1571,7 @@ class SFLR_SS_model(SFLR_model_w_bodes, \
         m1 = abs(s1*(s1+p_act1)*(s1+p_act2))
         self.num = K_act*m1#*m2
 
-        
+
     def calc_coeffs(self):
         #This code is auto-generated by
         #/home/ryan/siue/Research/PSoC_Research/SFLR_2010/modeling/numeric_TMM_model/ss_from_ad_hoc_TF.py
@@ -1647,7 +1647,7 @@ class SFLR_SS_model(SFLR_model_w_bodes, \
         self.lti1 = signal.lti(self.A, B2, self.C[0,:], 0)
         self.lti2 = signal.lti(self.A, B2, self.C[1,:], 0)
 
-        
+
 
     def __init__(self, pklname, bode_opts=None, N=7):
         mydict = rwkmisc.LoadPickle(pklname)
@@ -1672,7 +1672,7 @@ class SFLR_SS_model(SFLR_model_w_bodes, \
     ##     comp = dot(self.C,M)
     ##     return comp
 
-        
+
     ## def calc_freq_resp(self, f):
     ##     svect = 2.0j*pi*f
     ##     comp_mat = zeros((2, len(svect)), dtype='complex128')
@@ -1760,8 +1760,8 @@ class SS_pole_optimizer_mixin(object):
         else:
             self.OL_poles = linalg.eigvals(self.A)
         return self.OL_poles
-    
-        
+
+
     def pole_sorter(self, r=6.0*2*pi, imag_tol=1e-5):
         """Find the poles whose abs is less than r and sort them into real
         and imaginary based on whether their imaginary part is greater
@@ -1795,7 +1795,7 @@ class SS_pole_optimizer_mixin(object):
     def unstable_check(self):
         mybool = real(self.CL_poles) > 0.0
         return mybool.any()
-    
+
 
     def pole_cost(self, verbosity=0):
         self.pole_sorter(r=20.0)
@@ -1907,7 +1907,7 @@ class SS_digital_pole_optimizer_mixin(SS_pole_optimizer_mixin):
         #self.small_real2 = self.filter_immovable(small_real)
         return small_imag, small_real
 
-    
+
 
 
     def pole_cost(self, verbosity=0):
@@ -1931,8 +1931,8 @@ class SS_digital_pole_optimizer_mixin(SS_pole_optimizer_mixin):
             cost += 1e3
         return cost
 
-    
-    
+
+
 class SFLR_SS_model_ABCD_pole_opt(SS_pole_optimizer_mixin, \
                                   SFLR_SS_model_ABCD):
     def __init__(self, *args, **kwargs):
@@ -1979,8 +1979,8 @@ class accel_ignorer(object):
         temp = atleast_2d(self.C)[0,:]
         C = atleast_2d(temp)
         return C
-    
-        
+
+
 class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
                                         SFLR_SS_model_GHCD_digial_pole_opt):
     def __init__(self, *args, **kwargs):
@@ -1988,7 +1988,7 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
         self.N_conj = 5
         self.N_real = 3
         self.imag_inds = [3,5]
-        
+
 
 
     def run_observer(self, i):
@@ -2002,7 +2002,7 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
             H = self.H
 
         C = self._get_C()
-        
+
         self.term1[:,i] = squeeze(colwise(dot(G, self.X_tilde[:,i-1])))
         self.term2[:,i] = squeeze(colwise(H*self.vvect[i-1]))
         Y_tilde_float_i = squeeze(dot(C, self.X_tilde[:,i-1]))
@@ -2038,9 +2038,9 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
         self.vvect = zeros((N2), dtype=float64)
         Ny, Nx = self.C.shape
         self.Y_dig = zeros((Ny, N2))
-        
 
-        
+
+
     def digital_lsim_with_obs(self, r, X0=None, X0_tilde=None):
         dtype = complex128
         self.dtype = dtype
@@ -2053,7 +2053,7 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
             X0_tilde = zeros((self.N,1), dtype=dtype)
         self._init_sim_vectors()
         #V = zeros_like(r)
-        X = zeros((self.N, self.N2), dtype=dtype)        
+        X = zeros((self.N, self.N2), dtype=dtype)
         X[:,0] = squeeze(X0)
         self.X_tilde[:,0] = squeeze(X0_tilde)
 
@@ -2121,7 +2121,7 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
             cvect[0,ind] = real(K[ind])
             cvect[0,ind+1] = imag(K[ind])
         return cvect
-        
+
 
     def extract_K_i_from_C0(self):
         C0 = self.C[0,:]
@@ -2137,8 +2137,8 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt(accel_ignorer, \
             K[0,ind] = curcomp
             K[0,ind+1] = conj(curcomp)
         return K
-    
-        
+
+
     def mycost(self, cvect, verbosity=0):
         K = self.build_K(cvect)
         self.K = K
@@ -2168,8 +2168,8 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt_w_integrator(SFLR_SS_model_GHCD_7_pole_J
         SFLR_SS_model_GHCD_7_pole_JCF_opt._init_sim_vectors(self)
         self.evect = zeros(self.N2, dtype=self.dtype)
         self.esum = zeros(self.N2, dtype=self.dtype)
-        
-        
+
+
     def calc_v(self, i):
         #self.Yvect[0,i-1] = self.Y_dig[i-1]
         #self.Yvect[1,i] = self.avect[i]
@@ -2286,8 +2286,8 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt_w_integrator2(SFLR_SS_model_GHCD_7_pole_
         ind = d.argmin()
         return self.CL_poles[ind]
 
-        
-        
+
+
     def mycost(self, cvect, verbosity=0):
         K, Ki = self.build_K(cvect)
         self.K = K
@@ -2328,7 +2328,7 @@ class SFLR_SS_model_GHCD_7_pole_JCF_opt_K0_max(SFLR_SS_model_GHCD_7_pole_JCF_opt
             K0_penalty = (mygoal-K0)/mygoal*0.1
         cost += K0_penalty
         return cost
-    
+
 
 class closed_loop_SS_model(SFLR_SS_model):
     def lsim2(self, U, T, X0=None, returnall=False, hmax=None):
@@ -2424,8 +2424,8 @@ class closed_loop_SS_model(SFLR_SS_model):
         self.x_accel = out2[2]
 
         self.v = squeeze(self.E*u + dot(self.K, self.x_theta.T))
-        
-        
+
+
         if returnall:#most users will just want the system output y,
             #but some will need the (t, y, x) tuple that
             #signal.lsim returns
@@ -2433,7 +2433,7 @@ class closed_loop_SS_model(SFLR_SS_model):
         else:
             return out1[1], out2[1]
 
-        
+
     def calc_bodes(self, f):
         comp_mat = self.calc_freq_resp(f)
         th_u_comp = comp_mat[0,:]
@@ -2446,7 +2446,7 @@ class closed_loop_SS_model(SFLR_SS_model):
                                          seedphase=th_u_opts.seedphase)
         self.th_u_bode.PhaseMassage(f)
 
-        a_u_opts = self.find_opt('a','u')        
+        a_u_opts = self.find_opt('a','u')
         self.a_u_bode = rwkbode.rwkbode(output='a', \
                                         input='u', \
                                         compin=a_u_comp, \
@@ -2490,8 +2490,8 @@ class discretized_closed_loop_SS_model_theta_only(discretized_closed_loop_SS_mod
                                                   N=N, \
                                                   T=T)
         self.C = rowwise(self.C[0,:])
-            
-    
+
+
     def digital_lsim(self, u, X0=None):
         closed_loop_SS_model.digital_lsim(self, u, X0=X0)
         self.theta = squeeze(self.Y_dig[0,:])

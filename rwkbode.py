@@ -18,7 +18,7 @@ import mplutil
 #reload(mplutil)
 import rwkmisc
 
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 #print("In __init__.py of rwkbode")
 
@@ -63,7 +63,7 @@ bode_keys = ['input', 'output', 'mag', 'phase', 'coh', \
              'freqlim', 'maglim', 'phaselim', \
              'averaged', 'seedfreq', 'seedphase', \
              'labels', 'legloc']
-   
+
 def bode_from_dict(dictin, keys=None):
    if keys is None:
       keys = bode_keys
@@ -73,7 +73,7 @@ def bode_from_dict(dictin, keys=None):
       if dictin.has_key(attr):
          setattr(my_bode, attr, dictin[attr])
    return my_bode
-      
+
 
 class rwkbode:
     def __init__(self, output='out', input='in', \
@@ -111,8 +111,8 @@ class rwkbode:
           val = getattr(self, key)
           mydict[key] = val
        return mydict
-    
-       
+
+
     def __repr__(self):
 #        print('in bodeout.__str__')
 #        attrlist=['output','input','ind','pind','dof']
@@ -186,7 +186,7 @@ class rwkbode:
         dBmagerror = self.dBmag()-other.dBmag()
         e_dB = (dBmagerror**2).sum()
         return e_dB + e_phase*phaseweight
-       
+
     def __mul__(self,other):
         """Multiply two bodes."""
         if type(other)==float or type(other)==int:
@@ -220,7 +220,7 @@ class rwkbode:
         myoutput.mag=squeeze(colwise(first.mag)*colwise(second.mag))
         myoutput.phase=squeeze(colwise(first.phase)+colwise(second.phase))
         return myoutput
-        
+
     def ToComp(self,ind=None):
         if ind!=None:
             x=self.mag[ind]*cos(pi/180.0*self.phase[ind])
@@ -379,8 +379,8 @@ def AveBodeFromSpectra(specin):
     mybode=rwkbode(input=specin.input, output=specin.output, \
                    compin=squeeze(Have), coh=squeeze(cohnum/cohden))
     return mybode
-    
-   
+
+
 #ttttttttttttttttttttttttttttttttttttttttttt
 #
 #   Temporarily commented out while switching to WX embedded compatible functions
@@ -418,7 +418,7 @@ def DownsampleList(freq,bodelist,factor,ranges=[]):
 
 def TruncList(freq,bodelist,freqlim):
     """Truncate each bode in bodelist returning
-    a truncated frequency vector and a list of 
+    a truncated frequency vector and a list of
     copies of the bodes that are trucnated."""
     bodesout=[]
     first=1
@@ -431,8 +431,8 @@ def TruncList(freq,bodelist,freqlim):
             tempbode.truncate(freq,freqlim)
         bodesout.append(tempbode)
     return tf, bodesout
-        
-        
+
+
 def AddVerticalLines(freqlim,ymin=-1000,ymax=1000):
     curylim=pylab.ylim()
     curx=pylab.xlim()
@@ -590,7 +590,7 @@ def Bode_From_TF(TF, freq, input='', output=''):
     comp = TF.FreqResp(freq, fignum=None)
     return rwkbode(output=output, input=input, \
                    compin=comp)
-   
+
 def BodeFromModname(modname,expbode,f,funcname=None,ucv=[],optargs=(),PhaseMassage=True):
     """Generate one Bode from its module name, i.e. the name of a
     module that contains the symbolic Bode function funcname.  If
@@ -624,7 +624,7 @@ def BodesFromCompListbyModname(modpattern,expbodes,f,funcname=None, ucv=[]):
     input frequency vector and returns a list of model bodes.  If
     funcname is not specified, the same name as each module will be
     used.
-    
+
     If ucv is given, it is passed to the bode function:
     bode=bodefunc(s,ucv) (ucv stands for unknown coefficent vector and
     is used in my curve fitting stuff)."""
@@ -639,12 +639,12 @@ def BodesFromCompListbyModname(modpattern,expbodes,f,funcname=None, ucv=[]):
     return bodesout
 
 def PlotBodeList(startfi, freq, bodelist, **kwargs):
-    """Plot a list of Bodes by calling GenBodePlot 
+    """Plot a list of Bodes by calling GenBodePlot
     for each bode in bodelist."""
     pylab.ioff()
     for x,cb in enumerate(bodelist):
         GenBodePlot(x+startfi,freq,cb,**kwargs)
-        
+
 
 def SetAxisLimits(startfi,freqlist,listofbodelists):
     """Take a starting figure number (startfi), a list of frequency
@@ -678,7 +678,7 @@ def SetAxisLimits(startfi,freqlist,listofbodelists):
                     phasemax=max(curphaselim)
         if xmax and xmin:
             setfreqlim=[xmin,xmax]
-            rwkmplutil.SetBothXlims(curfi,setfreqlim) 
+            rwkmplutil.SetBothXlims(curfi,setfreqlim)
         if magmin and magmax:
             rwkmplutil.SetMagLim(curfi,[magmin,magmax])
         if phasemin and phasemax:
@@ -699,7 +699,7 @@ def _getlinestyle(ax=None):
 def _inccount():
     ax=gca()
     ax._get_lines.count+=1
-    
+
 def _PlotMatrixvsF(freqvect, matin, linestyle='', \
                    linewidth=None, semilogx=True, \
                    dashes=None, \
@@ -891,7 +891,7 @@ def GenBodePlot(fignum, freqvect, bodein, clear=True, \
     if fig is None:
        from pylab import figure
        fig = figure(fignum)
-    
+
     if type(bodein)==type(arange(0,1,0.01)):
         bodein=rwkbode(compin=bodein)
     #myargs=['linestyle','colors','linewidth','label']
@@ -955,13 +955,13 @@ def GenCohPlot(fignum, freqvect, bodein, \
     ax.xaxis.set_major_formatter(MyFormatter())
     ax.set_xlabel('Freq. (Hz)')
     return fig
-    
-    
+
+
 
 ## def GenBodePlot(fignum,freqvect,bodein,clear=True,filename='',mydpi=75,folder='figs',linestyle='',colors=[],legend=[],legloc=-1,autoY=1,speciallegend=False,linewidth=0,legonphase=False):
 ##     #ticksize='large',labelsize='x-large',
 ##     pylab.ioff()
-##     bodein.mag=colwise(bodein.mag,makecopy=False)    
+##     bodein.mag=colwise(bodein.mag,makecopy=False)
 ##     bodein.phase=colwise(bodein.phase,makecopy=False)
 ##     pylab.figure(fignum)
 ##     pylab.subplot(211)
@@ -985,7 +985,7 @@ def GenCohPlot(fignum, freqvect, bodein, \
 ##             if linestyle:
 ##                 myargs.append(linestyle)
 ##             elif colors:
-##                 myargs.append(colors[q % len(colors)])                
+##                 myargs.append(colors[q % len(colors)])
 ##             if linewidth:
 ##                 mykwargs['linewidth']=linewidth
 ##             curline,=pylab.semilogx(*myargs,**mykwargs)
@@ -1052,7 +1052,7 @@ def GenCohPlot(fignum, freqvect, bodein, \
 ##         pylab.legend(*legargs)
 ##     ax=pylab.gca()
 ##     ax.xaxis.set_major_formatter(MyFormatter())
-    
+
 ##     if len(filename)>0:#use this as the test of whether ot not to save
 ##         if not os.path.exists(folder):
 ##             os.mkdir(folder)
@@ -1075,4 +1075,4 @@ def FindMatch(bodelist, output, input):
     else:
         raise IndexError, 'Could not find bode with output='+output +' and input='+input
 
-   
+

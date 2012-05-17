@@ -12,7 +12,7 @@ header_str = r"""\documentclass[landscape,letterpaper,11pt]{article}
 \usepackage[T1]{fontenc} % use T1 fonts
 \usepackage{amsmath} % nice math symbols
 \usepackage{bm} % bold math
-\usepackage{color} % change text color        
+\usepackage{color} % change text color
 
 \usepackage{tikz}
 \usetikzlibrary{calc,patterns,decorations.pathmorphing,decorations.markings}
@@ -38,10 +38,10 @@ header_str = r"""\documentclass[landscape,letterpaper,11pt]{article}
 \let\wallheight\pgfmathresult
 
 \usetikzlibrary{shapes,arrows}
-\tikzstyle{block} = [draw, fill=blue!10, rectangle, 
+\tikzstyle{block} = [draw, fill=blue!10, rectangle,
     minimum height=1.0cm, minimum width=1.0cm]
-\tikzstyle{multilineblock} = [draw, fill=blue!10, rectangle, 
-    minimum height=1.25cm, minimum width=1.0cm, 
+\tikzstyle{multilineblock} = [draw, fill=blue!10, rectangle,
+    minimum height=1.25cm, minimum width=1.0cm,
     text width=2cm,text centered,midway]
 \tikzstyle{sum} = [draw, fill=blue!20, circle, node distance=1.5cm]
 \tikzstyle{input} = [coordinate]
@@ -56,15 +56,15 @@ header_str = r"""\documentclass[landscape,letterpaper,11pt]{article}
 
 ## \node (input) {$u$};
 ## \node [sum, right of=input] (sum) {};
-## \node [block, right of=sum, node distance=1.75cm] (controller) 
+## \node [block, right of=sum, node distance=1.75cm] (controller)
 ##     {$G_c(s)$};
-## \node [emptynode, below of=controller, node distance=\capdist] 
+## \node [emptynode, below of=controller, node distance=\capdist]
 ##     (caption1) {Controller};
-## \node [block, right of=controller] (plant) 
+## \node [block, right of=controller] (plant)
 ##     {$G(s)$};
-## \node [emptynode, below of=plant, node distance=\capdist] 
+## \node [emptynode, below of=plant, node distance=\capdist]
 ##     (caption2) {Plant};
-## \node (output) [right of=plant] {$y$}; 
+## \node (output) [right of=plant] {$y$};
 
 ## \draw [->] (input) -- (sum) node[pos=0.9, yshift=0.25cm] {\small{$+$}};
 ## \draw [->] (sum) -- (controller);
@@ -74,7 +74,7 @@ header_str = r"""\documentclass[landscape,letterpaper,11pt]{article}
 ## \coordinate [below of=plant, node distance=2.0cm] (tmp);
 ## \draw [->] (outarrow) |- (tmp) -| (sum) node[pos=0.9, xshift=0.2cm] {{\small $-$}};
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 class block_diagram_system(object):
     def __init__(self, blocks=None, wires=None, \
@@ -99,7 +99,7 @@ class block_diagram_system(object):
                 if block.input == block.rel_block:
                     curwire = simple_wire(block.input, block)
                     simple_wires.append(curwire)
-                
+
         if self.wires is None:
             self.wires = simple_wires
         else:
@@ -111,7 +111,7 @@ class block_diagram_system(object):
             self.wires = [wire]
         else:
             self.wires.append(wire)
-            
+
 
     def to_tikz(self):
         opt_str =  "[every node/.style={font=\large}, node distance=%s,>=latex']" % self.default_node_distance
@@ -139,7 +139,7 @@ class block_diagram_system(object):
         for annotation in annotations:
             curline = annotation.to_tikz()
             out(curline)
-            
+
         out('\\end{tikzpicture}')
         out('\\end{document}')
 
@@ -189,11 +189,11 @@ class block(object):
 
 
     def _build_opt_str(self):
-        ## \node [block, right of=sum, node distance=1.75cm] (controller) 
+        ## \node [block, right of=sum, node distance=1.75cm] (controller)
         ##     {$G_c(s)$};
-        ## \node [emptynode, below of=controller, node distance=\capdist] 
+        ## \node [emptynode, below of=controller, node distance=\capdist]
         ##     (caption1) {Controller};
-        ## \node [block, right of=controller] (plant) 
+        ## \node [block, right of=controller] (plant)
         ##     {$G(s)$};
 
         if self.tikz_style:
@@ -248,7 +248,7 @@ class summing_block(block):
         block.__init__(self, name, label=label, \
                        caption=caption, input=input, \
                        **kwargs)
-        
+
         self.input2 = input2
         self.tikz_style = 'sum'
         #\node [sum, right of=input] (sum) {};
@@ -258,7 +258,7 @@ class TF_block(block):
     def __init__(self, name, **kwargs):
         block.__init__(self, name, **kwargs)
         self.tikz_style = 'block'
-        ## \node [block, right of=sum, node distance=1.75cm] (controller) 
+        ## \node [block, right of=sum, node distance=1.75cm] (controller)
         ##     {$G_c(s)$};
 
 
@@ -296,7 +296,7 @@ class intermediate_point(block):
         self.tikz_str = tikz_str
         return self.tikz_str
         ## \coordinate [below of=plant, node distance=2.0cm] (tmp);
-        
+
 
 class simple_wire(object):
     def __init__(self, start, end):
@@ -315,7 +315,7 @@ class feedback_wire(simple_wire):
         self.start = start
         self.end = end
         self.intermediate_point = intermediate_point
-        
+
 
     def to_tikz(self):
         tikz_str = '\\draw [->] (%s) |- (%s) -| (%s);' % (self.start.name, \
@@ -355,7 +355,7 @@ class annotation(block):
         tikz_str += ';'
         self.tikz_str = tikz_str
         return self.tikz_str
-            
+
 
 
 # below is the code needed to draw the wires for my simple closed-loop
@@ -414,4 +414,4 @@ if __name__ == '__main__':
     outname = 'tikz_sys_test.tex'
     outpath = os.path.join(outdir, outname)
     sys.save_tikz(outpath)
-    
+

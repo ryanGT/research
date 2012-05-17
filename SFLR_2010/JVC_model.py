@@ -24,7 +24,7 @@ reload(sympy_TMM)
 
 import os, copy, time
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 mu = Symbol('mu')
 EI = Symbol('EI')
@@ -147,8 +147,8 @@ class JVC_model(object):
                 bodeDline = 'bode%iD:ratdenom(bode%i)$' % (bi, bi)
                 outlines.append(bodeDline)
         return outlines
-            
-    
+
+
     def Usys_Maxima(self, attrlist):
         Usys_str = None
         for attr in attrlist:
@@ -181,7 +181,7 @@ class JVC_model(object):
                 outlines.append(Dline)
         return outlines
 
-        
+
     def to_Maxima(self, pathout, attrlist=['U0'], num_bodes=2, \
                   base_mod_name='maxima_bode', ND=True, **kwargs):
         """Create a Maxima batch file for the system.  attrlist is a
@@ -211,16 +211,16 @@ class JVC_model(object):
         self.maxima_list = mylist
         txt_mixin.dump(pathout, mylist)
 
-        
 
-        
+
+
     def _def_params(self):
         raise NotImplementedError
 
     def _load_params(self):
         myparams = self._def_params()
         self.params = myparams
-    
+
     def _load_mod(self):
         try:
             self.mod = my_import(self.mod_name)
@@ -235,7 +235,7 @@ class JVC_model(object):
         self.flow = 3.44
         self.fhigh = 21.3
         self.lim2 = -10.0
-        
+
     def __init__(self, mod_name, con_dict={}, f=exp_data.f, **kwargs):
         self.mod_name = mod_name
         self.con_dict = con_dict
@@ -314,7 +314,7 @@ class JVC_model(object):
 
     def massage_a_th_bode(self):
         pass
-    
+
     def plot_Bodes(self, startfi=1, clear=False, lt='k-.'):
         kwargs = {'clear':clear, 'linetype':lt}
         rwkbode.GenBodePlot(startfi, self.f, self.th_bode, **kwargs)
@@ -387,7 +387,7 @@ class JVC_model(object):
 
         param_mat = zeros((N2, N1))
         myparams = self.params
-        
+
         for n, key in enumerate(keys):
             nom = getattr(myparams, key)
             vals = percents*nom
@@ -435,7 +435,7 @@ class JVC_model(object):
     def clear_log(self):
         f = open(self.logfile,'wb')
         f.close()
-    
+
     def str_out(self, string):
         f = open(self.logfile,'ab')
         f.write(string)
@@ -476,7 +476,7 @@ class JVC_model(object):
             params = self.params
         return _cost(params, extra=extra, func=self.func, \
                      con_dict=self.con_dict)
-    
+
     def run_brute_force(self, keys):
         """You must set the parameter self.logfile before calling this
         method.  This should probably happen in the __init__ method of
@@ -537,13 +537,13 @@ class JVC_model(object):
             params = self.params
         SFLR_TMM.save_params(params, pklname)
 
-        
+
 class model1(JVC_model):
     def _def_params(self):
         myparams = SFLR_TMM.SFLR_params()
         myparams.p_act1 = 15*2*pi
         return myparams
-        
+
     def __init__(self, mod_name='model1_bodes', \
                  pkl_name='model1_opt.pkl'):
         JVC_model.__init__(self, mod_name=mod_name, pkl_name=pkl_name, \
@@ -563,7 +563,7 @@ class model1b(JVC_model):
             myparams = SFLR_TMM.new_def_params()
             myparams.p_act1 = 15*2*pi
         return myparams
-        
+
     def __init__(self, mod_name='model1b_bodes', \
                  pkl_name='model1b_opt.pkl', start_pkl_name=None):
         JVC_model.__init__(self, mod_name=mod_name, pkl_name=pkl_name, \
@@ -591,7 +591,7 @@ class model1b(JVC_model):
         phase[indsc] += 360.0
         bode.phase = phase
         setattr(self, attr, bode)
-        
+
 
     def massage_a_v_bode(self):
         self.myphase_massage('a_v_bode', -40.0, -130.0)
@@ -637,7 +637,7 @@ class model2(model1):
             myparams.k_spring = 10.0
             myparams.c_spring = 0.1
         return myparams
-        
+
     def __init__(self, mod_name='model2_bodes', \
                  pkl_name='model2_opt.pkl', start_pkl_name=None):
         JVC_model.__init__(self, mod_name=mod_name, pkl_name=pkl_name, \
@@ -650,7 +650,7 @@ class model2(model1):
                                      'EI':(0.12, 0.21)}, \
                            maglims=[(-40,10),(-25,20),(-20,70)], \
                            start_pkl_name=start_pkl_name)
-                        
+
         self.bfkeys = ['k_spring','c_spring','mu','EI', \
                        'K_act','p_act1']
         self.logfile = 'model2_brute_force_params.txt'
@@ -678,7 +678,7 @@ class model2(model1):
     def build_param_mat(self):
         JVC_model.build_param_mat(self, self.bfkeys)
         ###override the k_spring row
-        self.param_mat[:,0] = array([0.1, 0.2, 0.5])        
+        self.param_mat[:,0] = array([0.1, 0.2, 0.5])
         ###override the c_spring row
         self.param_mat[:,1] = array([0, 0.1, 1])
         return self.param_mat
@@ -686,8 +686,8 @@ class model2(model1):
 
     def run_brute_force(self):
         return JVC_model.run_brute_force(self, self.bfkeys)
-        
-    
+
+
 class model2b(model1b):
     """This model includes the accelerometer mass and a two piece
     beam."""
@@ -704,7 +704,7 @@ class model2b(model1b):
             myparams.k_spring = 10.0
             myparams.c_spring = 0.1
         return myparams
-        
+
     def __init__(self, mod_name='model2b_bodes', \
                  pkl_name='model2b_opt.pkl', start_pkl_name=None):
         JVC_model.__init__(self, mod_name=mod_name, pkl_name=pkl_name, \
@@ -718,7 +718,7 @@ class model2b(model1b):
                                      'EI':(0.12, 0.21)}, \
                            maglims=[(-40,15),(-25,40),(-20,70)], \
                            start_pkl_name=start_pkl_name)
-                        
+
         self.bfkeys = ['k_spring','c_spring','mu','EI','a_m',\
                        'K_act','p_act1']
         self.logfile = 'model2b_brute_force_params.txt'
@@ -775,7 +775,7 @@ class model2bd(model2b):
             myparams.k_spring = 10.0
             myparams.c_spring = 0.1
         return myparams
-        
+
     def __init__(self, mod_name='model2b_bodes', \
                  pkl_name='model2bd_opt.pkl', start_pkl_name=None):
         JVC_model.__init__(self, mod_name=mod_name, pkl_name=pkl_name, \
@@ -790,7 +790,7 @@ class model2bd(model2b):
                                      'c_beam':(0,1.0)}, \
                            maglims=[(-40,15),(-25,20),(-20,70)], \
                            start_pkl_name=start_pkl_name)
-                        
+
         self.bfkeys = ['k_spring','c_spring','c_beam','mu','EI','a_m',\
                        'K_act','p_act1']
         self.logfile = 'model2bd_brute_force_params.txt'
@@ -839,7 +839,7 @@ class model2cs(model2bd):
                        #'K_act','p_act1']
         self.logfile = 'model2cs_brute_force_params.txt'
 
-    
+
 class model_w_bm(model2b):
     """This model includes the base mass as well as the accelerometer
     mass and a two piece beam."""
@@ -877,7 +877,7 @@ class model_w_bm(model2b):
                             num_bodes=num_bodes, \
                             base_mod_name=base_mod_name, **kwargs)
 
-        
+
     def find_symbolic_bodes(self, save=1):
         self.Usys = self.U6*(self.U5*(self.U4*(self.U3*\
                                                (self.U2*(self.U1*self.U0)))))
@@ -904,7 +904,7 @@ class model_w_bm(model2b):
         return JVC_model.Maxima_bodes(self, sensor_inds, dofs, sensor_post, \
                                       **kwargs)
 
-        
+
     def __init__(self, mod_name='model_w_bm_bodes', \
                  pkl_name='model_w_bm_opt.pkl', start_pkl_name=None):
         JVC_model.__init__(self, mod_name=mod_name, pkl_name=pkl_name, \
@@ -919,7 +919,7 @@ class model_w_bm(model2b):
                                      #'c_beam':(0,1.0)}, \
                            maglims=[(-40,15),(-25,15),(-20,45)], \
                            start_pkl_name=start_pkl_name)
-                        
+
         self.bfkeys = ['k_spring','c_spring','mu','EI','a_m',\
                        'K_act','p_act1']
         self.logfile = 'model_w_bm_brute_force_params.txt'
@@ -988,7 +988,7 @@ class model_w_bm_theta_FB(model_w_bm):
         if save:
             self.cse_to_file()
         return self.sym_bodes
-    
+
 
     def Unc(self):
         U0 = AVS_ThetaFB.Get_Aug_Mat(s)
@@ -1000,7 +1000,7 @@ class model_w_bm_theta_FB(model_w_bm):
         self.Unc = Unc
         return Unc
 
-    
+
     def Unc_row_to_file(self, pathout):
         Unc = self.Unc
         Unc00 = Unc[0,0]
@@ -1020,7 +1020,7 @@ class model_w_bm_theta_FB(model_w_bm):
                               inputs, \
                               headerfile='header.py', \
                               replace_dict=replace_dict)
-        
+
 
 
 class model_w_bm_theta_FB_ND(model_w_bm_theta_FB):
@@ -1050,7 +1050,7 @@ class model_w_bm_theta_FB_ND(model_w_bm_theta_FB):
     ##     if save:
     ##         self.cse_to_file()
     ##     return self.sym_bodes
-    
+
 
 
     def find_sym_matrices(self):

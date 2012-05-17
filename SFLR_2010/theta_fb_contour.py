@@ -4,7 +4,7 @@ from numpy import arange, zeros, array, pi, log10
 import rwkmisc
 import SFLR_TMM
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 
 class theta_fb_sys_contour(rwkmisc.object_that_saves):
@@ -80,7 +80,7 @@ class theta_fb_sys_contour(rwkmisc.object_that_saves):
             self.load(saved_pklname)
         else:
             self.params_pkl_path = params_pkl_path
-            self.load_params()            
+            self.load_params()
             self.build_s()
             self.accel_u_bode_func = accel_u_bode_func
             self.accel_theta_bode_func = accel_theta_bode_func

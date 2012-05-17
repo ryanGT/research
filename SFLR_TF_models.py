@@ -25,7 +25,7 @@ import SFLR_TMM
 import bode_plot_overlayer as BPO
 #reload(BPO)
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 #import bode_options
 
@@ -78,7 +78,7 @@ class SFLR_Time_File_Mixin(object):
     def label_time_domain_plot(self):
         ax = self.ax
         ax.set_xlabel('Time (sec)')
-        ax.set_ylabel('Signal Amplitude (counts)')        
+        ax.set_ylabel('Signal Amplitude (counts)')
 
 
     def plot_time_domain_exp_vs_model(self, fi=1, legloc=5):
@@ -111,7 +111,7 @@ class SFLR_Time_File_Mixin_w_accel(SFLR_Time_File_Mixin):
     def plot_model_data(self):
         SFLR_Time_File_Mixin.plot_model_data(self, accel=True)
 
-    
+
 class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
     def find_bode(self, output, input):
         """This method is called by plot_bodes"""
@@ -184,7 +184,7 @@ class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
             if val < 0.0:
                 return 10000.0
         return 0.0
-    
+
 
     def act_cost(self, C):
         self.set_params(C)
@@ -206,7 +206,7 @@ class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
         self.TMM_model.calc_bodes(self.ffit)
         self.TMM_act_bode = self.TMM_model.find_bode(self.bode_opts[0])
         self.set_fit_bode()
-        
+
 
     def __init__(self, bode_opts, unknown_params, \
                  TMM_model, \
@@ -232,7 +232,7 @@ class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
         self.label = label
         self.build_TFs()
         self.my_cost = self.act_cost
-        
+
 
     def get_ig(self):
         """Build a vector of initial guesses for curve fitting based
@@ -336,13 +336,13 @@ class Rigid_Acuator_TF_Model(SFLR_Time_File_Mixin):
         rwkmisc.SavePickle(self.params, filepath)
         return self.params
 
-    
+
     def load_params(self, filepath):
         mydict = rwkmisc.LoadPickle(filepath)
         self.set_params_from_dict(mydict)
         self.build_TFs()
         return mydict
-        
+
 
 class pure_integrator(Rigid_Acuator_TF_Model):
     def build_act_iso(self):
@@ -355,7 +355,7 @@ class pure_integrator(Rigid_Acuator_TF_Model):
         self.G_act_iso = TF(num*H,[1,0])
         return self.G_act_iso
 
-    
+
 class Second_Order_Rigid_Act_Model(Rigid_Acuator_TF_Model):
     def build_act_iso(self):
         p_act1 = self.p_act1
@@ -402,7 +402,7 @@ class model_w_notch(object):
         zz1 = self.zz1
         self.notch1 = self._build_notch_TF(wp1, zp1, wz1, zz1)
 
-    
+
 class FO_Act_w_one_notch(model_w_notch,Rigid_Acuator_TF_Model):
     def build_TFs(self):
         self.build_act_iso()
@@ -428,7 +428,7 @@ class FO_Act_w_one_notch(model_w_notch,Rigid_Acuator_TF_Model):
                                         label=label, \
                                         params=params)
 
-    
+
 
 class SO_Act_w_one_notch(Second_Order_Rigid_Act_Model,model_w_notch):
     def build_TFs(self):
@@ -474,8 +474,8 @@ class SO_Act_w_two_notches(SO_Act_w_one_notch):
         wz2 = self.wz2
         zz2 = self.zz2
         self.notch2 = self._build_notch_TF(wp2, zp2, wz2, zz2)
-        
-        
+
+
     def build_TFs(self):
         self.build_act_iso()
         self.build_notch1_TF()
@@ -495,7 +495,7 @@ class SO_Act_w_two_notches(SO_Act_w_one_notch):
                                         label=label, \
                                         params=params)
 
-         
+
 accel_keys = ['wpa1', 'zpa1', 'B1', 'wpa2', 'zpa2', 'B2']
 accel_values = [2.8*2*pi, 0.3, 1.02595313, 18.0*2*pi, 0.05, -4.93599049]
 accel_dict = dict(zip(accel_keys, accel_values))
@@ -514,7 +514,7 @@ FO_accel_params = copy.copy(accel_params)
 pop_params = ['p_act2','wp2','zp2','wz2','zz2','B2']
 for item in pop_params:
     FO_accel_params.pop(item)
-    
+
 
 class TF_w_accel(object):
     def lsim(self, u, t):
@@ -555,7 +555,7 @@ class TF_w_accel(object):
 
     def calc_TMM_bode(self):
         self.TMM_model.calc_bodes(self.ffit)
-        self.TMM_act_bode = self.TMM_model.find_bode(self.bode_opts[0])        
+        self.TMM_act_bode = self.TMM_model.find_bode(self.bode_opts[0])
         self.TMM_accel_v_bode = self.TMM_model.find_bode(self.bode_opts[1])
         self.set_fit_bode()
 
@@ -600,8 +600,8 @@ class FO_1_notch_w_accel(TF_w_accel,FO_Act_w_one_notch):
                                         label=label, \
                                         params=params)
         self.my_cost = self.accel_v_cost
-    
-    
+
+
 class Accel_w_two_notches(TF_w_accel,SO_Act_w_two_notches):
     """This model builds on SO_Act_w_two_notches by adding the
     accelerometer output."""
@@ -618,7 +618,7 @@ class Accel_w_two_notches(TF_w_accel,SO_Act_w_two_notches):
                    [1,2*zpa2*wpa2,wpa2**2])
         self.G_a_th = (mode1 + mode2)*self.a_gain
 
-        
+
     def build_TFs(self):
         self.build_act_iso()
         self.build_notch1_TF()
@@ -680,7 +680,7 @@ class G_th_comp_Theta_FB(Accel_w_two_notches):
         self.build_notch2_TF()
         self.build_a_theta_TF()
         self.G_act_ol = self.G_act_iso*self.notch1*self.notch2
-        
+
     def build_TFs(self):
         self._build_TFs()
         self.G_act = controls.feedback(self.G_act_ol*self.Gth)
@@ -706,7 +706,7 @@ class G_th_G_a_TF(G_th_comp_Theta_FB):
     def simplify(self):
         self.atf2 = self.accel_TF.simplify()
         self.thtf2 = self.theta_TF.simplify()
-        
+
     def lsim(self, u, t, simplify=True):
         if simplify:
             self.simplify()
@@ -717,7 +717,7 @@ class G_th_G_a_TF(G_th_comp_Theta_FB):
             self.accel = self.accel_TF.lsim(u, t)
         return self.theta, self.accel
 
-    
+
     def calc_bodes(self, f):
         #Will need to fix this to find the bodes for a/theta_d and
         #theta/theta_d
@@ -758,16 +758,16 @@ class G_th_G_a_TF(G_th_comp_Theta_FB):
                                     ffit=ffit, \
                                     label=label, \
                                     params=params)
-        
 
 
-    
+
+
 class G_th_comp_Theta_FB_no_accel(G_th_comp_Theta_FB):
     def lsim(self, u, t):
         self.theta = self.G_act.lsim(u, t)
         #self.accel = self.G_a_th.lsim(self.theta, t)
         return self.theta#, self.accel
-    
+
     def time_domain_cost(self, C):
         self.set_params(C)
         self.build_TFs()
@@ -785,7 +785,7 @@ class G_th_comp_Theta_FB_no_accel(G_th_comp_Theta_FB):
     def plot_model_data(self):
         SO_Act_w_two_notches.plot_model_data(self, accel=False)
 
-    
+
 def sat(vin, mymax=200):
     """The PSoC can only ouput voltages in the range +/- 2.5V.  With a
     9-bit digital to analog converter, this corresponds to +/- 255
@@ -799,7 +799,7 @@ def sat(vin, mymax=200):
     else:
         return vin
 
-    
+
 class G_th_comp_Theta_FB_dig_w_sat(G_th_comp_Theta_FB):
     def __init__(self, bode_opts, unknown_params, \
                  TMM_model, \
@@ -863,7 +863,7 @@ class G_th_comp_Theta_FB_dig_w_sat(G_th_comp_Theta_FB):
 
 
         return self.theta, self.accel, self.vvect
-    
+
 
     def Run_Sim_from_exp_file(self, filepath, fi=1, plot=True, \
                               clear=True):

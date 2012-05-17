@@ -20,7 +20,7 @@ import sys, os, copy, time
 from rwkmplutil import SetPlotLims
 from rwkdataproc import thresh
 
-from IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 import rwkreportgen
 reload(rwkreportgen)
@@ -48,7 +48,7 @@ if longtdir not in sys.path:
 fitdir='/home/ryan/thesis/swdesign/integrated_id/April_26_redo'
 if fitdir not in sys.path:
     sys.path.insert(3,fitdir)
-    
+
 myreport=rwkreportgen.Report('dumb_fit.tex')
 myreport.SetModelFreqVect(0.1,50,0.01)
 myreport.SetFreqLim([0.1,30])
@@ -73,8 +73,8 @@ if runf:
 #    myfinalfnames=olmodel.PrepareFortranFiles(bodenames)
 #    mypynames=olmodel.PreparePythonFiles(bodenames)
 #    fmodnames=olmodel.CallF2py(myfinalfnames)
-            
-    
+
+
 
 #olmodel.SymBodeMaximaAll(texname='old_sym.tex',basebodename='old_sym_bode')
 

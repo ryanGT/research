@@ -28,7 +28,7 @@ import numpy
 
 from numpy import float64, int32
 
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 import xlrd, copy
 
@@ -47,7 +47,7 @@ reload(DataProcMixins)
 
 def col_from_nested(nested, col):
     return [row[col] for row in nested]
-    
+
 def myfloat(stringin):
     """Try converting stringin to a float.  Return 0 for empty
     strings.  Convert the '#DIV/0!' to 0.  On all other float
@@ -86,7 +86,7 @@ def split_names(namelist, delim=' ', reverse=False):
         firstnames.append(first)
     return firstnames, lastnames
 
-    
+
 class tabdelim(csv.Dialect):
     # placeholders
     delimiter = '\t'
@@ -126,11 +126,11 @@ def LoadFromShelf(pathin):
     fn = os.path.join(dir, filebase)
     f = dumb_shelve.open(fn, "r")
     return dict(f)
-    
+
 def ObjectFromShelf(pathin):
     mydict = LoadFromShelf(pathin)
     return rwkmisc.dictobject(**mydict)
-    
+
 def all(listin):
     fitems = [item for item in listin if not item]
     return not fitems
@@ -234,7 +234,7 @@ def interp(x, x1, x2, y1, y2, eps=1e-16):
         return y2
     else:
         return y1 + ((x - x1) * (y2 - y1))/(x2 - x1)
-    
+
 
 class SpreadSheet(object):
     def __init__(self, pathin=None, skiprows=0, \
@@ -257,7 +257,7 @@ class SpreadSheet(object):
         self.datafunc = datafunc
         if (labelsin is not None) and (datain is not None):
             self._init_from_data_and_labels(labelsin, datain)
-            
+
 
     def _init_from_data_and_labels(self, labelsin, datain):
         self.labels = labelsin
@@ -266,7 +266,7 @@ class SpreadSheet(object):
         self.labelrow = 0
         if self.colmap is not None:
             self.MapCols()
-        
+
 
     def FindColLabel(self, label):
         """Search self.labels for label and return the index if found.
@@ -276,15 +276,15 @@ class SpreadSheet(object):
             if curlabel == label:
                 return n
         return ind
-    
-        
+
+
     def PopList(self, indlist):
         if type(indlist)== numpy.ndarray:
             indlist = indlist.tolist()
         indlist.sort(reverse=True)
         return [self.Pop(ind) for ind in indlist]
 
-    
+
     def Pop(self, ind):
         """Remove the row with index ind from self.data"""
         if type(self.data)==list:
@@ -294,7 +294,7 @@ class SpreadSheet(object):
             newmat = numpy.delete(self.data, ind, axis=0)
             self.data = newmat
             return poprow
-            
+
 
     def MapOut(self, outpath, colmap, labels=None, dtype='|S100'):
         """Output selected attributes to a spreadsheet file using
@@ -312,7 +312,7 @@ class SpreadSheet(object):
             curcol = array(getattr(self, colmap[label]))
             data[:,i] = curcol.astype(dtype)
         self.WriteCSV(outpath, labels, data)
-                      
+
 
     def MapCols(self, colmap = None, minrows=-1):
         if colmap is None:
@@ -365,7 +365,7 @@ class SpreadSheet(object):
         row = self.alldata[rowind]
         mylist = self.GetDataFromRow(row, labels)
         return dict(zip(labels, mylist))
-        
+
 
     def GetDataFromRowIndex(self, index, labels):
         myrow = self.data[index]
@@ -377,7 +377,7 @@ class SpreadSheet(object):
         else:
             boolist = [item==value for item in myvect]
             return array(boolist)
-        
+
 
     def SearchCol(self, value, collabel):
         """Return a boolean vector corresponding to whether or not
@@ -389,7 +389,7 @@ class SpreadSheet(object):
     def SearchAttr(self, value, attr):
         myvect = getattr(self, attr)
         return self._search_vect(value, myvect)
-    
+
 
     def GetMatches(self, vallist, collist):
         """Return a boolean vector corresponding to rows of self.data
@@ -414,7 +414,7 @@ class SpreadSheet(object):
         indvect = arange(self.data.shape[0])
         matchinds = indvect[boolvect]
         return matchinds
-        
+
 
     def FilterMatches(self, vallist, collist):
         """Call self.GetMatches to find the boolean vector for vallist
@@ -499,8 +499,8 @@ class SpreadSheet(object):
             if not curmatch:#then the current row of othersheet is NOT already in self.data
                 vallist = BuildListforMatching(row, inds, mylabels, defaults=defaults, null=mynull)
                 self.AppendRow(vallist)
-            
-        
+
+
 
     def Filter(self, boolvect):
         """Return self.data[boolvect] where boolvect is the output of
@@ -546,14 +546,14 @@ class SpreadSheet(object):
             curitem = getattr(self, key)
             mydict[key] = curitem
         return mydict
-        
+
 
     def Pickle(self, pklpath=None, picklekeys=[]):
         if pklpath is None:
             mypath, myext = os.path.splitext(self.path)
             pklpath = mypath+'.pkl'
         mypkl = open(pklpath,'wb')
-        mydict = self._BuildDict(picklekeys)   
+        mydict = self._BuildDict(picklekeys)
         cPickle.dump(mydict, mypkl, protocol=2)
         mypkl.close()
         self.pklpath = pklpath
@@ -566,7 +566,7 @@ class SpreadSheet(object):
         mydict = self._BuildDict(picklekeys)
         io.save(shelfpath, mydict)
         self.shelfpath = shelfpath
-        
+
 
     def DropEmptyRows(self, cols=[0,1]):
         """Delete rows from self.alldata whose cols have a False
@@ -575,7 +575,7 @@ class SpreadSheet(object):
         while n <= (len(self.alldata)-1):
             empty = True
             currow = self.alldata[n]
-            if currow:  
+            if currow:
                 for ind in cols:
                     if currow[ind]:
                         empty = False
@@ -640,7 +640,7 @@ class SpreadSheet(object):
             self.ReadHeader(headerrows=self.labelrow+1)
         self.labels = self.header[self.labelrow]
         self.strip_labels()
-        return self.labels 
+        return self.labels
 
 
     def GetHeaderInfo(self, searchlist, searchcol = 0, usere = False, startrow = 0, exact=False):
@@ -769,7 +769,7 @@ class SpreadSheet(object):
                 return self.data.transpose()[ind]
             else:
                 return self.data.transpose[ind]
-        else:    
+        else:
             return transpose(self.data)[ind]
 
 
@@ -785,12 +785,12 @@ class SpreadSheet(object):
 
     def GetColFromAllData(self, label, exact=False):
         return self.GetColFromArrayorNestedList(label, self.alldata, self.labels, exact=exact)
-    
+
 
     def GetColFromData(self, label, exact=False):
         return self.GetColFromArrayorNestedList(label, self.data, self.collabels, exact=exact)
 
-    
+
     def ReadDataColumn(self, label, skiprows=None, maxrows=None, \
                        parsefunc=None, exact=False, \
                        removeempty=False, **kwargs):
@@ -982,7 +982,7 @@ class SpreadSheet(object):
         that destlabel must exist in the labelrow of self."""
         destcol = self.labels.index(destlabel)
         searchcol = self.labels.index(matchlabel)
-        
+
         for row in self.alldata:
             cursearch = row[searchcol]
             if cursearch:
@@ -1020,7 +1020,7 @@ class SpreadSheet(object):
         if hasattr(self, 'parsefuncs'):
             self.parsefuncs.append(parsefunc)
         self.FindDataColumns(self.collabels)
-        
+
 
     def InsertCol(self, index, collabel, listin=None, parsefunc=None):
         self.collabels.insert(index,collabel)
@@ -1050,7 +1050,7 @@ class SpreadSheet(object):
 
     def strip_labels(self):
         self.labels = [item.strip() for item in self.labels]
-        
+
 
 ## class DataSpreadSheet:
 ##     """This mix in class overrides the ReadData, ReadDataColumn, and ReadDataColumns methods for Spreadsheets that contain only numeric data."""
@@ -1071,7 +1071,7 @@ class spreadsheet_from_data(SpreadSheet):
         if colmap:
             self.collabels = [item for item in self.labels if item in self.colmap.keys()]
 
-        
+
 
 class CSVSpreadSheet(SpreadSheet):
     """Note that following the example of OpenOffice and the Python
@@ -1106,7 +1106,7 @@ class CSVSpreadSheet(SpreadSheet):
             mydialect=determine_lt(mylist,mydialect)
             self.dialect = mydialect
 
-            
+
     def iterrows(self):
         if self.dialect is None:
             self.sniff()
@@ -1126,7 +1126,7 @@ class CSVSpreadSheet(SpreadSheet):
             return SpreadSheet.ReadRows(self, startrow=startrow, \
                                         **kwargs)
 
-        
+
     def ReadFloatRows(self, startrow=0, maxrows=None, **kwargs):
         """After some tinkering, this is the fastest approach I have
         come up with for reading large data files containing ascii
@@ -1134,7 +1134,7 @@ class CSVSpreadSheet(SpreadSheet):
         f=open(self.path)
         contents = f.readlines()
         f.close()
-        
+
         if self.dialect is None:
             self.sniff()
 
@@ -1171,7 +1171,7 @@ class TrueCSVSpreadSheet(CSVSpreadSheet):
                                 dialect=dialect, \
                                 **kwargs)
 
-        
+
 class ExcelSpreadSheet(SpreadSheet):
     def __init__(self, pathin=None, datasheet=0, skiprows=0):
         """Initialize an ExcelSpreadSheet derived from SpreadSheet.
@@ -1184,7 +1184,7 @@ class ExcelSpreadSheet(SpreadSheet):
 
     def SetActiveSheet(self):
         self.activesheet = get_workbook_sheet(self.path, self.datasheet)
-        
+
     def iterrows(self):
         if self.activesheet is None:
             self.SetActiveSheet()
@@ -1215,7 +1215,7 @@ class DynatupSpreadSheet(CSVSpreadSheet):
         vals, labels = self.GetHeaderInfo(['Impact velocity (1)'])
         self.impvel = float(vals[0])
 
-    
+
     def FindLabelRow(self):
         mylabels=['Index','Time']
         CSVSpreadSheet.FindLabelRow(self, labels=mylabels, exact=True)
@@ -1230,7 +1230,7 @@ class DynatupSpreadSheet(CSVSpreadSheet):
         self.tms = self.data[:,0]
         self.FkN = self.data[:,1]
         self.Fraw = self.data[:,2]
-        
+
 
     def Plot_F_vs_t(self, fig, clear=True):
         if clear:
@@ -1266,11 +1266,11 @@ class DynatupSpreadSheet(CSVSpreadSheet):
     def Plot_x_vs_t(self, fig, clear=True):
         myax = self._Plot_prop_vs_t('x', fig, clear=clear)
         myax.set_ylabel('Displacement (m)')
-        
+
     def Plot_v_vs_t(self, fig, clear=True):
         myax = self._Plot_prop_vs_t('v', fig, clear=clear)
         myax.set_ylabel('Velocity (m/s)')
-        
+
 
     def _Plot_prop_vs_t(self, prop, fig, clear=True):
         if clear:
@@ -1296,7 +1296,7 @@ class TabDelimSpreadSheet(CSVSpreadSheet):
     def __init__(self, pathin=None, dialect=tabdelim, skiprows=0, collabels=None, colmap=None, datafunc=float, picklekeys=[]):
         self.dialect = dialect
         SpreadSheet.__init__(self, pathin=pathin, skiprows=skiprows, collabels=collabels, colmap=colmap, datafunc=datafunc, picklekeys=picklekeys)
-    
+
 
 class LabviewSpreadSheet(TabDelimSpreadSheet):
     def __init__(self, pathin=None, tlabel=None, collabels=None, dialect=tabdelim, colmap=None, datafunc=float, exact=False, removeempty=False):
@@ -1329,7 +1329,7 @@ class LabviewSpreadSheet(TabDelimSpreadSheet):
             else:
                 self.lg = self.get_data_col(1)
                 self.a = self.get_data_col(2)
-            
+
 
     def __call__(self, t):
         ind1 = thresh(self.t, t)
@@ -1397,7 +1397,7 @@ class LabeledDataFile(TXTDataFile):
             else:
                 colmap[item] = prop
         self.colmap = colmap
-        
+
     def __init__(self, pathin, skiprows=0, poprows=0, dialect=None, \
                  colmap=None):
         TabDelimSpreadSheet.__init__(self, pathin=pathin, \
@@ -1414,7 +1414,7 @@ class LabeledDataFile(TXTDataFile):
         else:
             self.colmap = colmap
         self.MapCols()
-        
+
 
 class email_list(CSVSpreadSheet):
     """A spreadsheet class for looking up emails in a class list.
@@ -1436,7 +1436,7 @@ class email_list(CSVSpreadSheet):
                 curname = last + ', ' + first
                 names.append(curname)
             self.names = txt_mixin.txt_list(copy.copy(names))
-            
+
             for i, item in enumerate(self.labels):
                 if item.lower().find('email') > -1:
                     email_col = i
@@ -1482,8 +1482,8 @@ class email_list(CSVSpreadSheet):
             else:
                 email_list.extend(curemails)
         return email_list
-        
-        
+
+
 class group_list(LabeledDataFile):
     """A class list to find the members of a group given the group or
     team name.  The spreadsheet has one label row, group names in the
@@ -1500,13 +1500,13 @@ class group_list(LabeledDataFile):
         self.Project_Name = txt_mixin.txt_list(self.get_col(team_name_col))
         self.Group_Members = txt_mixin.txt_list(self.get_col(members_col))
 
-        
+
     def find_group(self, group_name):
         ind = self.Project_Name.findall(group_name)
         assert len(ind)==1, 'Did not find exactly 1 group called ' + \
                group_name + ' len(ind) = ' + str(len(ind))
         return ind[0]
-    
+
     def get_team_members(self, group_name):
         ind = self.find_group(group_name)
         members = self.Group_Members[ind]
@@ -1528,7 +1528,7 @@ class group_list(LabeledDataFile):
                 lastnames.append(last)
                 firstnames.append(first)
         return lastnames, firstnames
-        
+
     def get_last_names(self, group_name):
         members = self.get_team_members(group_name)
         last, first = self._get_names(members)
@@ -1537,7 +1537,7 @@ class group_list(LabeledDataFile):
     def get_names(self, group_name):
         members = self.get_team_members(group_name)
         return self._get_names(members)
-    
+
 
 class group_list_2010(group_list):
     """A class list to find the members of a group given the group or
@@ -1549,7 +1549,7 @@ class group_list_2010(group_list):
                             members_col=members_col, labelrow=labelrow, \
                             dialect=dialect)
         self.Team_Number = txt_mixin.txt_list(self.get_col(team_number_col))
-        
+
 
 class JCILabviewSpreadSheet(LabviewSpreadSheet, DataProcMixins.AccelMixin):
     def __init__(self, pathin=None, tlabel='Time', \
@@ -1617,7 +1617,7 @@ class LSDynaCSVFile(CSVSpreadSheet):
         if self.params and self.datacols:
             for curparam, curcol in zip(self.params, self.datacols):
                 setattr(self, curparam, self.data[:,curcol])
-        
+
     def __init__(self, pathin=None, datacols=[], params=[],  dialect=lsdcsv):
         CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect)
         self.datacols = datacols
@@ -1625,7 +1625,7 @@ class LSDynaCSVFile(CSVSpreadSheet):
         self.labelrow = 0
         self.GetLabelRow()
         self.ReadData()
-        
+
 
     def iterrows(self):
         """The LS-Dyna csv files have an extra comma at the end of a
@@ -1656,7 +1656,7 @@ class BlackBoardGBFile(CSVSpreadSheet):
         col = self.get_col(ind)
         if array:
             col = numpy.array(col, dtype=dtype)
-            
+
         setattr(self, attr, col)
 
     def assign_letter_grades(self, attr='course_grades', \
@@ -1687,7 +1687,7 @@ class BlackBoardGBFile(CSVSpreadSheet):
                                    'GPA', \
                                    self.num_grades, \
                                    splitnames=False)
-        
+
 
     def save(self, csvpathout):
         self.WriteAllDataCSV(csvpathout)
@@ -1706,7 +1706,7 @@ class BlackBoardGBFile(CSVSpreadSheet):
             if lastrow[0].find(',') > -1:
                 self.alldata.append(lastrow)
                 break
-            
+
 
     def Lastname_from_First(self, firstname, alternates={}):
         indlist = []
@@ -1722,8 +1722,8 @@ class BlackBoardGBFile(CSVSpreadSheet):
         except ValueError:
             ind = self.upperlast.index(lastname.upper())
         return self.firstnames[ind].capitalize()
-    
-        
+
+
     def ParseNames(self):
         lastnames = []
         firstnames = []
@@ -1785,7 +1785,7 @@ class BlackBoardGBFile(CSVSpreadSheet):
         found = 0
         for curname, row in zip(self.lastnames, self.alldata):
             curind = search_list(namelist, curname, match=1)
-            #print('curind = ' + str(curind)) 
+            #print('curind = ' + str(curind))
             if curind == -1:
                 if verbosity > 1:
                     print('could not find ' + curname)
@@ -1825,7 +1825,7 @@ class BlackBoardGBFile(CSVSpreadSheet):
                 print('found: ' + str(self.alldata[last_inds[first_inds[0]]]))
             assert len(first_inds) == 1, "Did not find exacly one firstname for lastname " + str(lastname)
             return last_inds[first_inds[0]]
-        
+
 
     def InsertColFromList_v2(self, lastnames, firstnames, \
                              destlabel, valuelist, \
@@ -1899,7 +1899,7 @@ class BlackBoardGBFile_v_8_0(BlackBoardGBFile):
                       'Username':'uids'})
         self.lastnames = txt_mixin.txt_list(self.lastnames)
         self.firstnames = txt_mixin.txt_list(self.firstnames)
-        
+
 
 class Fake_BlackBoard_File(BlackBoardGBFile_v_8_0):
     def __init__(self, lastnames, firstnames=None):
@@ -1913,7 +1913,7 @@ class Fake_BlackBoard_File(BlackBoardGBFile_v_8_0):
                            self.uids)
         self.alldata = [list(item) for item in alldata_tups]
 
-    
+
 class GradeSpreadSheet(CSVSpreadSheet):
     def __init__(self, pathin=None, namelabel='Name',valuelabel='Total', \
                  dialect=None, skiprows=0):
@@ -2020,13 +2020,13 @@ class GradeSpreadSheetMany(GradeSpreadSheet):
     def append_col(self, label, col):
         self.valuelabels.append(label)
         self.values = numpy.append(self.values, col, -1)
-        
+
     def _prep_average_or_total(self, new_label):
         self.valuelabels.append(new_label)
         nr, nc = self.values.shape
         zero_col = zeros((nr,1))
         self.values = numpy.append(self.values, zero_col, -1)
-        
+
     def average_sheet(self, new_label, drop_lowest=False):
         self._prep_average_or_total(new_label)
         for n, row in enumerate(self.values):
@@ -2069,8 +2069,8 @@ class QuizScoreSpreadSheet(GradeSpreadSheetMany):
         GradeSpreadSheetMany.__init__(self, *args, **kwargs)
         self.names, self.quiz_scores = self.ReadNamesandValues()
         self.ReadDataColumns()
-        
-        
+
+
     def Drop_Scores_and_Average(self, N):
         """Drop the lowest N quiz scores."""
         self.scores_kept = []
@@ -2123,7 +2123,7 @@ class Survey_Answer(object):
             caption.append('`\\label{fig:surveyQ%i}`' % self.number)
 
         self.caption = caption
-            
+
 
     def get_fig_path(self, name=None, folder='figs', ext='.eps'):
         if name is None:
@@ -2137,7 +2137,7 @@ class Survey_Answer(object):
         path = os.path.join(folder, name)
         return path
 
-            
+
     def save_fig(self, name=None, fig=None, fignum=1, folder='figs', \
                  ext='.eps'):
         path = self.get_fig_path(name, folder, ext)
@@ -2163,14 +2163,14 @@ class Survey_Answer(object):
             rstlist.append(ws + curline)
         rstlist.append('')
         txt_mixin.dump(path, rstlist)
-        
-        
-    
+
+
+
     def plot_histogram(self, fig=None, fignum=1, clear=True, \
                        title=None, xlim=None, use_percentages=False, \
                        figsize=None):
         fig = self._get_fig(fig, fignum, figsize=figsize)
-                
+
         if title is None:
             title = self.question
         if clear:
@@ -2208,7 +2208,7 @@ class Survey_Answer(object):
                 p_label = '%i (%0.4g' % (cur_n, p) + '%)'
                 new_label = cur_label + ':\n ' + p_label
                 self.clean_pie_labels[i] = new_label
-                
+
 
     def plot_pie_chart(self, fig=None, fignum=1, clear=True, title=None, \
                        figsize=(11,8), use_percentages=False, \
@@ -2235,7 +2235,7 @@ class Survey_Answer(object):
 
         if (N is not None) and (not use_percentages):
             self.add_percentages_to_labels_for_1_student(N)
-            
+
 
         ret = ax.pie(slices, labels=self.clean_pie_labels, \
                      autopct='%i', colors=mygrays, shadow=shadow, \
@@ -2255,7 +2255,7 @@ class Survey_Answer(object):
                         a.set_text('')
                 else:
                     a.set_text('%i' % label)
-            
+
         print('ret = ' + str(ret))
         print('len(ret) = ' + str(len(ret)))
 
@@ -2263,7 +2263,7 @@ class Survey_Answer(object):
         ##        autopct='%1.1f%%', colors=mygrays, shadow=True)
         if use_title:
             t = ax.set_title(title)
-            t.set_position((0.5, 1.05))        
+            t.set_position((0.5, 1.05))
 
         if empty_x is None:
             empty_x = -2.0
@@ -2277,8 +2277,8 @@ class Survey_Answer(object):
             empty_y = self.empty_y
         if hasattr(self, 'dy'):
             dy = self.dy
-        
-        NE = len(self.empty_percentages) 
+
+        NE = len(self.empty_percentages)
         if (NE > 0) and (NE < 3):
             if use_percentages:
                 values = self.empty_percentages
@@ -2311,7 +2311,7 @@ class Survey_Answer(object):
         myrow = ' & '.join(mylist) + ' \\\\'
         return myrow
 
-            
+
     def __init__(self, number, question, answers, choices=None, pretty_labels={}):
         self.number = number
         self.question = question
@@ -2432,7 +2432,7 @@ def dump(matrix, pathout, labels=[], delim='\t', append=False):
 
 def dumpcsv(matrix, pathout, labels=[], delim=',', append=False):
     dump(matrix, pathout, labels=labels, delim=delim, append=append)
-    
+
 
 def AddColswithKeys(vals1, labels1, vals2, labels2):
     """Intelligently add to columns, vals1 and vals2, by searching
@@ -2449,7 +2449,7 @@ def AddColswithKeys(vals1, labels1, vals2, labels2):
     return mylabels, myvals
 
 
-    
+
 def BuildListforMatching(row, inds, collabels, defaults={}, null=''):
     """Build a list of values to be used along with
     SpreadSheet.SearchForMatch by finding the items of row
@@ -2466,7 +2466,7 @@ def BuildListforMatching(row, inds, collabels, defaults={}, null=''):
         else:
             listout.append(row[n])
     return listout
-    
+
 def SpreadsheetFromPath(pathin, **kwargs):
     pathnoext, ext = os.path.splitext(pathin)
     if ext == '.xls':
@@ -2498,7 +2498,7 @@ def Dict_List_From_Path(pathin, labellist, collabels=None, **kwargs):
         curdict = mysheet.Get_Dict_from_Row(i, mysheet.collabels)
         dict_list.append(curdict)
     return dict_list
-    
+
 
 def NewCSVWriter_f(fin, dialect=mycsv):
     writer = csv.writer(fin, dialect=dialect)
@@ -2520,7 +2520,7 @@ def determine_lt(linesin, dialectin):
     if all(tests):
         dialectin.lineterminator = lts[0]
     return dialectin
-    
+
 
 def sniff(filepath,sniffbytes=1000):
     """Try and determine the dialect of a text file by reading in the
@@ -2585,7 +2585,7 @@ def WriteMatrixtoText(matrix, filepath, dialect, labels=None, append=False):
         writer.writerow(labels)
     writer.writerows(matrix)
     f.close()
-    
+
 def WriteMatrixtoTabDelim(matrix, filepath, labels=None, append=False):
     WriteMatrixtoText(matrix, filepath, tabdelim, labels)
 
@@ -2672,7 +2672,7 @@ def clean_empty_string_from_bottom_of_column(colin, copy=False):
         else:
             break
     return colout
-    
+
 
 
 def ExcelSheettoNestedList(sheetin):
@@ -2682,7 +2682,7 @@ def ExcelSheettoNestedList(sheetin):
         currow=[str(item.value) for item in curslice]
         listout.append(currow)
     return listout
-        
+
 def find_header_row(p, nestedlist):
     indr=-1
     p=re.compile(r'[Ff]irst.*[Nn]ame')
@@ -2776,4 +2776,4 @@ def trunc_nested_based_on_col(nestin, trunccol):
 ##         first_names.append(firstn)
 ##         last_names.append(lastn)
 ##     return first_names, last_names
-    
+

@@ -6,7 +6,7 @@ from scipy.linalg import det
 import copy, re
 import pdb
 
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 
 from TMM.TMMElement import TMMElement, HT4, Transform8by8, TMMElementLHT
 ##from TMM import HT4, Transform8by8
@@ -36,7 +36,7 @@ def cosh(ent):
         return symstr('cosh('+ent+')')
     else:
         return scipy.cosh(ent)
-   
+
 def sin(ent):
     """Polymorphic sin function that adapts to either a numeric or
     symbolic string input."""
@@ -114,7 +114,7 @@ class BeamElement(TMMElementLHT):
         elif self.maxsize>4:
             bendmat2=bendmatz(s,myparams,'EI2',subparams=self.subparams)
             zmat=scipy.zeros(scipy.shape(bendmat2))
-         
+
         if self.maxsize==8:
             bigmat1=c_[bendmat1,zmat]
             bigmat2=c_[zmat,bendmat2]
@@ -134,7 +134,7 @@ class BeamElement(TMMElementLHT):
 #    def GetHT(self):
 #        return HT4(x=self.params['L'])
 
-    def GetComplexList(self,label=None): 
+    def GetComplexList(self,label=None):
         """This function returns a list of all variables associated
         with a beam bending about one axis that would need to be
         declared complex in a FORTRAN funciton that includes a beam in
@@ -187,7 +187,7 @@ class BeamElement(TMMElementLHT):
         if intro is None:
             intro='The transfer matrix for a beam element is given by'
         return TMMElementLHT.GetMaximaLatexString(self,name=name,label=label,wrap=wrap,N=N,intro=intro,aug=aug)
-        
+
     def __GetMaximaLatexString__(self,name=None,label=None,wrap=0,N=None,intro=None,aug=0):#omit
         maximalines=[]
         if N is None:
@@ -285,7 +285,7 @@ def bendmaty(s,params,EIstr='EI1',symlabel=''):
 #[   -1/2*beta^2*c(3)/a,    1/2*beta*L*c(2)/a,                 c(1),      1/2*L*c(4)/beta]
 #[ -1/2*beta^3*c(4)/L/a,    1/2*beta^2*c(3)/a,      1/2*beta*c(2)/L,                 c(1)]
 #
-#   This matrix is derived in bending_about_y_axis.m originally in 
+#   This matrix is derived in bending_about_y_axis.m originally in
 #   E:\GT\Research\SAmii\modeling\transfer_matrix\threeD_beam_derivations
 #
 #   The states that multipy the matrix are [w_z;theta_y;M_y;V_z] and I have gone away from using -w as the state i.e. +w_z is the first state.
@@ -321,7 +321,7 @@ def bendmatz(s, params, EIstr='EI2', symlabel='', subparams=False, debug=0):
 #    [   -1/2*beta^2*mys(3)/a,    1/2*beta*L*mys(2)/a,                 mys(1),     -1/2*L*mys(4)/beta]
 #    [ -1/2*beta^3*mys(4)/L/a,    1/2*beta^2*mys(3)/a,     -1/2*beta*mys(2)/L,                 mys(1)]
 #
-#   This matrix is derived in bending_about_z_axis.m originally in 
+#   This matrix is derived in bending_about_z_axis.m originally in
 #   E:\GT\Research\SAmii\modeling\transfer_matrix\threeD_beam_derivations
 #
 #   The states that multipy the matrix are [w_y;theta_z;M_z;V_y] and I have gone away from using -w as the state i.e. +w_y is the first state.
@@ -333,7 +333,7 @@ def bendmatz(s, params, EIstr='EI2', symlabel='', subparams=False, debug=0):
             c2=-sin(beta)+sinh(beta)
             c3=cos(beta)-cosh(beta)
             c4=sin(beta)+sinh(beta)
-        else:       
+        else:
             a=symstr('a'+symlabel)
             c1=symstr('c1'+symlabel)
             c2=symstr('c2'+symlabel)
@@ -342,7 +342,7 @@ def bendmatz(s, params, EIstr='EI2', symlabel='', subparams=False, debug=0):
     else:
         beta=pow((-1*s*s*L**4*mu/EI),0.25)
         # there is an error in my thesis and this is it: (eqn 285)
-        #a = beta/(L**2)#to check Brian Posts work  
+        #a = beta/(L**2)#to check Brian Posts work
         a=L*L/EI
         if debug>0:
             print('thesis='+str(thesis))
@@ -384,7 +384,7 @@ def axialtorsionmat(s,params):#L,mu,EA,m11,GJ):
     matout[3,0]=axmat[1,0]
     matout[3,3]=axmat[1,1]
     return matout
-            
+
 def torsionmat(s,params):#L,m11,GJ):
     """Return the torsional vibration 2 by 2 transfer matrix used as
     part of axialtorsionmat."""
@@ -446,16 +446,16 @@ def bendmatz_comp(s, params, EIstr='EI2', symlabel='', \
 ##     if abs(s) > 5*2*pi:
 ##         c = 0.0
     beta = pow((-1*s*s*L**4*mu/(EI*(c*s+1))),0.25)
-    
+
     d1 = 0.5*(cos(beta)+cosh(beta))
     d2 = 0.5*(sinh(beta)-sin(beta))
     d3 = 0.5*(cosh(beta)-cos(beta))
     d4 = 0.5*(sin(beta)+sinh(beta))
 
     # there is an error in my thesis and this is it: (eqn 285)
-    #a = beta/(L**2)#to check Brian Posts work  
+    #a = beta/(L**2)#to check Brian Posts work
     a=L*L/EI
-    
+
     outmat = array([[d1, L*d4/beta, a*d3/(beta**2*(1 + c*s)), \
                      -L*a*d2/(beta**3*(1 + c*s))], \
                     [beta*d2/L, d1, a*d4/(L*beta*(1 + c*s)), \
@@ -501,7 +501,7 @@ class BeamElement_v2(BeamElement):
             bendmat2=bendmatz_comp(s, myparams, 'EI2', \
                                    subparams=self.subparams)
             zmat=scipy.zeros(scipy.shape(bendmat2))
-         
+
         if self.maxsize==8:
             bigmat1=c_[bendmat1,zmat]
             bigmat2=c_[zmat,bendmat2]

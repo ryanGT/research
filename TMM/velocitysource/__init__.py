@@ -6,7 +6,7 @@ import scipy
 from scipy.linalg import det
 import copy
 #import pdb
-from  IPython.Debugger import Pdb
+from IPython.core.debugger import Pdb
 from TMM.TMMElement import TMMElement, HT4, TMMElementLHT, \
      TMMElementIHT
 import rwkmisc
@@ -158,7 +158,7 @@ class AVS1(AngularVelocitySource):
         self.params['num_act'] = num
         return num
 
-        
+
     def __init__(self,params={},**kwargs):
         """Initialize an instance of the AngularVelocitySource class.
         params is a dictionary with keys 'K', 'tau', and 'axis'.  All
@@ -208,8 +208,8 @@ def Gact(s, params):
     out = num/(s*(s+p_act1))
     return out
 
-    
-    
+
+
 class AVS1_ol(AVS1):
     def __init__(self,params={}, Gact_func=Gact, **kwargs):
         """Initialize an instance of the AngularVelocitySource class.
@@ -308,7 +308,7 @@ class AVS1_Gth_comp(AVS1_kp):
         term1 = 1.0/((1.0 + Gact*Gth*H)*(k_spring + c_spring*s))
         term2 = Gact*Gth/(1.0 + Gact*Gth*H)
         return term1, term2
-    
+
 
     def GetAugMat(self, s, sym=False):
         """Return the augmented element transfer matrix for the
@@ -335,7 +335,7 @@ class AVS1_Gth_comp(AVS1_kp):
         N = self.maxsize
         U = augU[0:N,0:N]
         return U
-            
+
 
 class AVS1_Gth_comp_Ga(AVS1_Gth_comp):
     def __init__(self, params={}, Gth=None, Ga=None, \
@@ -507,7 +507,7 @@ class AVSwThetaFB(TMMElementIHT):
         params.append(taustr)
         return maximalines, name,defs,params,label
 
-    def GetComplexList(self,label=None): 
+    def GetComplexList(self,label=None):
         """This function returns a list of all variables associated
         with this element that would need to be declared complex in a
         FORTRAN funciton that includes the element in a Bode model.
