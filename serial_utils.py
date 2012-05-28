@@ -99,6 +99,13 @@ def Start_Test(ser):
     WriteByte(ser, 113)
     th0 = Read_Two_Bytes_Twos_Comp(ser)
     return th0
+
+
+def Start_Test_Two_Motors(ser):
+    WriteByte(ser, 113)
+    th1 = Read_Two_Bytes_Twos_Comp(ser)
+    th2 = Read_Two_Bytes_Twos_Comp(ser)
+    return th1, th2
     
     
 def Get_Theta(ser):
