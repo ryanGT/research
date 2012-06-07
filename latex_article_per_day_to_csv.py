@@ -201,6 +201,20 @@ ind2 = -5
 myparser2 = article_tex_parser(sslists[ind2], ssinds[ind2])
 dict2 = myparser2.build_update_dict()
 
+import sys
+db_folder = '/home/ryan/siue/Research/litreview/article_per_day/'
+if db_folder not in sys.path:
+    sys.path.append(db_folder)
+
+db_path = os.path.join(db_folder, 'bibtex_db.csv')
+
+import bibtex_db
+db = bibtex_db.bibtex_database(db_path)
+
+db.update_one_row(myparser1.bibtex_key, dict1)
+db.update_one_row(myparser2.bibtex_key, dict2)
+db.save(db_path)
+
 #for ind, mylist in zip(ssinds[10:11], sslists[10:11]):
 #    myparser = article_tex_parser(mylist, ind)
 
