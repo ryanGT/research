@@ -34,6 +34,9 @@ p_sub_sub = re.compile('\\\\subsubsection{(.*)}')
 p_relpath = re.compile('\\\\mylink{(.*)}')
 p_rating = re.compile('\\\\myrating{(.*)}')
 comma_p = re.compile(' *, *')
+p_sec = re.compile('\\\\section{(.*)}')
+p_cite = re.compile('\\\\cite{(.*)}')
+
 
 class article_tex_parser(object):
     def find_subsub_titles(self):
@@ -76,6 +79,7 @@ class article_tex_parser(object):
             listin.pop(-1)
         while listin and (not listin[0]):
             listin.pop(0)
+        return listin
 
 
     def parse_labels(self):
@@ -121,8 +125,55 @@ class article_tex_parser(object):
         assert len(self.rating_lines) == 1, "self.rating_lines does not have exactly one line in it:\n" + str(self.rating_lines)
         q_rating = p_rating.search(self.rating_lines[0])
         self.rating = int(q_rating.group(1))
+
+
+    def find_previous_section(self):
+        """Find the previous section title to use to get the month and
+        year the article was read."""
+        prev_ind = -1
+        for ind in secinds:
+            if ind > self.startind:
+                #we found the first one too late
+                break
+            else:
+                prev_ind = ind
+        return prev_ind
+
+
+    def get_section_month_and_year(self):
+        secind = self.find_previous_section()
+        secline = texlist[secind]
+        q = p_sec.search(secline)
+        month_year_str = q.group(1)
+        month, year = month_year_str.split(' ',1)
+        month = month.strip()
+        year = year.strip()
+        self.month_read = month
+        self.year_read = int(year)
+
+
+    def find_bibtex_key(self):
+        cite_ind = self.clean_lines.find('\\cite{')
+        cite_line = self.clean_lines[cite_ind]
+        q = p_cite.search(cite_line)
+        key = q.group(1)
+        self.bibtex_key = key.strip()
+        return self.bibtex_key
     
+
+    def build_update_dict(self):
+        mydict = {}
+        mydict['relpath'] = self.relpath
+	mydict['read'] = str(self.read)
+	mydict['myrating'] = str(self.rating)
+        mydict['mylabels'] = self.labels
+	mydict['mynotes'] = self.notes
+        mydict['month_read'] = self.month_read
+        mydict['year_read'] = str(self.year_read)
+        self.update_dict = mydict
+        return mydict
     
+        
     def __init__(self, linesin, startind):
         self.linesin = copy.copy(linesin)
         self.startind = startind
@@ -130,13 +181,25 @@ class article_tex_parser(object):
         self.parse_labels()
         self.parse_relpath()
         self.parse_rating()
-
-
+        self.get_section_month_and_year()
+        #pop first \\subsection line
+        line0 = self.clean_lines.pop(0)
+        assert line0.find('\\subsection{') == 0, "Problem with first line."
+        self.find_bibtex_key()
+        self.clean_lines = self.delete_empty_lines_at_begining_and_end(self.clean_lines)
+        #clean up any remaining subsubsections:
+        self.clean_lines.replaceallre('\\\\subsubsection{(.*)}','**\\1**')
+        self.notes = ' '.join(self.clean_lines)
+        self.read = 1
+        
+        
 ind1 = 10
 myparser1 = article_tex_parser(sslists[ind1], ssinds[ind1])
+dict1 = myparser1.build_update_dict()
 
 ind2 = -5
 myparser2 = article_tex_parser(sslists[ind2], ssinds[ind2])
+dict2 = myparser2.build_update_dict()
 
 #for ind, mylist in zip(ssinds[10:11], sslists[10:11]):
 #    myparser = article_tex_parser(mylist, ind)
@@ -146,12 +209,5 @@ myparser2 = article_tex_parser(sslists[ind2], ssinds[ind2])
 
 
 # To Do:
-# - pop and parse the date in the first row of clean_lines
-# - replace remaining subsubsections with rst style underlines
-# - join the remaining clean_lines into a string
-#
-#   - is the string allowed to have newlines in it?
-#   - if not, how will you handle the rst underline stuff?
-#
 # - set read to 1
 # - update the database
