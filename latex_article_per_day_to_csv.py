@@ -30,13 +30,20 @@ secinds = texlist.findall('\\section{')
 ## \subsubsection{Path}
 ## \mylink{articles/education/Identifying_barriers_to_and_outcomes_of_interdisciplinarity_in_the_engineering_classroom.pdf}
 
-p_sub_sub = re.compile('\\\\subsubsection{(.*)}')
-p_relpath = re.compile('\\\\mylink{(.*)}')
-p_rating = re.compile('\\\\myrating{(.*)}')
+p_sub_sub = re.compile('\\\\subsubsection{(.*?)}')
+p_relpath = re.compile('\\\\mylink{(.*?)}')
+p_rating = re.compile('\\\\myrating{(.*?)}')
 comma_p = re.compile(' *, *')
-p_sec = re.compile('\\\\section{(.*)}')
-p_cite = re.compile('\\\\cite{(.*)}')
+p_sec = re.compile('\\\\section{(.*?)}')
+p_cite = re.compile('\\\\cite{(.*?)}')
 
+
+def filter_latex_comments(line):
+    if line[0] == '%':
+        return False
+    else:
+        return True
+    
 
 class article_tex_parser(object):
     def find_subsub_titles(self):
@@ -103,11 +110,15 @@ class article_tex_parser(object):
             #quite this function
             self.relpath = ''
             return
-        self.path_lines = self.pop_sub_sub_section('Path')        
+        self.path_lines = self.pop_sub_sub_section('Path')
         self.path_lines = filter(None, self.path_lines)
-        assert self.path_lines[0] == '\\subsubsection{Path}', "Problem with first line of path_lines"
+        self.path_lines = filter(filter_latex_comments, self.path_lines)
+        assert self.path_lines[0] == '\\subsubsection{Path}', \
+               "Problem with first line of path_lines"
         self.path_lines.pop(0)
-        assert len(self.path_lines) == 1, "self.path_lines does not have exactly one line in it:\n" + str(self.path_lines)
+        assert len(self.path_lines) == 1, \
+               "self.path_lines does not have exactly one line in it:\n" + \
+               str(self.path_lines)
         q_relpath = p_relpath.search(self.path_lines[0])
         self.relpath = q_relpath.group(1)
 
@@ -124,7 +135,7 @@ class article_tex_parser(object):
         self.rating_lines.pop(0)
         assert len(self.rating_lines) == 1, "self.rating_lines does not have exactly one line in it:\n" + str(self.rating_lines)
         q_rating = p_rating.search(self.rating_lines[0])
-        self.rating = int(q_rating.group(1))
+        self.rating = float(q_rating.group(1))
 
 
     def find_previous_section(self):
@@ -154,6 +165,11 @@ class article_tex_parser(object):
 
     def find_bibtex_key(self):
         cite_ind = self.clean_lines.find('\\cite{')
+        cite_inds = self.clean_lines.findall('\\cite{')
+        if len(cite_inds) > 1:
+            print('cite_inds = ' + str(cite_inds))
+            print(str(self.linesin))
+        
         cite_line = self.clean_lines[cite_ind]
         q = p_cite.search(cite_line)
         key = q.group(1)
@@ -193,14 +209,6 @@ class article_tex_parser(object):
         self.read = 1
         
         
-ind1 = 10
-myparser1 = article_tex_parser(sslists[ind1], ssinds[ind1])
-dict1 = myparser1.build_update_dict()
-
-ind2 = -5
-myparser2 = article_tex_parser(sslists[ind2], ssinds[ind2])
-dict2 = myparser2.build_update_dict()
-
 import sys
 db_folder = '/home/ryan/siue/Research/litreview/article_per_day/'
 if db_folder not in sys.path:
@@ -211,9 +219,27 @@ db_path = os.path.join(db_folder, 'bibtex_db.csv')
 import bibtex_db
 db = bibtex_db.bibtex_database(db_path)
 
-db.update_one_row(myparser1.bibtex_key, dict1)
-db.update_one_row(myparser2.bibtex_key, dict2)
+mylow = 0
+myhigh = None
+for ind, mylist in zip(ssinds[mylow:myhigh], sslists[mylow:myhigh]):
+    myparser = article_tex_parser(mylist, ind)
+    mydict = myparser.build_update_dict()
+    db.update_one_row(myparser.bibtex_key, mydict)
+
 db.save(db_path)
+
+## ind1 = 10
+## myparser1 = article_tex_parser(sslists[ind1], ssinds[ind1])
+
+
+## ind2 = -5
+## myparser2 = article_tex_parser(sslists[ind2], ssinds[ind2])
+## dict2 = myparser2.build_update_dict()
+
+
+
+## db.update_one_row(myparser2.bibtex_key, dict2)
+
 
 #for ind, mylist in zip(ssinds[10:11], sslists[10:11]):
 #    myparser = article_tex_parser(mylist, ind)
