@@ -47,7 +47,7 @@ def Open_Serial(portname=None, baud=115200):
     """Open a serial connection on port portname with baud rate baud."""
     if portname is None:
         hostname = socket.gethostname()
-        if hostname == 'ryan-CNC':
+        if hostname in ['ryan-CNC','hpdv4']:
             portname = '/dev/ttyS0'
         else:
             portname = 'COM1'
