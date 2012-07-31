@@ -12,7 +12,7 @@ import txt_mixin
 import rwkdataproc
 import rwkbode
 
-from IPython.core.debugger import Pdb
+#from IPython.core.debugger import Pdb
 
 pat = '\$\\\\(.*)\$'
 p = re.compile(pat)
