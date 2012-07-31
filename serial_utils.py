@@ -47,7 +47,7 @@ def Open_Serial(portname=None, baud=115200):
     """Open a serial connection on port portname with baud rate baud."""
     if portname is None:
         hostname = socket.gethostname()
-        if hostname in ['ryan-CNC','hpdv4']:
+        if hostname in ['ryan-CNC','hpdv4','ryan-duo-laptop']:
             portname = '/dev/ttyS0'
         else:
             portname = 'COM1'
@@ -112,6 +112,12 @@ def Get_Theta(ser):
     WriteByte(ser, 114)
     th0 = Read_Two_Bytes_Twos_Comp(ser)
     return th0
+
+def Get_Theta_Two_Motors(ser):
+    WriteByte(ser, 114)
+    th1 = Read_Two_Bytes_Twos_Comp(ser)
+    th2 = Read_Two_Bytes_Twos_Comp(ser)
+    return th1, th2
 
 def Reset_Theta(ser):
     WriteByte(ser, 55)

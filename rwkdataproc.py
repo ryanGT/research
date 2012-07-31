@@ -24,7 +24,7 @@ import pdb
 import scipy
 from rwkmisc import my_import
 import types
-from IPython.core.debugger import Pdb
+#from IPython.core.debugger import Pdb
 #import rwkmplutil
 
 def is_1D(arrayin):

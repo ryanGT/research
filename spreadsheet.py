@@ -28,7 +28,7 @@ import numpy
 
 from numpy import float64, int32
 
-from IPython.core.debugger import Pdb
+#from IPython.core.debugger import Pdb
 
 import xlrd, copy
 
