@@ -165,6 +165,39 @@ class Sympy_Rigid_Mass_Element(Sympy_TMM_Element):
         return R
 
 
+class Sympy_TMM_Element_Two_by_Two(Sympy_TMM_Element):
+    def __init__(self, params, label='', N=2):
+        Sympy_TMM_Element.__init__(self, params, label=label, N=N)
+
+
+class Sympy_Rigid_Mass_Two_by_Two(Sympy_TMM_Element_Two_by_Two):
+    def Get_Mat(self, s):
+        m = self.params['m']
+        R = Matrix([[1.,0],\
+                    [m*s**2,1.]])
+        self.U = R
+        return R
+
+
+class Sympy_Spring_Damper_Two_by_Two(Sympy_TMM_Element_Two_by_Two):
+    def Get_Mat(self, s):
+        k = self.params['k']
+        b = self.params['b']
+        S = Matrix([[1.,1.0/(b*s+k)],\
+                    [0,1.]])
+        self.U = S
+        return S
+
+
+class Sympy_Force_Two_by_Two(Sympy_TMM_Element_Two_by_Two):
+    def Get_Aug_Mat(self, s):
+        F = self.params['F']
+        U = eye(self.N+1)
+        U[1,self.N] = -F
+        self.augU = U
+        return U
+
+    
 class Sympy_AVS_Element(Sympy_TMM_Element):
     def Get_Mat(self, s):
         U = eye(self.N)

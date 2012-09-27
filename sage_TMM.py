@@ -1,7 +1,7 @@
 from sage.all import *
 import numpy
 
-from IPython.core.debugger import Pdb
+#from IPython.core.debugger import Pdb
 
 import txt_mixin
 reload(txt_mixin)
@@ -21,7 +21,7 @@ def aug_wrap(matin, N=4):
     last_col = zero_matrix(SR, nrows=N, ncols=1)
     #Utemp = matin.col_insert(N, last_col)
     mat_out = identity_matrix(SR,N+1)
-    mat_out[0:4,0:4] = matin
+    mat_out[0:N,0:N] = matin
     ## bottom_row = zeros((1,N+1))
     ## bottom_row[N] = 1
     ## mat_out = Utemp.row_insert(N, bottom_row)
@@ -170,6 +170,39 @@ class sage_Rigid_Mass_Element(sage_TMM_Element):
                     [m*s**2,m*s**2*r,0,1.]])
         self.U = R
         return R
+
+
+class sage_TMM_Element_Two_by_Two(sage_TMM_Element):
+    def __init__(self, params, label='', N=2):
+        sage_TMM_Element.__init__(self, params, label=label, N=N)
+
+
+class sage_Rigid_Mass_Two_by_Two(sage_TMM_Element_Two_by_Two):
+    def Get_Mat(self, s):
+        m = self.params['m']
+        R = matrix(SR,[[1.,0],\
+                      [m*s**2,1.]])
+        self.U = R
+        return R
+
+
+class sage_Spring_Damper_Two_by_Two(sage_TMM_Element_Two_by_Two):
+    def Get_Mat(self, s):
+        k = self.params['k']
+        b = self.params['b']
+        S = matrix(SR,[[1.,1.0/(b*s+k)],\
+                      [0,1.]])
+        self.U = S
+        return S
+
+
+class sage_Force_Two_by_Two(sage_TMM_Element_Two_by_Two):
+    def Get_Aug_Mat(self, s):
+        F = self.params['F']
+        U = identity_matrix(SR,self.N+1)
+        U[1,self.N] = -F
+        self.augU = U
+        return U
 
 
 class sage_AVS_Element(sage_TMM_Element):

@@ -28,7 +28,7 @@ import numpy
 
 from numpy import float64, int32
 
-#from IPython.core.debugger import Pdb
+from IPython.core.debugger import Pdb
 
 import xlrd, copy
 
@@ -1518,6 +1518,9 @@ class group_list(LabeledDataFile):
         lastnames = None
         firstnames = None
         for name in name_list:
+            if name.find('and ') == 0:
+                name = name.replace('and ','')
+                name = name.strip()
             first, last = name.split(' ',1)
             last = last.strip()
             first = first.strip()
@@ -1549,6 +1552,36 @@ class group_list_2010(group_list):
                             members_col=members_col, labelrow=labelrow, \
                             dialect=dialect)
         self.Team_Number = txt_mixin.txt_list(self.get_col(team_number_col))
+
+
+class mini_project_group_list(group_list):
+    """A class list to find the members of a group given the group or
+    team name.  The spreadsheet has one label row, group numbers in
+    the first column, and team members in the second column. The file
+    is probably tab delimited"""
+    def __init__(self, pathin, team_num_col=0, members_col=1, \
+                 labelrow=0, dialect=None):
+        f = open(pathin, 'rb')
+        first_row = f.readline()
+
+        if first_row.find('\t') > -1:
+            TabDelimSpreadSheet.__init__(self, pathin=pathin, \
+                                         dialect=tabdelim)
+        else:
+            CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect)
+        self.labelrow=labelrow
+        self.GetLabelRow()
+        self.ReadData()
+        self.Project_Name = txt_mixin.txt_list(self.get_col(team_num_col))
+        self.team_number = map(int, self.Project_Name)
+        self.Group_Members = txt_mixin.txt_list(self.get_col(members_col))
+
+
+    def get_names(self, group_name):
+        if group_name.find('Team') == 0:
+            group_name = group_name[5:]
+        members = self.get_team_members(group_name)
+        return self._get_names(members)
 
 
 class JCILabviewSpreadSheet(LabviewSpreadSheet, DataProcMixins.AccelMixin):
