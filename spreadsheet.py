@@ -1824,6 +1824,7 @@ class BlackBoardGBFile(CSVSpreadSheet):
                     print('could not find ' + curname)
                     print('namelist = ' + str(namelist))
                     print('destlabel = ' + destlabel)
+                    raise ValueError
             else:
                 #if valuelist[curind]:#I don't know why this was here,
                 #I guess to allow empty cells not mess up averages
@@ -1898,7 +1899,7 @@ class BlackBoardGBFile(CSVSpreadSheet):
 
 
     def Append_From_GradeSpreadSheet(self, gradesheet, labels=None, \
-                                     parsefunc=myfloat):
+                                     parsefunc=myfloat, names_in=None):
         if labels is None:
             labels = gradesheet.valuelabels
         if hasattr(gradesheet, 'values'):
@@ -1906,12 +1907,16 @@ class BlackBoardGBFile(CSVSpreadSheet):
             values = gradesheet.values
         else:
             names, values = gradesheet.ReadNamesandValues()
+        if names_in is None:
+            lastnames = gradesheet.lastnames
+        else:
+            lastnames = names_in
         if (len(labels)==1) and type(values)==list:
-            self.AppendColFromList(gradesheet.lastnames, labels[0], \
+            self.AppendColFromList(lastnames, labels[0], \
                                    values, splitnames=False)
         else:
             for label, col in zip(labels, values.T):
-                self.AppendColFromList(gradesheet.lastnames, label, \
+                self.AppendColFromList(lastnames, label, \
                                        col, splitnames=False)
 
 

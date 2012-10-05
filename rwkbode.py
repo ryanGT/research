@@ -887,7 +887,8 @@ def BodeCohPlot(fignum, freqvect, bodein, \
 
 
 def GenBodePlot(fignum, freqvect, bodein, clear=True, \
-                legend_axis=1, legloc=3, fig=None, **kwargs):
+                legend_axis=1, legloc=3, fig=None, grid=False, \
+                **kwargs):
     if fig is None:
        from pylab import figure
        fig = figure(fignum)
@@ -910,6 +911,9 @@ def GenBodePlot(fignum, freqvect, bodein, clear=True, \
     ax1.set_ylabel('Mag. Ratio (dB)')
 #    ax=gca()
     ax1.xaxis.set_major_formatter(MyFormatter())
+    if grid:
+       ax1.grid(1)
+       
     ax2 = fig.add_subplot(2,1,2, sharex=ax1)
     if clear:
         ax2.cla()
@@ -917,6 +921,9 @@ def GenBodePlot(fignum, freqvect, bodein, clear=True, \
     ax2.set_ylabel('Phase (deg.)')
     ax2.set_xlabel('Freq. (Hz)')
     ax2.xaxis.set_major_formatter(MyFormatter())
+    if grid:
+       ax2.grid(1)
+
     if kwargs.has_key('legend'):
        mplutil.Legend(kwargs['legend'], fig, axis=legend_axis, \
                       loc=legloc)
