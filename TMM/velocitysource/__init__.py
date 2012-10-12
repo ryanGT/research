@@ -146,6 +146,50 @@ class AngularVelocitySource(TMMElementIHT):#TMMElementLHT):
         return TMMElementIHT.GetMaximaLatexString(self,name=name,label=label,wrap=wrap,N=N,intro=intro,aug=aug)
 
 
+def Gc_PD(s, params):
+    kp = params['kp']
+    kd = params['kd']
+    out = kp + kd*s
+    return out
+
+
+class Closed_Loop_AVS(AngularVelocitySource):
+    def __init__(self, params={}, Gc_func=Gc_PD, **kwargs):
+        """Gc_func must be a function that takes s and self.params as
+        inputs and returns Gc(s)."""
+        AngularVelocitySource.__init__(self, params, **kwargs)
+        self.Gc_func = Gc_func
+        
+
+    def GetAugMat(self, s, sym=False):
+        """Return the augmented element transfer matrix for the
+        Closed_Loop_AVS element, which includes the
+        Gc*Gact/(1+Gc*Gact) in the augmentend column for theta.  If
+        sym=True, 's' must be a symbolic string and a matrix of
+        strings will be returned.  Otherwise, 's' is a numeric value
+        (probably complex) and the matrix returned will be complex."""
+        N=self.maxsize
+        if sym:
+            raise NotImplementedError
+            ## myparams=self.symparams
+            ## matout=eye(N+1,dtype='f')
+            ## matout=matout.astype('S30')
+        else:
+            matout = eye(N+1,dtype='D')
+            myparams = self.params
+        myrow = (self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+        K = myparams['K']
+        if myparams.has_key('tau'):
+            tau = myparams['tau']
+            Gp = K*tau/(s*(s+tau))
+        else:
+            Gp = K/s
+        Gc = self.Gc_func(s, self.params)
+        out = Gc*Gp/(1+Gc*Gp)
+        matout[myrow,N] = out
+        return matout
+
+
 class AVS1(AngularVelocitySource):
     def _calc_num_act(self):
         K_act = self.params['K_act']

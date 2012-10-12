@@ -11,6 +11,7 @@ import time
 import txt_mixin
 import rwkdataproc
 import rwkbode
+import rwkmisc
 
 #from IPython.core.debugger import Pdb
 
@@ -23,6 +24,13 @@ td_map_attrs = ['filepaths', 'col_map', 'time_label', 'title_dict']
 bode_keys = ['f', 'bode_list', 'col_map', \
              'filepaths', 'title_dict']
 
+
+def save_pickle(mydict, pkl_path):
+    pne, ext = os.path.splitext(pkl_path)
+    if not ext:
+        pkl_path += '.pkl'
+    rwkmisc.SavePickle(mydict, pkl_path)
+    
 
 def thresh(iterin, value, startind=0, above=1):
     if above:
@@ -520,7 +528,8 @@ class Data_Set(object):
             old_files = glob.glob(module_name+'.*')
             for curfile in old_files:
                 os.remove(curfile)
-        io.save_as_module(module_name, mydict)
+        #io.save_as_module(module_name, mydict)
+        save_pickle(mydict, module_name)
 
 
 
@@ -692,21 +701,25 @@ class Bode_Data_Set(Data_Set):
 
 
     def _delete_old(self, mod_name):
-        old_files = glob.glob(mod_name+'.*')
+        fno, ext = os.path.splitext(mod_name)
+        old_files = glob.glob(fno + '.*')
         for curfile in old_files:
             os.remove(curfile)
 
 
-    def save_ave(self, mod_name, **kwargs):
+    def save_ave(self, pkl_path, **kwargs):
         mydict = self.build_ave_dict(**kwargs)
-        self._delete_old(mod_name)
-        io.save_as_module(mod_name, mydict)
+        self._delete_old(pkl_path)
+        save_pickle(mydict, pkl_path)
+        #io.save_as_module(mod_name, mydict)
+        
 
 
     def save_bodes_no_ave(self, mod_name, **kwargs):
         mydict = self.build_bode_dict(**kwargs)
         self._delete_old(mod_name)
-        io.save_as_module(mod_name, mydict)
+        save_pickle(mydict, pkl_path)
+        #io.save_as_module(mod_name, mydict)
 
 
     def save_as(self, mod_name, attr='compressed_avebodes', \
@@ -723,7 +736,8 @@ class Bode_Data_Set(Data_Set):
         my_keys.remove('f')
         self._copy_bode_keys(dict_in=mydict, key_list=my_keys)
         self._delete_old(mod_name)
-        io.save_as_module(mod_name, mydict)
+        #io.save_as_module(mod_name, mydict)
+        save_pickle(mydict, mod_name)
 
 
     def Calc_Spectra(self):
