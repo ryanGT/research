@@ -190,6 +190,55 @@ class Closed_Loop_AVS(AngularVelocitySource):
         return matout
 
 
+class Dist_Reject(AngularVelocitySource):
+    """In some sense, this is not necessarily an angular velocity
+    source.  I am building on the Book and Majette PD example, by
+    realizing that the disturbance rejection transfer function for a
+    closed-loop joint will be theta/torque = Gp/(1+Gc*Gp).  If you
+    multiply through by the denominator of Gp you get:
+
+    theta/tau = num(Gp)/(den(Gp) + Gc*num(Gp)
+
+    If num(Gp) = 1 and den(Gp) is small compared to Gc you get
+
+    theta/tau ~= 1/Gc
+
+    which is the theoretical basis for the PD --> spring/damper model.
+
+    So, this class uses 1/Gc as the effective torsional spring
+    coefficient."""
+    def __init__(self, params={}, Gc_func=Gc_PD, **kwargs):
+        """Gc_func must be a function that takes s and self.params as
+        inputs and returns Gc(s)."""
+        AngularVelocitySource.__init__(self, params, **kwargs)
+        self.Gc_func = Gc_func
+
+
+    def _get_row(self):
+        myrow = (self.params['axis']-1)*4+1#axis should be 1, 2, or 3
+        return myrow
+
+
+    def GetMat(self, s, sym=False):
+        N=self.maxsize
+        if sym:
+            matout=eye(N,dtype='f')
+            matout=matout.astype('S1')
+        else:
+            matout=eye(N,dtype='D')
+            
+        Gc = self.Gc_func(s, self.params)
+        #out = Gc*Gp/(1+Gc*Gp)
+        out = 1.0/Gc
+        myrow = self._get_row()
+        matout[myrow,myrow+1] = out
+        return matout
+    
+
+    def GetAugMat(self, s, sym=False, maxlen=500):
+        return TMMElement.GetAugMat(self, s, sym=sym, maxlen=maxlen)
+        
+
 class AVS1(AngularVelocitySource):
     def _calc_num_act(self):
         K_act = self.params['K_act']
