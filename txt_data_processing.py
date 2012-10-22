@@ -30,6 +30,13 @@ def save_pickle(mydict, pkl_path):
     if not ext:
         pkl_path += '.pkl'
     rwkmisc.SavePickle(mydict, pkl_path)
+
+
+def load_pickle(pkl_path):
+    pne, ext = os.path.splitext(pkl_path)
+    if not ext:
+        pkl_path += '.pkl'
+    return rwkmisc.LoadPickle(pkl_path)
     
 
 def thresh(iterin, value, startind=0, above=1):
@@ -1214,8 +1221,8 @@ allkeys = ['delim', \
            'bodes']
 
 
-def list_of_dicts_to_bodes(mod_in, attr='avebodes'):
-    dict_list = getattr(mod_in, attr)
+def list_of_dicts_to_bodes(dict_in, key='avebodes'):
+    dict_list = dict_in[key]
     bodelist = []
     for cur_dict in dict_list:
         curbode = rwkbode.bode_from_dict(cur_dict)
@@ -1226,17 +1233,18 @@ def list_of_dicts_to_bodes(mod_in, attr='avebodes'):
 def load_avebode_data_set(module_name):
     """Load an avebodes data set that was saved to a module using
     the save_ave method of Bode_Data_Set."""
-    my_mod = import_mod(module_name)
+    my_dict = load_pickle(module_name)
+    #my_mod = import_mod(module_name)
     my_data_set = Bode_Data_Set(pattern=None, \
-                                bode_list=my_mod.bode_list)
+                                bode_list=my_dict['bode_list'])
     for key in bode_keys:
-        val = getattr(my_mod, key)
+        val = my_dict[key]
         setattr(my_data_set, key, val)
-    my_data_set.avebodes = list_of_dicts_to_bodes(my_mod, 'avebodes')
-    if hasattr(my_mod, 'trunc_avebodes'):
-        my_data_set.trunc_avebodes = list_of_dicts_to_bodes(my_mod, \
-                                                            attr='trunc_avebodes')
-        my_data_set.trunc_f = my_mod.trunc_f
+    my_data_set.avebodes = list_of_dicts_to_bodes(my_dict, 'avebodes')
+    if my_dict.has_key('trunc_avebodes'):
+        my_data_set.trunc_avebodes = list_of_dicts_to_bodes(my_dict, \
+                                                            key='trunc_avebodes')
+        my_data_set.trunc_f = my_dict['trunc_f']
     return my_data_set
 
 

@@ -174,7 +174,10 @@ def rigidmatz_vertg(s,params,g=9.81):#omit
 #    [                    0,                    1,                    0,                    0]
 #    [         -m*s^2*(L-r), s^2*Iz-m*s^2*r*(L-r)-m*g*r,                    1,                   -L]
 #    [                m*s^2,              m*s^2*r,                    0,                    1]
-    matout=array([[1.,L,0,0],[0,1.,0,0],[-m*s**2*(L-r),s**2*Iz-m*s**2*r*(L-r)+m*g*r,1.,-L],[m*s**2,m*s**2*r,0,1.]])
+    matout=array([[1.,L,0,0],\
+                  [0,1.,0,0],\
+                  [-m*s**2*(L-r),s**2*Iz-m*s**2*r*(L-r)+m*g*r,1.,-L],\
+                  [m*s**2,m*s**2*r,0,1.]])
     return matout
 
 def rigidmatz(s,params):
