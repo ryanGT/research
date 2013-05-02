@@ -1097,7 +1097,7 @@ class CSVSpreadSheet(SpreadSheet):
         if (self.dialect is not None) and not resniff:
             return
         else:
-            f=open(self.path,'r')
+            f=open(self.path,'rU')
             mylist=f.read(sniffbytes)
             mysniff=csv.Sniffer()
             cleanlines = [clean_line(item) for item in mylist]
@@ -1110,7 +1110,7 @@ class CSVSpreadSheet(SpreadSheet):
     def iterrows(self):
         if self.dialect is None:
             self.sniff()
-        reader = csv.reader(open(self.path,'rb'), self.dialect)
+        reader = csv.reader(open(self.path,'rU'), self.dialect)
         for row in reader:
             yield row
 
@@ -1131,7 +1131,7 @@ class CSVSpreadSheet(SpreadSheet):
         """After some tinkering, this is the fastest approach I have
         come up with for reading large data files containing ascii
         representations of floating point data."""
-        f=open(self.path)
+        f=open(self.path,'rU')
         contents = f.readlines()
         f.close()
 
@@ -1561,7 +1561,7 @@ class mini_project_group_list(group_list):
     is probably tab delimited"""
     def __init__(self, pathin, team_num_col=0, members_col=1, \
                  labelrow=0, dialect=None):
-        f = open(pathin, 'rb')
+        f = open(pathin, 'rU')
         first_row = f.readline()
 
         if first_row.find('\t') > -1:
@@ -1667,7 +1667,7 @@ class LSDynaCSVFile(CSVSpreadSheet):
         row."""
         if self.dialect is None:
             self.sniff()
-        reader = csv.reader(open(self.path,'rb'), self.dialect)
+        reader = csv.reader(open(self.path,'rU'), self.dialect)
         for row in reader:
             rowout = row[0:-1]
             yield rowout
@@ -2564,7 +2564,7 @@ def sniff(filepath,sniffbytes=1000):
     """Try and determine the dialect of a text file by reading in the
     first sniffbytes bytes of data from filepath.  My slightly more
     intelligent version than the csv module."""
-    f=open(filepath,'r')
+    f=open(filepath,'rU')
     mylist=f.read(sniffbytes)
     mysniff=csv.Sniffer()
     cleanlines = [clean_line(item) for item in mylist]
@@ -2579,7 +2579,7 @@ def getrows(filepath, maxrows=None, dialect=None, startrow=0):
 #    pdb.set_trace()
     if dialect is None:
         dialect = sniff(filepath)
-    reader = csv.reader(open(filepath,'rb'),dialect)
+    reader = csv.reader(open(filepath,'rU'),dialect)
     i=0
     dataout = []
     for row in reader:
