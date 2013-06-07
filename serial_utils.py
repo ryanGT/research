@@ -1,6 +1,6 @@
 import serial, socket
 
-from rwkos import amiLinux
+#from rwkos import amiLinux
 
 def float_to_int(u_float):
     return (u_float+0.5).astype(int)
@@ -43,7 +43,7 @@ def my_pause(n=100):
         i+=1
         
 
-def Open_Serial(portname=None, baud=115200):
+def Open_Serial(portname=None, baud=115200, timeout = 5):
     """Open a serial connection on port portname with baud rate baud."""
     if portname is None:
         hostname = socket.gethostname()
@@ -51,12 +51,13 @@ def Open_Serial(portname=None, baud=115200):
             portname = '/dev/ttyS0'
         else:
             portname = 'COM1'
-    if amiLinux():
-        #portname = '/dev/ttyS0'
-        ser = serial.Serial(portname, baud, timeout=None)
-    else:
-        ser = serial.Serial(portname, baud)
-        ser.timeout = 5
+    ser = serial.Serial(portname, baud, timeout=timeout)
+    ## if amiLinux():
+    ##     #portname = '/dev/ttyS0'
+    ##     ser = serial.Serial(portname, baud, timeout=None)
+    ## else:
+    ##     ser = serial.Serial(portname, baud)
+    ##     ser.
     return ser
 
 
@@ -88,6 +89,23 @@ def WriteByte(ser, bytein):
 def Read_Two_Bytes(ser):
     data1, data2 = ser.read(2)
     return Two_Char_Bytes_To_Int(data1, data2)
+
+
+def Read_Byte(ser):
+    data1 = ser.read(1)
+    return ord(data1)
+
+
+def Read_Line(ser):
+    out = []
+    i = 0
+    while i < 1e5:
+        data1 = ser.read(1)
+        if data1 in ['\n','\r']:
+            break
+        out.append(data1)
+        i += 1
+    return out
 
 
 def Read_Two_Bytes_Twos_Comp(ser):

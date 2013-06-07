@@ -59,7 +59,7 @@ import SFLR_data_processing
 #pkl_name = 'model_w_bm_opt_9_bit.pkl'
 #pkl_path = os.path.join(pkl_dir, pkl_name)
 pkl_name = 'model_w_bm_opt.pkl'
-pkl_dir = '/home/ryan/git/research/SFLR_2010'
+pkl_dir = '/Users/rkrauss/git/research/SFLR_2010'
 pkl_path = os.path.join(pkl_dir, pkl_name)
 
 ## #the controllers Gth2 and GaX are in pkl_dir

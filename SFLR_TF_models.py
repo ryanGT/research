@@ -14,8 +14,11 @@ import txt_data_processing as TDP
 import rwkbode, pylab_util, rwkos
 #reload(rwkbode)
 
-import controls
-TF = controls.TransferFunction
+#import controls
+#TF = controls.TransferFunction
+import control
+TF = control.TransferFunction
+FB = control.feedback
 
 import copy
 
@@ -649,7 +652,7 @@ class P_control_Theta_FB(Accel_w_two_notches):
         self.build_notch2_TF()
         self.build_a_theta_TF()
         self.G_act_ol = self.G_act_iso*self.notch1*self.notch2
-        self.G_act = controls.feedback(self.G_act_ol*self.kp)
+        self.G_act = FB(self.G_act_ol*self.kp)
         self.G_a_v = self.G_act*self.G_a_th
 
 
@@ -683,7 +686,7 @@ class G_th_comp_Theta_FB(Accel_w_two_notches):
 
     def build_TFs(self):
         self._build_TFs()
-        self.G_act = controls.feedback(self.G_act_ol*self.Gth)
+        self.G_act = FB(self.G_act_ol*self.Gth)
         self.G_a_v = self.G_act*self.G_a_th
 
 
@@ -734,9 +737,10 @@ class G_th_G_a_TF(G_th_comp_Theta_FB):
     def build_TFs(self):
         self._build_TFs()
         self.G_act_ol = self.G_act_iso*self.notch1*self.notch2
-        self.G_act = controls.feedback(self.G_act_ol*self.Gth)
+        #Pdb().set_trace()
+        self.G_act = FB(self.G_act_ol*self.Gth)
         self.G_a_theta_d_hat = self.G_act*self.G_a_th
-        self.accel_TF = controls.feedback(self.G_a_theta_d_hat, self.Ga)
+        self.accel_TF = FB(self.G_a_theta_d_hat, self.Ga)
         self.theta_TF = self.accel_TF/self.G_a_th
         #Figure out how to find the a/theta_d bode here and back out
         #theta/theta_d with Ga

@@ -7,7 +7,7 @@ from scipy import optimize
 
 from rwkmisc import my_import
 
-import time, copy
+import time, copy, os
 
 import SFLR_TMM
 reload(SFLR_TMM)
@@ -26,12 +26,14 @@ from sympy_bode_analysis import calc_and_massage_Bodes
 #a_v_exp = exp_data.a_v_exp
 #data_mod_name = 'swept_sine_amp_75_July_07_2009_log_downsampled'
 #data_mod_name = 'swept_sine_kp_1_good_amp_75_maxf_20_duration_40000_log_downsampled'
+import rwkos
+data_folder = rwkos.FindFullPath('siue/Research/SFLR_2010/data/swept_sine/August_2010/after_beam_reattachment')
 data_mod_name = 'swept_sine_kp_1_after_beam_reattachment_amp_75_maxf_20_duration_40000_logdownsampled'
-
+data_mod_path = os.path.join(data_folder, data_mod_name)
 
 import load_exp_data
 
-fexp, th_v_exp, a_v_exp, a_th_exp = load_exp_data.load_data(data_mod_name)
+fexp, th_v_exp, a_v_exp, a_th_exp = load_exp_data.load_data(data_mod_path)
 
 from rwkdataproc import thresh
 ind1 = thresh(fexp,5)

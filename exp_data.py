@@ -14,16 +14,19 @@ if case == 1:
     data_mod_name = 'swept_sine_amp_75_July_07_2009_avebodes'
 
 elif case == 2:
-    relpath = 'siue/Research/PSoC_Research/SFLR_2010/data/swept_sine/August_2010/after_beam_reattachment'
+    relpath = 'siue/Research/SFLR_2010/data/swept_sine/August_2010/after_beam_reattachment'
     data_dir = rwkos.FindFullPath(relpath)
     data_mod_name = 'swept_sine_kp_1_after_beam_reattachment_amp_75_maxf_20_duration_40000_avebodes'
+
+data_mod_path = os.path.join(data_dir, data_mod_name)
     
 if data_dir not in sys.path:
     sys.path.append(data_dir)
 
 
 #data_mod_name = 'swept_sine_amp_75_July_07_2009_log_downsampled'
-bode_data_set = txt_data_processing.load_avebode_data_set(data_mod_name)
+#bode_data_set = txt_data_processing.load_avebode_data_set(data_mod_name)
+bode_data_set = txt_data_processing.load_avebode_data_set(data_mod_path)
 
 #bode_data_set.Bode_Plot2(func=rwkbode.GenBodePlot, linetype='o')
 exp_bodes = bode_data_set.avebodes#[0:2]
