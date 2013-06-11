@@ -317,7 +317,8 @@ class Sympy_AVS_ThetaFB_Element(Sympy_AVS_Element):
         U = eye(self.N+1)
         s1 = 1.0*2.0j*pi#magnitude of s at 1 Hz - fix this point for
             #changes in p's
-        m1 = abs(s1+p_act1)
+        #m1 = abs(s1+p_act1)
+        m1 = Symbol('m1')
         #m2 = abs(s1+p_act2)
         num = K_act*m1#*m2
         Gact = num/(s*(s+p_act1))

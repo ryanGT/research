@@ -7,6 +7,12 @@ import controls
 
 #'theta_fb_sympy_bodes', #<-- this module gives bad results for s with positive real part, so I removed it
 
+import sys, rwkos
+design_path = rwkos.FindFullPath('siue/Research/SFLR_2010/vibration_suppression_design/TMM')
+
+if design_path not in sys.path:
+    sys.path.append(design_path)
+
 modlist = ['step_response_utils', \
            'ROM_model', \
            'accel_fb_system',

@@ -360,6 +360,31 @@ class TMM_model_with_Python_module_two_funcs(OL_TF_bode_object):
         self._bodes_from_comp(f)
 
 
+class TMM_model_two_Python_funcs_Gth(TMM_model_with_Python_module_two_funcs):
+    def calc_bodes(self, f):
+        s = 2.0j*pi*f
+        self.th_u_comp = self.theta_bode_func(s, self.params)
+        self.a_u_comp = self.accel_bode_func(s, self.params)
+        self._bodes_from_comp(f)
+
+    def _bodes_from_comp(self, f):
+        th_u_opts = self.find_opt('theta','u')
+        self.th_u_bode = rwkbode.rwkbode(output='theta', \
+                                         input='u', \
+                                         compin=self.th_u_comp, \
+                                         seedfreq=th_u_opts.seedfreq, \
+                                         seedphase=th_u_opts.seedphase)
+        self.th_u_bode.PhaseMassage(f)
+
+        a_u_opts = self.find_opt('a','u')        
+        self.a_u_bode = rwkbode.rwkbode(output='a', \
+                                        input='u', \
+                                        compin=self.a_u_comp, \
+                                        seedfreq=a_u_opts.seedfreq, \
+                                        seedphase=a_u_opts.seedphase)
+        self.a_u_bode.PhaseMassage(f)
+        self.bodes = [self.th_u_bode, self.a_u_bode]
+
 
 
 class SS_bode_object(TMM_bode_object):

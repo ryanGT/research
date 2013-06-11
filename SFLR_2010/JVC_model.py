@@ -965,6 +965,22 @@ class model_w_bm_theta_FB(model_w_bm):
         self.logfile = 'model_w_bm_brute_force_params.txt'
 
 
+    def find_sym_matrices(self):
+        self.U0 = AVS_ThetaFB.Get_Aug_Mat(s)
+        self.U1 = Base_Mass.Get_Aug_Mat(s)
+        self.U2 = TSD_clamp.Get_Aug_Mat(s)
+        self.U3 = beam1.Get_Aug_Mat(s)
+        self.U4 = Accel_Mass.Get_Aug_Mat(s)
+        self.U5 = beam2.Get_Aug_Mat(s)
+
+
+    def to_Maxima(self, pathout, num_bodes=2, \
+                  base_mod_name='maxima_bode', **kwargs):
+        attrlist = ['U0','U1','U2','U3','U4','U5']
+        JVC_model.to_Maxima(self, pathout, attrlist, \
+                            num_bodes=num_bodes, \
+                            base_mod_name=base_mod_name, **kwargs)
+
     def find_symbolic_bodes(self, save=1):
         ## self.list = [self.avs, self.base_mass, \
         ##              self.clamp_spring, \
@@ -1021,6 +1037,15 @@ class model_w_bm_theta_FB(model_w_bm):
                               headerfile='header.py', \
                               replace_dict=replace_dict)
 
+
+    def Maxima_bodes(self, **kwargs):
+        sensor_inds = [1,4]
+        dofs = [1,0]
+        #enc_gain = 180.0/pi*1024.0/360.0
+        #enc_gain_str = str(enc_gain)
+        sensor_post = ['enc_gain', 's^2*a_gain']
+        return JVC_model.Maxima_bodes(self, sensor_inds, dofs, sensor_post, \
+                                      **kwargs)
 
 
 class model_w_bm_theta_FB_ND(model_w_bm_theta_FB):
@@ -1086,12 +1111,3 @@ class model_w_bm_theta_FB_ND(model_w_bm_theta_FB):
             self.cse_to_file()
         return self.sym_bodes
 
-
-    def Maxima_bodes(self, **kwargs):
-        sensor_inds = [1,4]
-        dofs = [1,0]
-        #enc_gain = 180.0/pi*1024.0/360.0
-        #enc_gain_str = str(enc_gain)
-        sensor_post = ['enc_gain', 's^2*a_gain']
-        return JVC_model.Maxima_bodes(self, sensor_inds, dofs, sensor_post, \
-                                      **kwargs)

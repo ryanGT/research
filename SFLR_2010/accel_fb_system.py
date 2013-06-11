@@ -1,6 +1,7 @@
 from pylab import *
 from scipy import *
 from scipy import optimize
+import numpy
 
 import copy
 import pylab as PL
@@ -110,6 +111,87 @@ class generic_contour_system(object):
         for fi in self.contour_fignums:
             PU.SetXlim(fi, xlim)
             PU.SetYlim(fi, ylim)
+
+
+    def _clean_one_pole_or_zero_array(self, attr):
+        if not hasattr(self, 'tol'):
+            self.tol = 1.0e-6
+        myarray = getattr(self, attr)
+        for i, elem in enumerate(myarray):
+            if abs(elem) < self.tol:
+                myarray[i] = 0.0
+            elif abs(imag(elem)) < self.tol:
+                myarray[i] = real(elem)
+            elif abs(real(elem)) < self.tol:
+                myarray[i] = imag(elem)
+
+
+    def pole_filter(self, pole, attr='theta_poles'):
+        """Determine whether or not pole is already in pole vector
+        self.attr with in self.tol"""
+        myvect = getattr(self, attr)
+        diff_vect = pole - myvect
+        abs_vect = abs(diff_vect)
+        #bool_vect = abs_vect < self.tol
+        bool_vect = abs_vect < 0.01*abs(pole)
+        if bool_vect.any():
+            return False
+        else:
+            return True
+
+    def find_poles_at_origin(self):
+        count = 0
+        for pole in self.all_poles:
+            if abs(pole) < self.tol:
+                count += 1
+        self.poles_at_origin = count
+        return count
+
+
+    def append_origin_poles(self):
+        if not hasattr(self, 'poles_at_origin'):
+            self.find_poles_at_origin()
+        if not hasattr(self, 'min_origin_power'):
+            self.find_origin_power()
+        if -self.min_origin_power > self.poles_at_origin:
+            mydiff = -self.min_origin_power - self.poles_at_origin
+            mylist = [0]*mydiff
+            self.all_poles = numpy.append(self.all_poles, mylist)
+
+
+    def count_zeros(self, vect):
+        count = 0
+        for elem in vect:
+            if abs(elem) < self.tol:
+                count += 1
+        return count
+
+
+    def _append_origin_zeros(self, exp_attr, zero_vect_attr):
+        myexp = getattr(self, exp_attr)
+        num_zeros = myexp - self.min_origin_power
+        myvect = getattr(self, zero_vect_attr)
+        cur_zeros = self.count_zeros(myvect)
+        if num_zeros > cur_zeros:
+            mydiff = num_zeros - cur_zeros
+            mylist = [0]*mydiff
+            myvect = numpy.append(mylist, myvect)
+            setattr(self, zero_vect_attr, myvect)
+
+    def _build_full_list_of_poles_or_zeros_w_conj(self, myvect):
+        listout = []
+        for elem in myvect:
+            if imag(elem) > self.tol:
+                #we have a complex pole and need to append it and its
+                #complex conjugate
+                listout.append(elem)
+                listout.append(numpy.conj(elem))
+            elif imag(elem) > -self.tol:
+                #this is a pure real elem
+                listout.append(elem)
+            #deliberately skipping myvect with negative imag part (they
+            #should be in the conj of myvect with positive imag part)
+        return listout
 
 
 
