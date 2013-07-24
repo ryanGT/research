@@ -27,7 +27,7 @@ class theta_fb_sys_contour(rwkmisc.object_that_saves, \
         #f0 = arange(-8, -2, 0.5)
         f0 = arange(-15, -2, 0.5)
         f1 = arange(-2, mesh_change, 0.01)
-        f2 = arange(mesh_change, 20, 0.5)
+        f2 = arange(mesh_change, 50, 0.5)
         f_hat = numpy.append(f1,f2)
         f = numpy.append(f0,f_hat)
         #f = f1
@@ -40,7 +40,7 @@ class theta_fb_sys_contour(rwkmisc.object_that_saves, \
         #im = si/(2*pi)
         im1 = arange(-0.5, mesh_change, 0.01)
         im2 = arange(mesh_change, 15, 0.5)
-        im3 = arange(15,20,0.01)
+        im3 = arange(15,50,0.01)
         #im = numpy.append(im1,im2)
         im = numpy.concatenate([im1,im2,im3])
         #im = im1
@@ -187,8 +187,8 @@ class theta_fb_sys_contour(rwkmisc.object_that_saves, \
         self.SS_poles = self._build_full_list_of_poles_or_zeros_w_conj(self.all_poles)
         self.theta_SS_zeros = self._build_full_list_of_poles_or_zeros_w_conj(self.theta_zeros)
         self.accel_SS_zeros = self._build_full_list_of_poles_or_zeros_w_conj(self.a_zeros)
-        #self.SS_zeros = [self.theta_SS_zeros, self.accel_SS_zeros]
-        self.SS_zeros = [self.accel_SS_zeros]
+        self.SS_zeros = [self.theta_SS_zeros, self.accel_SS_zeros]
+        #self.SS_zeros = [self.accel_SS_zeros]
 
 
 class theta_fb_sys_contour_sympy(theta_fb_sys_contour):
@@ -201,3 +201,53 @@ class theta_fb_sys_contour_sympy(theta_fb_sys_contour):
     def calc_a_theta_contours(self):
         self.a_theta_comp = self.comp_mat/self.theta_comp
         self.theta_a_comp = 1.0/self.a_theta_comp
+
+
+class theta_fb_contour_CND_paper(theta_fb_sys_contour):
+    """I am investigating whether or not the LQG design for the
+       ROM model of the SFLR will drive higher modes unstable.  To do this,
+       I need to track the third and fourth order poles, so my contour
+       matrix is different than for other purposes."""
+    def build_s(self):
+        #f = logspace(-1, 1.5, 500)
+        #maxf = 30.0
+        #maxf = 5.0
+        #df = 0.1
+        #f = arange(-20, maxf, df)
+        #f = arange(-2.0, maxf, df)
+        #sr = arange(1,5,0.01)
+        #f = sr/(2*pi)
+        mesh_change = 3.0
+        #f0 = arange(-8, -2, 0.5)
+        f0 = arange(-15, -2, 0.5)
+        f1 = arange(-2, mesh_change, 0.01)
+        f2 = arange(mesh_change, 30, 0.5)
+        f_hat = numpy.append(f1,f2)
+        f = numpy.append(f0,f_hat)
+        #f = f1
+
+        #maxi = 20.0
+        #maxi = 1.0
+        #di = 0.1
+        #si = arange(-1,1,0.01)
+        #im = arange(-1, maxi, di)
+        #im = si/(2*pi)
+        im1 = arange(-0.5, mesh_change, 0.01)
+        im2 = arange(mesh_change, 15, 0.5)
+        im3 = arange(15,150,0.1)
+        #im = numpy.append(im1,im2)
+        im = numpy.concatenate([im1,im2,im3])
+        #im = im1
+        nr = len(im)
+        nc = len(f)
+        s = zeros((nr,nc), dtype='D')
+
+        for i in range(nr):
+            for j in range(nc):
+                s[i,j] = -2.0*pi*f[j] + 2.0j*pi*im[i]
+
+        self.f = f
+        self.im = im
+        self.s = s
+
+

@@ -2102,8 +2102,16 @@ class TMMSystem:
         return basevect
 
     def FindEig(self, guess,mytol=1e-14,maxfun=1e4,maxiter=1e3,\
-                returncomplex=False,useabs=True,disp=1):
-        if useabs:
+                returncomplex=False,useabs=True,disp=1,usefsolve=False):
+        if usefsolve:
+            if scipy.shape(guess)==():
+                guess=scipy.array([scipy.real(guess),scipy.imag(guess)])
+            vectout=scipy.optimize.fmin(self.EigError_vect,guess,\
+                                       xtol=mytol,\
+                                       ftol=mytol,maxfun=maxfun,\
+                                       maxiter=maxiter,disp=disp)
+            eigout = vectout[0] + 1.0j*vectout[1]
+        elif useabs:
             if scipy.shape(guess)==():
                 guess=scipy.array([scipy.real(guess),scipy.imag(guess)])
             eigout=scipy.optimize.fmin(self.EigError,guess,xtol=mytol,\
@@ -2117,6 +2125,12 @@ class TMMSystem:
             if shape(eigout):
                 eigout=eigout[0]+eigout[1]*1.0j
         return eigout
+
+
+    def EigError_vect(self, value):
+        chardet = self.EigError(value, False)
+        return array([real(chardet), imag(chardet)])
+    
 
     def EigError(self, value, useabs=True):
         if not shape(value):
@@ -2184,6 +2198,13 @@ class TMMSystem:
             return real(matout)
         else:
             return matout
+
+
+    def FindSubmatDet(self, s):
+        subU = self.FindSubmat(s)
+        det = scipy.linalg.det(subU)
+        return det
+
 
     def FindSubmatwAugcol(self,value):
 #        pdb.set_trace()

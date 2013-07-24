@@ -61,3 +61,21 @@ def sage_tf_to_python(tf, name_out='tf', s=None, substr=''):
     out_list.append(last_line)
     
     return out_list
+
+
+def cse_sage_sympy(exprs):
+    expr_sympy = sympy.sympify(exprs)
+    out = sympy.cse(expr_sympy)
+    outlist = []
+    mydefs = out[0]
+    result_list = out[1]
+    def_fmt = '%s = %s'
+    for line in mydefs:
+        line_str = def_fmt % line
+        outlist.append(line_str)
+
+    assert len(out[1]) == 1, "Not sure what to do with cse results that do not have exactly one results: %s" % out[1]
+    out_str = 'result = %s' % out[1][0]
+    outlist.append(out_str)
+    outlist.append('return result')
+    return outlist

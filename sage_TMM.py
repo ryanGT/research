@@ -112,12 +112,12 @@ class sage_Beam_Element(sage_TMM_Element):
     def Get_Mat(self, s):
         params = self.params
         label = self.label
-##     beta = Symbol('beta')
-##     a = Symbol('a')
-        d1 = Symbol('d1'+label)
-        d2 = Symbol('d2'+label)
-        d3 = Symbol('d3'+label)
-        d4 = Symbol('d4'+label)
+##     beta = var('beta')
+##     a = var('a')
+        d1 = var('d1'+label)
+        d2 = var('d2'+label)
+        d3 = var('d3'+label)
+        d4 = var('d4'+label)
         mu = params['mu']
         EI = params['EI']
         L = params['L']
@@ -297,7 +297,7 @@ class sage_AVS_ThetaFB_Element(sage_AVS_Element):
     def __init__(self, params, Gth=None, label='', N=4):
         sage_AVS_Element.__init__(self, params, label=label, N=N)
         if Gth is None:
-            Gth = Symbol('Gth')
+            Gth = var('Gth')
         self.Gth = Gth
 
 
@@ -479,55 +479,55 @@ if __name__ == '__main__':
     mod_name = options.name
 
     t_start = time.time()
-    s = Symbol('s')
+    s = var('s')
     ##################################################
     #
     # Create the Elements
     #
     ##################################################
     #---------------------
-    mu = Symbol('mu')
-    EI = Symbol('EI')
-    L1 = Symbol('L1')
-    beta1 = Symbol('beta1')
+    mu = var('mu')
+    EI = var('EI')
+    L1 = var('L1')
+    beta1 = var('beta1')
     params1 = {'mu':mu, 'EI':EI, 'L':L1, 'beta':beta1}
-    L2 = Symbol('L2')
-    beta2 = Symbol('beta2')
+    L2 = var('L2')
+    beta2 = var('beta2')
     params2 = {'mu':mu, 'EI':EI, 'L':L2, 'beta':beta2}
     beam1 = sage_Beam_Element(params1, label='_1')
     beam2 = sage_Beam_Element(params2, label='_2')
     #---------------------
-    k_clamp = Symbol('k_clamp')
-    c_clamp = Symbol('c_clamp')
+    k_clamp = var('k_clamp')
+    c_clamp = var('c_clamp')
     TSDparams = {'k':k_clamp, 'c':c_clamp}
     TSD_clamp = sage_TSD_Element(TSDparams)
     #---------------------
-    a_m = Symbol('a_m')
-    a_L = Symbol('a_L')
-    a_r = Symbol('a_r')
-    a_I = Symbol('a_I')
-    a_gain = Symbol('a_gain')
+    a_m = var('a_m')
+    a_L = var('a_L')
+    a_r = var('a_r')
+    a_I = var('a_I')
+    a_gain = var('a_gain')
     am_params = {'m':a_m, 'L':a_L, 'r':a_r, 'I':a_I}
     Accel_Mass = sage_Rigid_Mass_Element(am_params)
     #---------------------
-    b_m = Symbol('b_m')
-    b_L = Symbol('b_L')
-    b_r = Symbol('b_r')
-    b_I = Symbol('b_I')
-    b_gain = Symbol('b_gain')
+    b_m = var('b_m')
+    b_L = var('b_L')
+    b_r = var('b_r')
+    b_I = var('b_I')
+    b_gain = var('b_gain')
     bm_params = {'m':b_m, 'L':b_L, 'r':b_r, 'I':b_I}
     Base_Mass = sage_Rigid_Mass_Element(bm_params)
     #----------------------
-    k_spring = Symbol('k_spring')
-    c_spring = Symbol('c_spring')
+    k_spring = var('k_spring')
+    c_spring = var('c_spring')
     TSDparams = {'k':k_spring, 'c':c_spring}
     TSD_spring = sage_TSD_Element(TSDparams)
     #---------------------
-    K_act = Symbol('K_act')
-    p_act1 = Symbol('p_act1')
-    p_act2 = Symbol('p_act2')
-    tau = Symbol('tau')
-    z_act = Symbol('z_act')
+    K_act = var('K_act')
+    p_act1 = var('p_act1')
+    p_act2 = var('p_act2')
+    tau = var('tau')
+    z_act = var('z_act')
     AVS_params = {'K_act':K_act, 'p_act1':p_act1, 'p_act2':p_act2, \
                   'z_act':z_act, 'tau':tau}
     #AVS = sage_AVS3_Element(AVS_params)
