@@ -189,10 +189,12 @@ class Data_File(object_with_n_vector):
     (the code actually uses setattr(self, key, data[:,ind])).
     """
     def __init__(self, path=None, col_map={}, delim='\t', skiprows=None, \
-                 check_n=True):
+                 check_n=True, prelabel='', postlabel=''):
         self.path = path
         self.col_map = col_map
         self.delim = delim
+        self.prelabel = prelabel
+        self.postlabel = postlabel
         self.skiprows = skiprows
         if (path is not None) and os.path.exists(self.path):
             self.Load_Data()
@@ -336,6 +338,7 @@ class Data_File(object_with_n_vector):
                 curlabel = legend_dict[label]
             else:
                 curlabel = label
+            curlabel = self.prelabel + curlabel + self.postlabel
             mplutil.plot_vect(ax, self.t, curvect, clear=False, \
                               ylabel=ylabel, labels=[curlabel],
                               **plot_opts)
@@ -349,6 +352,72 @@ class Data_File(object_with_n_vector):
                                 ext=ext)
         return ax
 
+
+    def calc_freq_vect(self):
+        dt = self.t[1] - self.t[0]
+        if not hasattr(self, 'dt'):
+            self.dt = dt
+        self.fs = 1.0/dt
+        T = self.t.max() + dt
+        df = 1.0/T
+        self.freq = arange(0,self.fs-0.1*df,df)
+        
+
+    def calc_spectra(self, inlabel, outlabel):
+        in_vect = getattr(self, inlabel)
+        out_vect = getattr(self, outlabel)
+        spec = rwkdataproc.CalcSpectra(in_vect, out_vect, \
+                                       input=inlabel, \
+                                       output=outlabel)
+        return spec
+
+
+    def calc_bode(self, inlabel, outlabel):
+        spec = self.calc_spectra(inlabel, outlabel)
+        bode = rwkbode.BodeFromSpectra(spec)
+        return bode
+
+
+    def bode_plot(self, inlabel, outlabel, fignum=1,  **kwargs):
+        bode = self.calc_bode(inlabel, outlabel)
+        if not hasattr(self, 'freq'):
+            self.calc_freq_vect()
+        rwkbode.GenBodePlot(fignum, self.freq, bode, **kwargs)
+        
+
+class Arduino_Data_File(Data_File):
+    """I need to subtract a software zero from some channels sometimes."""
+    def sw_zero(self):
+        for channel in self.sw_zero_labels:
+            if hasattr(self, channel):
+                raw_label = channel + '_raw'
+                vect = getattr(self, channel)
+                copy_vect = copy.deepcopy(vect)
+                setattr(self, raw_label, copy_vect)
+                myzero = average(vect[0:5])
+                vect -= myzero
+                setattr(self, channel, vect)
+
+
+    def scale(self):
+        for channel, factor in self.scale_dict.iteritems():
+            if hasattr(self, channel):
+                raw_label = channel + '_prescale'
+                vect = getattr(self, channel)
+                copy_vect = copy.deepcopy(vect)
+                setattr(self, raw_label, copy_vect)
+                vect *= factor
+                setattr(self, channel, vect)
+            
+                
+    def __init__(self, path=None, sw_zero_labels=['a'], scale_dict={}, \
+                 **kwargs):
+        Data_File.__init__(self, path=path, **kwargs)
+        self.sw_zero_labels = sw_zero_labels
+        self.sw_zero()
+        self.scale_dict = scale_dict
+        self.scale()
+        
 
 class Data_Set(object):
     """A class for loading a group of related txt data files and
