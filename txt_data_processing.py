@@ -1,17 +1,21 @@
+from rwkmisc import my_import
 from scipy import *
-from scipy import io
-import glob, os, copy, re, sys
+import glob
+import os
+import copy
+import re
+import sys
 import mplutil
-reload(mplutil)
+import rwkbode
+import rwkdataproc
+import rwkmisc
 import time
+import txt_mixin
+reload(mplutil)
 
 #import rst_creator
 #reload(rst_creator)
 
-import txt_mixin
-import rwkdataproc
-import rwkbode
-import rwkmisc
 
 #from IPython.core.debugger import Pdb
 
@@ -80,7 +84,7 @@ def BuildMask(inds, vect):
 
 ###########################
 
-drop_list = ['{','}']
+drop_list = ['{','}','$']
 rep_list = ['\\']
 
 def clean_key(keyin):
@@ -91,10 +95,11 @@ def clean_key(keyin):
         temp = temp.replace(item,'')
     for item in rep_list:
         temp = temp.replace(item,'_')
+    while temp[0] == '_':
+        temp = temp[1:]
     return temp
 
 
-from rwkmisc import my_import
 
 def import_mod(mod_path):
     folder, mod_name = os.path.split(mod_path)
@@ -198,7 +203,7 @@ class Data_File(object_with_n_vector):
         self.skiprows = skiprows
         if (path is not None) and os.path.exists(self.path):
             self.Load_Data()
-            if check_n:
+            if check_n and hasattr(self,'n'):
                 res = self.check_n()
                 if res:
                     self.fix_n()
@@ -325,6 +330,7 @@ class Data_File(object_with_n_vector):
                   ylabel='Voltage (counts)', \
                   basename=None, save=False, \
                   ext='.png', fig_dir='', title=None, \
+                  linetypes=None, \
                   **plot_opts):
         if ax is None:
             ax = self.get_time_axis(fignum)
@@ -332,13 +338,18 @@ class Data_File(object_with_n_vector):
             ax.clear()
         if labels is None:
             labels = filter(filterx, self.labels)
-        for label in labels:
+        for i, label in enumerate(labels):
             curvect = getattr(self, label)
             if legend_dict.has_key(label):
                 curlabel = legend_dict[label]
             else:
                 curlabel = label
             curlabel = self.prelabel + curlabel + self.postlabel
+            curlabel = curlabel.strip()
+            if linetypes is not None:
+                lt = linetypes[i]
+                plot_opts['linestyle'] = lt
+            
             mplutil.plot_vect(ax, self.t, curvect, clear=False, \
                               ylabel=ylabel, labels=[curlabel],
                               **plot_opts)
@@ -383,7 +394,16 @@ class Data_File(object_with_n_vector):
         if not hasattr(self, 'freq'):
             self.calc_freq_vect()
         rwkbode.GenBodePlot(fignum, self.freq, bode, **kwargs)
-        
+
+
+    def set_t_from_trigger(self, trigger_channel, level=0.5):
+        """Find the index where self.trigger_channel is greater than
+        level for the first time and set self.t = 0 at that point"""
+        trig_vect = getattr(self, trigger_channel)
+        ind = where(trig_vect > level)[0][0]
+        t0 = self.t[ind]
+        self.t -= t0
+
 
 class Arduino_Data_File(Data_File):
     """I need to subtract a software zero from some channels sometimes."""
@@ -417,6 +437,69 @@ class Arduino_Data_File(Data_File):
         self.sw_zero()
         self.scale_dict = scale_dict
         self.scale()
+
+
+def clean_dig(sig_in):
+    sig_out = copy.copy(sig_in)
+    inds_low = sig_out < 2.5
+    sig_out[inds_low] = 0.0
+    inds_high = sig_out >= 2.5
+    sig_out[inds_high] = 1.0
+    return sig_out
+
+
+class Analog_Digital_File(Data_File):
+    """Occasionally I use Labview to verify an encoder reading or
+    something like that.  In those cases, I have analog measurements
+    of signals that are supposed to be digital.  This class captures
+    some of the methods needed to deal with those files."""
+    def clean_dig(self):
+        for channel in self.digital_channels:
+            raw_vect = getattr(self, channel)
+            clean_vect = clean_dig(raw_vect)
+            raw_name = channel + '_raw'
+            setattr(self, raw_name, raw_vect)
+            setattr(self, channel, clean_vect)
+
+
+    def find_edges(self, channel, rising=True):
+        vect = getattr(self,channel)
+        shifted = vect[1:]
+        original = vect[0:-1]
+        if rising:
+            inds = where(shifted > original)[0]
+        else:
+            inds = where(shifted < original)[0]
+        inds_s = squeeze(inds)
+        return inds_s
+            
+        
+    def __init__(self, path=None, col_map={}, digital_channels=[], **kwargs):
+        Data_File.__init__(self, path=path, col_map=col_map, **kwargs)
+        self.digital_channels = digital_channels
+        self.clean_dig()
+
+
+class Analog_Encoder_File(Analog_Digital_File):
+    """Class for a file recorded using Labview where A and B channels
+    are present and used to verify an encoder signal analyzed or
+    measured in some other way (i.e. with a microcontroller)
+
+    self.A and self.B must refer to the digitized A and B channels
+    from the encoder."""
+    def count_on_rising_As(self):
+        N = len(self.A)
+        theta_vect = zeros(N)
+        theta = 0.0
+        for i in range(1,N):
+            if self.A[i] > self.A[i-1]:
+                if self.B[i] > 0.5:
+                    theta += 1.0#should really be -=
+                else:
+                    theta -= 1.0
+            theta_vect[i] = theta
+
+        self.theta = theta_vect
         
 
 class Data_Set(object):
@@ -512,20 +595,27 @@ class Data_Set(object):
     def Time_Plot(self, labels=['y'], ax=None, fignum=1,
                   legend_dict={}, ylabel=None, \
                   basename=None, savefigs=True, \
-                  ext='.png', fig_dir=''):
+                  ext='.png', fig_dir='', \
+                  linetypes=None):
         if ax is None:
             from pylab import figure
             fig = figure(fignum)
             fig.clf()
             ax = fig.add_subplot(111)
-        for label in labels:
+        for i, label in enumerate(labels):
             cur_mat = getattr(self, label)
             curlabel = ylabel
             if curlabel is None:
                 if self.title_dict.has_key(label):
                     curlabel = self.title_dict[label]
+            ## kwargs = {}
+            ## if linetypes is not None:
+            ##     lt = linetypes[i]
+            ##     kwargs = {'linetypes':[lt]}#not sure if this is a good idea for 2D data or not
             mplutil.plot_cols(ax, self.t, cur_mat, ylabel=curlabel, \
-                              clear=False, labels=curlabel)
+                              clear=False, labels=curlabel, \
+                              linetypes=linetypes, \
+                              **kwargs)
         if basename and savefigs:
             fig_name = basename+'_time_plot'
             fig_name += '_%s' % '_'.join(labels)
