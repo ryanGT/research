@@ -1,4 +1,4 @@
-from scipy import log10, shape, zeros, c_, r_, atleast_2d, compress, imag, real, pi, cos, sin, squeeze, where, dot, arange, arctan2
+from scipy import log10, shape, zeros, c_, r_, atleast_2d, compress, imag, real, pi, cos, sin, squeeze, where, dot, arange, arctan2, column_stack, row_stack
 #from math import atan2
 
 #import pylab
@@ -1083,3 +1083,31 @@ def FindMatch(bodelist, output, input):
         raise IndexError, 'Could not find bode with output='+output +' and input='+input
 
 
+def bodes_to_string_matrix(freq, bode_list, labels):
+   datalist = [freq]
+   labellist = ['freq']
+
+   for bode, label in zip(bode_list, labels):
+      dB = bode.dBmag()
+      phase = bode.phase
+      if label[0] != '_':
+         label = '_' + label
+      db_label = 'db' + label
+      phase_label = 'phase' + label
+      datalist.append(dB)
+      datalist.append(phase)
+      labellist.append(db_label)
+      labellist.append(phase_label)
+
+   data = column_stack(datalist)
+   data_s = data.astype('S30')
+   labels_m = row_stack([labellist])
+   data_out = row_stack([labels_m, data_s])
+
+   return data_out
+
+def save_bodes_to_file(filepath, freq, bode_list, labels):
+   import txt_mixin   
+   data_out = bodes_to_string_matrix(freq, bode_list, labels)
+   txt_mixin.dump_delimited(filepath, data_out)
+   

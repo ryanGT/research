@@ -64,43 +64,75 @@ def comp_func_to_Bode(myfunc, f, bode_opt, PhaseMassage=True, \
     return comp_to_Bode(comp, f, bode_opt, \
                         PhaseMassage=PhaseMassage)
 
-    
-def plot_bode_TMM(TMM_model, bode_opt, f, fignum=1, clear=False, \
-                   PhaseMassage=False, **kwargs):
+
+def get_TMM_bode(TMM_model, bode_opt, f, PhaseMassage=False):
     if not hasattr(TMM_model, 'bodes'):
         print('calculating bodes')
         TMM_model.calc_bodes(f)
     bode = TMM_model.find_bode(bode_opt)
     if PhaseMassage:
         _PhaseMassage(bode, bode_opt, f)
+    return bode
+
+    
+def plot_bode_TMM(TMM_model, bode_opt, f, fignum=1, clear=False, \
+                   PhaseMassage=False, **kwargs):
+    bode = get_TMM_bode(TMM_model, bode_opt, f, \
+                        PhaseMassage=PhaseMassage)
     _plot_bode(bode, bode_opt, f, fignum=fignum, clear=clear, \
                **kwargs)
 
 
-def plot_bode_SS(SS_model, bode_opt, f, fignum=1, clear=False, \
-                 PhaseMassage=False, **kwargs):
+def get_SS_Bode(SS_model, bode_opt, f, \
+                 PhaseMassage=False):
     if not hasattr(SS_model, 'bodes'):
         print('calculating bodes')
         SS_model.calc_bodes(f)
     bode = SS_model.find_bode(bode_opt)
     if PhaseMassage:
         _PhaseMassage(bode, bode_opt, f)
+    return bode
+
+
+def plot_bode_SS(SS_model, bode_opt, f, fignum=1, clear=False, \
+                 PhaseMassage=False, **kwargs):
+    bode = get_SS_Bode(SS_model, bode_opt, f, PhaseMassage=PhaseMassage)
     _plot_bode(bode, bode_opt, f, fignum=fignum, clear=clear, \
                **kwargs)
 
 
-def _plot_exp_bode(exp_mod, bode_opt, search_attr, \
-                   f=None, fignum=1, clear=False, \
-                   PhaseMassage=False, **kwargs):
+def _get_exp_bode(exp_mod, bode_opt, search_attr, \
+                 f=None, PhaseMassage=False):
     bode = exp_mod.find_bode(bode_opt.output_label, \
                              bode_opt.input_label, \
                              attr=search_attr)
     if PhaseMassage:
         _PhaseMassage(bode, bode_opt, f)
+    return bode
+
+
+def _plot_exp_bode(exp_mod, bode_opt, search_attr, \
+                   f=None, fignum=1, clear=False, \
+                   PhaseMassage=False, **kwargs):
+    bode = _get_exp_bode(exp_mod, bode_opt, search_attr, f=f, \
+                        PhaseMassage=PhaseMassage)
     _plot_bode(bode, bode_opt, f, fignum=fignum, clear=clear, \
                **kwargs)
     
 
+def get_exp_bode(exp_mod, bode_opt, f=None, \
+                  trunc=True, PhaseMassage=False):
+    if trunc:
+        search_attr = 'trunc_avebodes'
+        f = exp_mod.trunc_f
+    else:
+        search_attr = 'avebodes'
+        f = exp_mod.f
+    bode = _get_exp_bode(exp_mod, bode_opt, search_attr, f=f, \
+                         PhaseMassage=PhaseMassage)
+    return bode
+        
+    
 def plot_exp_bode(exp_mod, bode_opt, f=None, fignum=1, clear=False, \
                   trunc=True, PhaseMassage=False, **kwargs):
     if trunc:
@@ -216,6 +248,21 @@ class exp_bode_object(object):
                       fignum=fignum, clear=clear, \
                       **kwargs)
 
+    def get_f(self, trunc=False):
+        if trunc:
+            f = self.mod.trunc_f
+        else:
+            f = self.mod.f
+        return f
+
+    def get_bodes(self, PhaseMassage=True, trunc=False):
+        bodes = []
+        for i, opt in enumerate(self.bode_opts):
+            curbode = get_exp_bode(self.mod, opt, f=None, \
+                                   trunc=trunc, PhaseMassage=PhaseMassage)
+            bodes.append(curbode)
+        return bodes
+        
 
 class exp_bode_object_no_ave(exp_bode_object):
     def __init__(self, modname, bode_opts, label='exp.'):
@@ -234,6 +281,15 @@ class TMM_bode_object(exp_bode_object):
         self.bode_attr = self.model
         self.func = plot_bode_TMM
         self.label = label
+
+
+    def get_bodes(self, f, PhaseMassage=True):
+        bodes = []
+        for i, opt in enumerate(self.bode_opts):
+            curbode = get_TMM_bode(self.model, opt, f, \
+                                   PhaseMassage=False)
+            bodes.append(curbode)
+        return bodes
 
 
 ## class TMM_python_module_two_bodes(TMM_bode_object):
@@ -394,6 +450,15 @@ class SS_bode_object(TMM_bode_object):
         self.bode_attr = self.model
         self.func = plot_bode_SS
         self.label = label
+
+
+    def get_bodes(self, f, PhaseMassage=True):
+        bodes = []
+        for i, opt in enumerate(self.bode_opts):
+            curbode = get_SS_Bode(self.model, opt, f, \
+                                  PhaseMassage=PhaseMassage)
+            bodes.append(curbode)
+        return bodes
         
 
 class single_TF_bode_object(OL_TF_bode_object):
