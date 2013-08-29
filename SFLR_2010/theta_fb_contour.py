@@ -99,6 +99,7 @@ class theta_fb_sys_contour(rwkmisc.object_that_saves, \
         self.bode_args = bode_args
         self.bode_kwargs = bode_kwargs
         self.params_pkl_path = params_pkl_path
+        self.levels = levels
         self.load_params()
         
         if saved_pklname is not None:

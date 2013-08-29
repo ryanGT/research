@@ -17,15 +17,16 @@ def find_overshoot(y, u):
 
 
 def find_settling_index(y, u, p=0.01):
-    e = u-y
     final_value = u[-1]
+    e = final_value-y
     ep = abs(p*final_value)
     if ep < 1.0:
         ep = 1.0
     bool1 = abs(e)<= ep
-    bool0 = u == final_value#use this to ignore the portion before the
-                            #step input occurs where u==y==0.
-    mybool = bool0 & bool1
+    ## bool0 = u == final_value#use this to ignore the portion before the
+    ##                         #step input occurs where u==y==0.
+    ## mybool = bool0 & bool1
+    mybool = bool1
     #if the final error is not within p*final_value, then the step
     #response never settles
     if not mybool[-1]:

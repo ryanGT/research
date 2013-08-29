@@ -57,18 +57,42 @@ def pole_locs(dB_mat):
     indr, indc = where(pole_bool)
     return indr, indc
 
+save_keys = ['dB_mat','f_contour', 'im_contour', 'levels']
 
 class generic_contour_system(object):
     """I am trying to create a base class that I can also use for OL
     contour plotting."""
+    def build_dict(self, dB_mat=None):
+        if dB_mat is None:
+            dB_mat = self.dB_mat
+        mydict = {}
+        for key in save_keys:
+            if key == 'dB_mat':
+                mydict[key] = dB_mat
+            else:
+                vect = getattr(self, key)
+                mydict[key] = vect
+
+        return mydict
+
+    
+    def save_npz(self, filename, dB_mat=None):
+        mydict = self.build_dict()
+        numpy.savez_compressed(filename, **mydict)
+                               
+        
+        
     def plot_db_mat_contour(self, dB_mat, fi, title=None, \
+                            levels=None, \
                             myxlim=[-20,2],myylim=[-2,20],\
                             zoomin=False):
+        if levels is None:
+            levels = self.levels
         figure(fi)
         clf()
-        contour(-self.f_contour*2*pi, self.im_contour*2*pi , dB_mat, self.levels)
-        PL.xlabel('real($s$) {\\LARGE (rad./s)}')
-        PL.ylabel('imag($s$) {\\LARGE (rad./s)}')
+        contour(-self.f_contour*2*pi, self.im_contour*2*pi , dB_mat, levels)
+        PL.xlabel('real($s$) (rad./s)')
+        PL.ylabel('imag($s$) (rad./s)')
         if hasattr(self, 'contour_fignums'):
             self.contour_fignums.append(fi)
         else:
@@ -83,10 +107,12 @@ class generic_contour_system(object):
     def find_poles(self, dB_mat):
         indr, indc = pole_locs(dB_mat)
 
-        pole_vect = zeros((len(indr)), dtype='D')
+        #pole_vect = zeros((len(indr)), dtype='D')
         nc = len(self.f_contour)
         nr = len(self.im_contour)
 
+        pole_list = []
+        
         for i in range(len(indr)):
             ir = indr[i]
             ic = indc[i]
@@ -95,7 +121,11 @@ class generic_contour_system(object):
             if ic < nc - 1:
                 ic += 1
             pole_i = -self.f_contour[ic]*2*pi + self.im_contour[ir]*2.0j*pi
-            pole_vect[i] = pole_i
+            if abs(pole_i) < 725.0:
+                #numeric noise is messing this up for large distance from the origin
+                pole_list.append(pole_i)
+
+        pole_vect = array(pole_list)
 
         return pole_vect
 
@@ -194,6 +224,24 @@ class generic_contour_system(object):
         return listout
 
 
+class contour_system_from_file(generic_contour_system):
+    def __init__(self, filename):
+        mydict = numpy.load(filename)
+        for key in save_keys:
+            vect = mydict[key]
+            setattr(self, key, vect)
+            
+
+    def plot_db_mat_contour(self, fi=1, title=None, \
+                            myxlim=[-20,2],myylim=[-2,20],\
+                            zoomin=False):
+        generic_contour_system.plot_db_mat_contour(self, self.dB_mat, \
+                                                   fi=fi, \
+                                                   title=title, \
+                                                   myxlim=myxlim, \
+                                                   myylim=myylim, \
+                                                   zoomin=zoomin)
+        
 
 class ga_theta_fb_system(generic_contour_system):
     def __init__(self, Ga, thfb_a_comp=None, \
@@ -321,12 +369,20 @@ class ga_theta_fb_system(generic_contour_system):
         return self.rst_plot(self.step_pdf_path, caption)
 
     def _map_from_tfb_contour_sys(self):
-        self.comp_mat = self.tfb_contour_sys.comp_mat
+        if hasattr(self.tfb_contour_sys, 'comp_mat'):
+            self.comp_mat = self.tfb_contour_sys.comp_mat
+        elif hasattr(self.tfb_contour_sys, 'a_comp_mat'):
+            self.comp_mat = self.tfb_contour_sys.a_comp_mat
+        else:
+            raise ValueEror, 'not sure which comp_mat to copy from self.tfb_contour_sys'
+        if hasattr(self.tfb_contour_sys, 'theta_comp_mat'):
+            self.theta_u_comp_mat = self.tfb_contour_sys.theta_comp_mat
         self.ol_db_mat = comp_to_db(self.comp_mat)
         self.s_contour = self.tfb_contour_sys.s
         self.f_contour = self.tfb_contour_sys.f
         self.im_contour = self.tfb_contour_sys.im
-        self.a_theta_comp = self.tfb_contour_sys.a_theta_comp
+        if hasattr(self.tfb_contour_sys, 'a_theta_comp'):
+            self.a_theta_comp = self.tfb_contour_sys.a_theta_comp
 
 
     def calc_ga_comp(self, s):
@@ -458,6 +514,8 @@ class ga_theta_fb_system(generic_contour_system):
     def calc_theta_comp_contour(self):
         if not hasattr(self, 'comp_afb'):
             self.calc_afb_compmat()
+        if not hasattr(self, 'a_theta_comp'):
+            self.a_theta_comp = self.comp_mat/self.theta_u_comp_mat
         self.theta_comp = self.comp_afb/self.a_theta_comp
         self.afb_theta_db = comp_to_db(self.theta_comp)
         return self.theta_comp
@@ -686,7 +744,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
     def find_other_poles(self):
         already_included = self.small_imag + self.small_real2 + self.immovable_small
         other_poles = [pole for pole in self.afb_poles if pole not in already_included]
-        filt_other_poles = [pole for pole in other_poles if imag(pole) > -1e-6]
+        filt_other_poles = [pole for pole in other_poles if imag(pole) > -1e-4]
         return filt_other_poles
 
 
@@ -721,6 +779,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
         self.pole_sorter(r=20.0)
         mylist = []
         out = mylist.append
+        #Pdb().set_trace()
         out('small imag poles = ')
         small_imag_list = pole_locs_to_list(self.small_imag)
         mylist.extend(small_imag_list)
@@ -1226,10 +1285,12 @@ class first_pole_optimizer(ga_pole_optimizer):
         Ga = self.build_Ga(C)
         self.calc_afb_compmat()
         self.find_afb_poles()
-        pcost = self.pole_cost()
+        pcost = self.pole_cost(verbosity=verbosity)
         if self.use_zcost:
             self.calc_theta_comp_contour()
             zcost = self.zero_cost(verbosity=verbosity)
+            if verbosity > 0:
+                print('using zcost, zcost = %s' % zcost)
         else:
             zcost = 0.0
         cost = pcost + zcost*10.0
@@ -1317,6 +1378,15 @@ class fourth_pole_optimizer(third_pole_optimizer):
             cost += second_imag_pen
         if self.unstable_check():
             cost += 1e3
+        if verbosity > 0:
+            print('small_imag = %s' % small_imag)
+            print('small_imag_penalties = %s' % small_imag_penalties)
+            print('imag_cost = %s' % imag_cost)
+            print('small_real2 = %s' % small_real2)
+            print('small_real_penalties = %s' % small_real_penalties)
+            print('real_cost = %s' % real_cost)
+            print('second_imag_pen = %s' % second_imag_pen)
+            print('cost = %s' % cost)
         return cost
 
 
@@ -1424,6 +1494,17 @@ class pole_optimizer12(pole_optimizer_with_zcost):
                                            realline=-12, \
                                            secondweight=50.0, \
                                            **kwargs)
+
+
+class pole_optimizer13b(pole_optimizer_with_zcost):
+    def __init__(self, Ga, **kwargs):
+        pole_optimizer_with_zcost.__init__(self, Ga, \
+                                           optcase=43, \
+                                           imagline=-12, \
+                                           realline=-12, \
+                                           secondweight=50.0, \
+                                           **kwargs)
+        self.second_imag_zeta = 0.95
 
 
 class pole_optimizer13(pole_optimizer_with_zcost):

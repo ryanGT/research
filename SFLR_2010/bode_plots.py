@@ -160,17 +160,18 @@ def build_Gth_TMM_model(pklpathin=None):
 
 def build_ThetaFB_exp_Bode_plotter():
     thetafb_mod_name = 'notch_filtered_swept_sine_Gth_comp_no_accel_FB_amp_15_duration_40000_maxf_20_avebodes'
-    relpath = 'siue/Research/PSoC_Research/SFLR_2010/data/swept_sine/August_2010/after_beam_reattachment/TMM'
+    relpath = 'siue/Research/SFLR_2010/data/swept_sine/August_2010/after_beam_reattachment/TMM'
     data_folder = rwkos.FindFullPath(relpath)
     if data_folder not in sys.path:
         sys.path.insert(1, data_folder)
 
-    ThetaFB_Exp_Bode_Plotter = BPO.exp_bode_object(thetafb_mod_name, \
+    data_path = os.path.join(data_folder, thetafb_mod_name + '.pkl')
+    ThetaFB_Exp_Bode_Plotter = BPO.exp_bode_object(data_path, \
                                                    ThetaFB_Bode_opts)
     return ThetaFB_Exp_Bode_Plotter
 
 
-def ThetaFB_bode_plots(fi=3, resave=1):
+def ThetaFB_bode_plots(fi=3, resave=0):
     ThetaFB_Exp_Bode_Plotter = build_ThetaFB_exp_Bode_plotter()
     design_dir = rwkos.FindFullPath('SFLR_2010/vibration_suppression_design/TMM')
 
@@ -241,13 +242,14 @@ def build_Accel_TMM_model(pklpathin=None, Ga=None):
 
 def build_AccelFB_Bode_plotter():
     accelfb_mod_name = 'notch_filtered_swept_sine_Gth_comp_Ga5_amp_15_duration_40000_maxf_20_avebodes'
-    relpath = 'siue/Research/PSoC_Research/SFLR_2010/data/swept_sine/August_2010/after_beam_reattachment/TMM'
+    relpath = 'siue/Research/SFLR_2010/data/swept_sine/August_2010/after_beam_reattachment/TMM'
     data_folder = rwkos.FindFullPath(relpath)
     if data_folder not in sys.path:
         sys.path.insert(1, data_folder)
 
+    data_path = os.path.join(data_folder, accelfb_mod_name + '.pkl')
     #I think the bode_opts for accel and theta FB are the same
-    AccelFB_Exp_Bode_Plotter = BPO.exp_bode_object(accelfb_mod_name, \
+    AccelFB_Exp_Bode_Plotter = BPO.exp_bode_object(data_path, \
                                                    AccelFB_Bode_opts)
 
     return AccelFB_Exp_Bode_Plotter
@@ -261,7 +263,7 @@ def build_AccelFB_TMM_plotter():
     return AccelFB_TMM_Bode_Plotter
 
 
-def AccelFB_bode_plots(fi=5, resave=1):
+def AccelFB_bode_plots(fi=5, resave=0):
     AccelFB_Exp_Bode_Plotter = build_AccelFB_Bode_plotter()
     design_dir = rwkos.FindFullPath('SFLR_2010/vibration_suppression_design/TMM')
 

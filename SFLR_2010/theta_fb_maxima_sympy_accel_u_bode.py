@@ -1,5 +1,5 @@
 from __future__ import division
-from scipy import sinh, cosh, sin, cos, real, imag, shape, arange, pi, zeros, array, eye, transpose, conj, c_, poly, vectorize, dot, randn, sum, squeeze, sqrt
+from scipy import sinh, cosh, sin, cos, real, imag, shape, arange, pi, zeros, array, eye, transpose, conj, c_, poly, vectorize, dot, randn, sum, squeeze, sqrt, poly1d
 #from scipy import matrixmultiply
 #from numpy.lib.scimath import sqrt
 #from LinearAlgebra import inverse
@@ -25,8 +25,17 @@ zsinh=sinh
 zcosh=cosh
 
 def Bodes(s, params):
-    GthNum = Gth.Gth.num(s)
-    GthDen = Gth.Gth.den(s)
+    mynum = squeeze(Gth.Gth.num)
+    myden = squeeze(Gth.Gth.den)
+    try:
+        GthNum = mynum(s)
+        GthDen = myden(s)
+    except:
+        mynum = poly1d(mynum)
+        myden = poly1d(myden)
+        GthNum = mynum(s)
+        GthDen = myden(s)
+        
     if type(params) == dict:
         params = SFLR_TMM.SFLR_params(**params)
     EI = params.EI
