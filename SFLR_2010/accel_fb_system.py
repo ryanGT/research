@@ -62,7 +62,7 @@ save_keys = ['dB_mat','f_contour', 'im_contour', 'levels']
 class generic_contour_system(object):
     """I am trying to create a base class that I can also use for OL
     contour plotting."""
-    def build_dict(self, dB_mat=None):
+    def build_npz_dict(self, dB_mat=None):
         if dB_mat is None:
             dB_mat = self.dB_mat
         mydict = {}
@@ -77,7 +77,7 @@ class generic_contour_system(object):
 
     
     def save_npz(self, filename, dB_mat=None):
-        mydict = self.build_dict()
+        mydict = self.build_npz_dict()
         numpy.savez_compressed(filename, **mydict)
                                
         
@@ -661,7 +661,7 @@ class ga_pole_optimizer(ga_theta_fb_system):
 
     def filter_immovable(self, pole_vect=None, \
                          zeros=False, \
-                         loc=None, eps=1.0e-7):
+                         loc=None, eps=1.0e-4):
         """There seems to be a small pole near -1.3194689145077254 that is
         present for all choices of Ga.  I conclude it is immovable and
         will ignore it in my cost functions."""
@@ -671,9 +671,11 @@ class ga_pole_optimizer(ga_theta_fb_system):
 
         if loc is None:
             if zeros:
-                loc = -1.38230077
+                #loc = -1.38230077
+                loc = -1.1309733552923378
             else:
-                loc = -1.3194689145077254
+                #loc = -1.3194689145077254
+                loc = -1.0681415022205403
 
         def myfunc(pole):
             rp = real(pole)
@@ -1385,7 +1387,8 @@ class fourth_pole_optimizer(third_pole_optimizer):
             print('small_real2 = %s' % small_real2)
             print('small_real_penalties = %s' % small_real_penalties)
             print('real_cost = %s' % real_cost)
-            print('second_imag_pen = %s' % second_imag_pen)
+            if self.secondweight > 0.0:
+                print('second_imag_pen = %s' % second_imag_pen)
             print('cost = %s' % cost)
         return cost
 

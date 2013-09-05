@@ -4,8 +4,12 @@ now, the main idea is to create a block diagram system that can draw
 its own TiKZ block diagram.  Eventually it will also generate Python
 code for BD-MIL execution and simulation as well as drawing a png
 block diagram probably using matplotlib with invisible axes."""
+from numpy import *
 
 import copy, basic_file_ops
+import DTTMM, control_utils
+
+
 
 header_str = r"""\documentclass[landscape,letterpaper,11pt]{article}
 \usepackage[utf8x]{inputenc} % utf8 encoding
@@ -76,6 +80,20 @@ header_str = r"""\documentclass[landscape,letterpaper,11pt]{article}
 
 from IPython.core.debugger import Pdb
 
+fmt_dict = {float:'%0.10g'}
+
+import parse_DTTMM_xml
+
+
+def val_to_str(val):
+    if type(val) in fmt_dict.keys():
+        fmt = fmt_dict[type(val)]
+    else:
+        fmt = '%s'
+    str_out = fmt % val
+    return str_out
+
+
 class block_diagram_system(object):
     def __init__(self, blocks=None, wires=None, \
                  intermediate_points=None, \
@@ -87,6 +105,62 @@ class block_diagram_system(object):
         self.annotations = annotations
         self.default_node_distance = default_node_distance
 
+
+    def get_block(self, name):
+        matches = []
+
+        for block in self.blocks:
+            if block.name == name:
+                matches.append(block)
+
+        assert len(matches) > 0, "did not find a match for name %s" % name
+        assert len(matches) == 1, "found more than one match for name %s" % name
+
+        return matches[0]
+
+
+    def sort_blocks(self):
+        sorted_list = []
+        unsorted_list = copy.copy(self.blocks)
+
+        for block in unsorted_list:
+            if isinstance(block, source_block):
+                unsorted_list.remove(block)
+                sorted_list.append(block)
+
+        for block in unsorted_list:
+            if isinstance(block, zoh_block):
+                unsorted_list.remove(block)
+                sorted_list.append(block)
+
+
+        for block in unsorted_list:
+            if block.input in sorted_list:
+                unsorted_list.remove(block)
+                sorted_list.append(block)
+
+        self.sorted_list = sorted_list
+        self.unsorted_list = unsorted_list
+
+        return self.sorted_list, self.unsorted_list
+    
+            
+
+    def prep_for_sim(self, N, t, dt):
+        self.N = N
+        self.t = t
+        self.dt = dt
+        
+        for block in self.blocks:
+            block.prep_for_sim(N, t, dt)
+
+
+    def Run_Simulation(self):
+        for i in range(1,self.N):
+            for block in self.sorted_list:
+                block.sim_one_step(i)
+        
+            
 
     def add_simple_wires(self):
         """Search for blocks where the input and rel_block are the
@@ -152,9 +226,12 @@ class block_diagram_system(object):
 class block(object):
     def __init__(self, name, label='', caption='', \
                  input=None, output=None, \
+                 input_name=None, \
+                 input_ind=None, \
                  position='abs', coordinates=(0,0), \
                  rel_block=None, node_distance=None, \
-                 tikz_style=None, yshift=None, xshift=None):
+                 tikz_style=None, yshift=None, xshift=None,\
+                 xml_attrs=None, blocktype=None):
         """Create a new block.  position must be one of 'abs', 'right
         of', \ 'left of', 'above of', or 'below of' (following TiKZ
         arguments).  coordinates is an (x,y) pair that is only used if
@@ -163,12 +240,21 @@ class block(object):
         None, it must be a string containing a valid latex distance
         such as '2.5cm'.  rel_block must be set before calling to_tikz
         if the position is relative.  rel_block should be set to a
-        string containing the name of the reference block."""
+        string containing the name of the reference block.
+
+        input_name refers to the name of the input block.  This will
+        be used along with xml system descriptions to later find the
+        input block instance.
+
+        input_ind refers to the index of the input block's outputs,
+        for systems with more than one output."""
         self.name = name
         self.label = label
         self.caption = caption
         self.input = input
         self.output = output
+        self.input_name = input_name
+        self.input_ind = input_ind
         self.position = position.lower()
         self.coordinates = coordinates
         self.rel_block = rel_block
@@ -176,6 +262,8 @@ class block(object):
         self.tikz_style = tikz_style
         self.yshift = yshift
         self.xshift = xshift
+        self.xml_attrs = xml_attrs
+        self.blocktype = blocktype
 
 
     def _append_option(self, string):
@@ -187,6 +275,21 @@ class block(object):
             self.opt_str = string
         return self.opt_str
 
+
+    def prep_for_sim(self, N, t=None, dt=None):
+        if t is not None:
+            self.t = t
+        if dt is not None:
+            self.dt = dt
+        self.output = zeros(N)
+
+
+    def get_output(self, i):
+        if hasattr(self, 'output'):
+            return self.output[i]
+        else:
+            raise ValueError, 'do not know what to do about my output: %s' % self
+        
 
     def _build_opt_str(self):
         ## \node [block, right of=sum, node distance=1.75cm] (controller)
@@ -232,14 +335,104 @@ class block(object):
         #\node [sum, right of=input] (sum) {};
 
 
+    def _get_input_name(self):
+        if self.input is not None:
+            return self.input.name
+
+
+    def build_XML_dict(self):
+        assert self.xml_attrs is not None, "xml_attrs is None, cannot build dict"
+        mydict = {}
+        for attr in self.xml_attrs:
+            if attr == 'input':
+                val = self._get_input_name()
+            else:
+                val = getattr(self, attr)
+            val_str = val_to_str(val)
+            mydict[attr] = val_str
+
+        if self.input is not None:
+            if 'input' not in self.xml_attrs:
+                mydict['input'] = self._get_input_name()
+
+        self.xml_dict = mydict
+        return mydict
+
 
 class source_block(block):
     def __init__(self, name, **kwargs):
         if kwargs.has_key('input'):
             msg = "The input for a source_block must be None."
             assert kwargs['input'] is None, msg
+        if not kwargs.has_key('blocktype'):
+            kwargs['blocktype'] = 'source'
         block.__init__(self, name, **kwargs)
 
+
+    def prep_for_sim(self, N, t=None, dt=None):
+        block.prep_for_sim(self, N, t, dt)
+        self.build_u(t)
+
+
+    def sim_one_step(self, i):
+        self.output[i] = self.u[i]
+
+
+class arbitrary_input(source_block):
+    def __init__(self, name, u=None, **kwargs):
+        source_block.__init__(self, name, blocktype='arbitrary_input', \
+                              **kwargs)
+
+    def build_u(self, *args, **kwargs):
+        pass
+
+    def set_u(self, u):
+        self.u = u
+
+
+
+class swept_sine(source_block):
+    def __init__(self, name, fmin=0.0, fmax=20.0, \
+                 dt=1.0/500, tspan=10.0, deadtime=0.1, \
+                 t=None, amp=1.0, **kwargs):
+        block.__init__(self, name, blocktype='swept_sine', **kwargs)
+        self.fmin = fmin
+        self.fmax = fmax
+        self.dt = dt
+        self.tspan = tspan
+        self.deadtime = deadtime
+        self.t = t
+        self.amp = amp
+        self.xml_attrs = ['fmin','fmax','dt','tspan','deadtime','t','amp']
+
+
+    def build_u(self, t):
+        self.u, t2 = control_utils.create_swept_sine_signal(fmax=self.fmax, \
+                                                            fmin=self.fmin, \
+                                                            t=t, \
+                                                            deadtime=self.deadtime)
+        return self.u
+
+
+
+class finite_width_pulse(source_block):
+    def __init__(self, name, t_on=0.0, t_off=1.0, amp=1.0, **kwargs):
+        block.__init__(self, name, blocktype='finite_width_pulse', **kwargs)
+        self.t_on = t_on
+        self.t_off = t_off
+        self.amp = amp
+        
+
+    def build_u(self, t):
+        N = len(t)
+        dt = t[1]-t[0]
+        u = zeros(N)
+        self.ind_on = self.t_on/dt
+        self.ind_off = self.t_off/dt + 1
+        u[self.ind_on:self.ind_off] = self.amp
+
+        self.u = u
+        return self.u
 
 
 class summing_block(block):
@@ -247,6 +440,7 @@ class summing_block(block):
                  input=None, input2=None, **kwargs):
         block.__init__(self, name, label=label, \
                        caption=caption, input=input, \
+                       blocktype='summing_block', \
                        **kwargs)
 
         self.input2 = input2
@@ -254,10 +448,70 @@ class summing_block(block):
         #\node [sum, right of=input] (sum) {};
 
 
+class zoh_block(block):
+    pass
+
+
 class TF_block(block):
     def __init__(self, name, **kwargs):
-        block.__init__(self, name, **kwargs)
+        block.__init__(self, name, blocktype='TF_block', \
+        **kwargs)
         self.tikz_style = 'block'
+        ## \node [block, right of=sum, node distance=1.75cm] (controller)
+        ##     {$G_c(s)$};
+
+
+class DTTMM_block(block):
+    """This block will be used to create a DT-TMM system from an XML
+    file.  The XML file will (hopefully fully) specify the options for
+    the block (i.e. everything needed to perform a simulation for one
+    time step)."""
+    def _get_sensor_list(self):
+        sensors = []
+        for sensor in self.dttmm_parser.parsed_sensor_list:
+            sensors.append(sensor.name)
+        self.sensors = sensors
+
+
+    def _get_actuator_list(self):
+        actuators = []
+        for actuator in self.dttmm_parser.parsed_actuator_list:
+            actuators.append(actuator.name)
+        self.actuators = actuators
+
+
+    def convert(self, numeric_parameters={}, dt=None):
+        elemlist = self.dttmm_parser.convert(numeric_parameters)
+        sys = DTTMM.DT_TMM_System_from_XML_four_states(self.dttmm_parser.elemlist, \
+                                                       sensors=self.dttmm_parser.sensor_list, \
+                                                       actuators=self.dttmm_parser.act_list, \
+                                                       dt=dt)
+        self.sys = sys
+
+
+    def sim_one_step(self, i):
+        cur_input = self.input.get_output(i)
+        self.sys.run_sim_one_step(i, inputs=[cur_input], \
+                                  int_case=self.int_case)
+
+
+
+    def prep_for_sim(self, N, t=None, dt=None):
+        block.prep_for_sim(self, N, t, dt)
+        if dt is not None:
+            self.sys.dt = dt
+        self.sys.init_sim(N)
+        
+
+    def __init__(self, name, xmlpath, int_case=1, **kwargs):
+        block.__init__(self, name, blocktype='DTTMM_block', **kwargs)
+        self.tikz_style = 'block'
+        self.xmlpath = xmlpath
+        self.dttmm_parser = parse_DTTMM_xml.DTTMM_xml_parser(xmlpath)
+        self._get_sensor_list()
+        self._get_actuator_list()
+        self.xml_attrs = ['xmlpath','sensors','actuators']
+        self.int_case = int_case
         ## \node [block, right of=sum, node distance=1.75cm] (controller)
         ##     {$G_c(s)$};
 

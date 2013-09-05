@@ -78,11 +78,11 @@ def plot_settling_lines(u, t, p=0.01, fignum=1, ls='k--', linewidth=1.0):
          label=None, linewidth=linewidth)
 
 
-def plot_settling_point(y, u, t, p=0.01, fignum=1, ps='k^'):
+def plot_settling_point(y, u, t, p=0.01, fignum=1, ps='k^', **kwargs):
     ind = find_settling_index(y, u, p)
     if ind is not None:
         figure(fignum)
-        plot([t[ind]], [y[ind]], ps, label=None)
+        plot([t[ind]], [y[ind]], ps, label=None, **kwargs)
 
 
 def find_steady_state_error(y, u):
@@ -101,12 +101,15 @@ def main(y, u, t, Mp=10.0, p=0.01, fignum=1):
 
 
 def find_and_plot_settling_time(y, u, t, p=0.01, fignum=1, \
-                                ls='--', ps='k^', linewidth=1.0):
+                                ls='--', ps='k^', linewidth=1.0, \
+                                markersize=10):
     ts = find_settling_time(y, u, t, p=p)
     print('settling time = %s' % ts)
     plot_settling_lines(u, t, p, fignum=fignum, ls=ls, \
                         linewidth=linewidth)
-    plot_settling_point(y, u, t, p, fignum=fignum, ps=ps)
+    plot_settling_point(y, u, t, p, fignum=fignum, ps=ps, \
+                        markersize=markersize)
+    return ts
 
 
 def find_and_plot_settling_point(y, u, t, p=0.01, fignum=1, ps='k^'):
