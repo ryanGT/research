@@ -721,13 +721,14 @@ class DT_TMM_System_clamped_free_four_states(DT_TMM_System):
         
 
 class DT_TMM_Sensor(object):
-    def __init__(self, name, signal, sensor_type, elem1, elem2=None):
+    def __init__(self, name, signal, sensor_type, elem1, elem2=None, gain=1.0):
         self.name = name
         self.signal = signal
         self.sensor_type = sensor_type
         self.elem1 = elem1
         self.elem2 = elem2
-
+        self.gain = gain
+        
 
     def initialize_vector(self, N):
         self.signal_vect = zeros(N)
@@ -742,8 +743,8 @@ class DT_TMM_Sensor(object):
             out = val1 - val2
         else:
             out = val1
-        self.signal_vect[i] = out
-        return out
+        self.signal_vect[i] = out*self.gain
+        return self.signal_vect[i]
     
 
 class DT_TMM_Actuator(object):

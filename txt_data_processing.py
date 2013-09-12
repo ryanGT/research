@@ -13,6 +13,7 @@ import time
 import txt_mixin
 reload(mplutil)
 
+import bode_utils
 #import rst_creator
 #reload(rst_creator)
 
@@ -389,12 +390,14 @@ class Data_File(object_with_n_vector):
         return bode
 
 
-    def bode_plot(self, inlabel, outlabel, fignum=1,  **kwargs):
+    def bode_plot(self, inlabel, outlabel, fig=None, fignum=1,  **kwargs):
         bode = self.calc_bode(inlabel, outlabel)
         if not hasattr(self, 'freq'):
             self.calc_freq_vect()
-        rwkbode.GenBodePlot(fignum, self.freq, bode, **kwargs)
-
+        #rwkbode.GenBodePlot(fignum, self.freq, bode, **kwargs)
+        bode_utils.bode_plot(self.freq, bode.dBmag(), bode.phase, \
+                             fig=fig, fignum=fignum, **kwargs)
+        
 
     def set_t_from_trigger(self, trigger_channel, level=0.5):
         """Find the index where self.trigger_channel is greater than

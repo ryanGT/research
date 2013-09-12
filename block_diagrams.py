@@ -123,21 +123,34 @@ class block_diagram_system(object):
         sorted_list = []
         unsorted_list = copy.copy(self.blocks)
 
-        for block in unsorted_list:
+        i = 0
+        while i < len(unsorted_list):
+            block = unsorted_list[i]
             if isinstance(block, source_block):
                 unsorted_list.remove(block)
                 sorted_list.append(block)
+            else:
+                i += 1
 
-        for block in unsorted_list:
+
+        i = 0
+        while i < len(unsorted_list):
+            block = unsorted_list[i]
             if isinstance(block, zoh_block):
                 unsorted_list.remove(block)
                 sorted_list.append(block)
+            else:
+                i += 1
 
 
-        for block in unsorted_list:
+        i = 0
+        while i < len(unsorted_list):
+            block = unsorted_list[i]
             if block.input in sorted_list:
                 unsorted_list.remove(block)
                 sorted_list.append(block)
+            else:
+                i += 1
 
         self.sorted_list = sorted_list
         self.unsorted_list = unsorted_list
@@ -437,7 +450,7 @@ class finite_width_pulse(source_block):
 
 class summing_block(block):
     def __init__(self, name, label='', caption='', \
-                 input=None, input2=None, **kwargs):
+                 input=None, input2=None, signs=[1.0,-1.0], **kwargs):
         block.__init__(self, name, label=label, \
                        caption=caption, input=input, \
                        blocktype='summing_block', \
@@ -445,11 +458,32 @@ class summing_block(block):
 
         self.input2 = input2
         self.tikz_style = 'sum'
+        self.signs = signs
         #\node [sum, right of=input] (sum) {};
 
 
+    def sim_one_step(self, i):
+        cur_out = 0.0
+        self.output[i] = self.input.output[i]*self.signs[0] + \
+                         self.input2.output[i]*self.signs[1]
+
+
 class zoh_block(block):
-    pass
+    def __init__(self, name, label='', caption='', \
+                 input=None, input_ind=None, **kwargs):
+        block.__init__(self, name, label=label, \
+                       caption=caption, input=input, \
+                       blocktype='zoh_block', \
+                       input_ind=input_ind, \
+                       **kwargs)
+
+
+    def sim_one_step(self, i):
+        if self.input_ind is not None:
+            self.output[i] = self.input.output[i-1][self.input_ind]
+        else:
+            self.output[i] = self.input.output[i-1]
+
 
 
 class TF_block(block):
@@ -494,10 +528,15 @@ class DTTMM_block(block):
         self.sys.run_sim_one_step(i, inputs=[cur_input], \
                                   int_case=self.int_case)
 
+        for j, sensor in enumerate(self.sys.sensors):
+            self.output[i,j] = sensor.signal_vect[i]
+
 
 
     def prep_for_sim(self, N, t=None, dt=None):
         block.prep_for_sim(self, N, t, dt)
+        NS = len(self.sensors)
+        self.output = zeros((N,NS))
         if dt is not None:
             self.sys.dt = dt
         self.sys.init_sim(N)

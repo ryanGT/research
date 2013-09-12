@@ -39,7 +39,7 @@ class DTTMM_XML_element(object):
 
 class sensor_XML_element(object):
     def __init__(self, name=None, sensor_type=None, signal=None, \
-                 elem1=None, elem2=None):
+                 elem1=None, elem2=None, gain=1.0):
         """name is the name of the sensor; sensor_type is either abs or diff;
         signal should be one of x, xdot, xddot, theta, thetadot,
         thetaddot, V or M; elem1 is the only element used for sensor_type
@@ -62,6 +62,7 @@ class sensor_XML_element(object):
         self.signal = signal
         self.elem1 = elem1
         self.elem2 = elem2
+        self.gain = gain
 
 
 class actuator_XML_element(object):
