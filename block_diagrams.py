@@ -274,7 +274,19 @@ class exp_block_diagram_system(block_diagram_system, \
         assert len(ser_blocks) > 0, "did not find any serial_plant blocks"
         assert len(ser_blocks) == 1, "found more than one serial_plant blocks"
         ser_block = ser_blocks[0]
-        ser_block.set_ser(self.ser)
+        ser_block.set_ser_sys(self)
+        
+class psoc_exp_block_diagram_system(exp_block_diagram_system):
+    def Get_IC(self):
+        self._open_ser()#I guess this is ok for PSoC, but makes me nervous with arduino
+        self.WriteByte(113)
+        self.IC = self.Read_Two_Bytes_Twos_Comp()
+        return self.IC
+        
+    def Run_Exp(self):
+        self.flush_ser()
+        self.Get_IC()
+        exp_block_diagram_system.Run_Exp(self)
         
 
 class block(object):
@@ -618,11 +630,11 @@ class DTTMM_block(block):
 
 class serial_plant_block_arduino(block):
     def read_serial(self, i):
-        self.nvect[i] = self.Read_Two_Bytes_Twos_Comp()
+        self.nvect[i] = self.ser_sys.Read_Two_Bytes_Twos_Comp()
         for j in self.num_sensors:
-            self.output[i,j] = self.ser.Read_Two_Bytes_Twos_Comp()
+            self.output[i,j] = self.ser_sys.Read_Two_Bytes_Twos_Comp()
 
-        newline = self.ser.Read_Byte()
+        newline = self.ser_sys.Read_Byte()
         assert newline == 10, "newline problem"
 
 
@@ -632,9 +644,9 @@ class serial_plant_block_arduino(block):
         #  - that seems unnecessarily limiting, but I don't have a
         #  multi-input system to test on right now
         #
-        self.ser.WriteByte(1)
-        self.ser.WriteInt(i)
-        self.ser.WriteInt(v)
+        self.ser_sys.WriteByte(1)
+        self.ser_sys.WriteInt(i)
+        self.ser_sys.WriteInt(v)
 
 
     def exp_one_step(self, i):
@@ -652,17 +664,39 @@ class serial_plant_block_arduino(block):
         self.nvect = zeros(N)
         
 
-    def set_ser(self, ser):
-        self.ser = ser
+    def set_ser_sys(self, ser_sys):
+        self.ser_sys = ser_sys
 
         
-    def __init__(self, name, ser=None, actuators=[], \
+    def __init__(self, name, ser_sys=None, actuators=[], \
                  sensors=[], **kwargs):
         block.__init__(self, name, blocktype='serial_plant', **kwargs)
         self.name = name
         self.actuators = actuators
         self.sensors = sensors
-        self.ser = ser
+        self.ser_sys = ser_sys
+
+class serial_plant_block_psoc(serial_plant_block_arduino):
+    def read_serial(self, i):
+        self.nvect[i] = self.ser_sys.Read_Two_Bytes_Twos_Comp()
+        self.nvect[i] = self.ser_sys.Read_Two_Bytes_Twos_Comp()
+        for j in self.num_sensors:
+            self.output[i,j] = self.ser_sys.Read_Two_Bytes_Twos_Comp()
+
+        #### arduino does newline verification each time
+        # newline = self.ser_sys.Read_Byte()
+        # assert newline == 10, "newline problem"
+
+
+    def write_serial(self, i, v):
+        #I guess I am assuming single input for now
+        #
+        #  - that seems unnecessarily limiting, but I don't have a
+        #  multi-input system to test on right now
+        #
+        self.ser_sys.WriteByte(47)#arduino uses 1
+        #self.ser_sys.WriteInt(i)#arduino sends i here as a check
+        self.ser_sys.WriteInt(v)
 
 
 class output_block(source_block):
