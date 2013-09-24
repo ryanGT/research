@@ -6,7 +6,8 @@ code for BD-MIL execution and simulation as well as drawing a png
 block diagram probably using matplotlib with invisible axes."""
 from numpy import *
 
-import copy, basic_file_ops
+import copy, basic_file_ops, time
+import copy, basic_file_ops, time
 import DTTMM, control_utils
 
 import system_with_serial
@@ -278,13 +279,14 @@ class exp_block_diagram_system(block_diagram_system, \
         
 class psoc_exp_block_diagram_system(exp_block_diagram_system):
     def Get_IC(self):
-        self._open_ser()#I guess this is ok for PSoC, but makes me nervous with arduino
+        #self._open_ser()#I guess this is ok for PSoC, but makes me nervous with arduino
         self.WriteByte(113)
         self.IC = self.Read_Two_Bytes_Twos_Comp()
         return self.IC
         
     def Run_Exp(self):
         self.flush_ser()
+        #Reset Theta? #<-- probably
         self.Get_IC()
         exp_block_diagram_system.Run_Exp(self)
         
@@ -679,8 +681,7 @@ class serial_plant_block_arduino(block):
 class serial_plant_block_psoc(serial_plant_block_arduino):
     def read_serial(self, i):
         self.nvect[i] = self.ser_sys.Read_Two_Bytes_Twos_Comp()
-        self.nvect[i] = self.ser_sys.Read_Two_Bytes_Twos_Comp()
-        for j in self.num_sensors:
+        for j in range(self.num_sensors):
             self.output[i,j] = self.ser_sys.Read_Two_Bytes_Twos_Comp()
 
         #### arduino does newline verification each time
