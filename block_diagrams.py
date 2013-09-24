@@ -9,7 +9,7 @@ from numpy import *
 import copy, basic_file_ops
 import DTTMM, control_utils
 
-
+import system_with_serial
 
 header_str = r"""\documentclass[landscape,letterpaper,11pt]{article}
 \usepackage[utf8x]{inputenc} % utf8 encoding
@@ -119,6 +119,17 @@ class block_diagram_system(object):
         return matches[0]
 
 
+
+    def get_blocks_by_type(self, type_name):
+        matches = []
+
+        for block in self.blocks:
+            if block.blocktype == type_name:
+                matches.append(block)
+
+        return matches
+
+        
     def sort_blocks(self):
         sorted_list = []
         unsorted_list = copy.copy(self.blocks)
@@ -235,6 +246,36 @@ class block_diagram_system(object):
         basic_file_ops.writefile(filename, self.tikz_list, append=False)
 
 
+class exp_block_diagram_system(block_diagram_system, \
+                               system_with_serial.system_with_serial):
+    def __init__(self, *args, **kwargs):
+        block_diagram_system.__init__(self, *args, **kwargs)
+        self.ser = None
+
+
+    def prep_for_exp(self, N, t, dt):
+        self.N = N
+        self.t = t
+        self.dt = dt
+
+        for block in self.blocks:
+            block.prep_for_exp(N, t, dt)
+
+
+    def Run_Exp(self):
+        for i in range(1,self.N):
+            for block in self.sorted_list:
+                block.exp_one_step(i)
+
+
+    def _open_ser(self):
+        system_with_serial.system_with_serial._open_ser(self)
+        ser_blocks = self.get_blocks_by_type('serial_plant')
+        assert len(ser_blocks) > 0, "did not find any serial_plant blocks"
+        assert len(ser_blocks) == 1, "found more than one serial_plant blocks"
+        ser_block = ser_blocks[0]
+        ser_block.set_ser(self.ser)
+        
 
 class block(object):
     def __init__(self, name, label='', caption='', \
@@ -244,7 +285,7 @@ class block(object):
                  position='abs', coordinates=(0,0), \
                  rel_block=None, node_distance=None, \
                  tikz_style=None, yshift=None, xshift=None,\
-                 xml_attrs=None, blocktype=None):
+                 xml_attrs=None, blocktype=None, **kwargs):
         """Create a new block.  position must be one of 'abs', 'right
         of', \ 'left of', 'above of', or 'below of' (following TiKZ
         arguments).  coordinates is an (x,y) pair that is only used if
@@ -278,6 +319,10 @@ class block(object):
         self.xml_attrs = xml_attrs
         self.blocktype = blocktype
 
+        for key, val in kwargs.iteritems():
+            if not hasattr(self, key):#don't overwrite existing properties
+                setattr(self, key, val)
+
 
     def _append_option(self, string):
         """append string to self.opt_str correctly handling whether or
@@ -297,11 +342,27 @@ class block(object):
         self.output = zeros(N)
 
 
+    def prep_for_exp(self, N, t=None, dt=None):
+        """Unless a child block overrides this method, assume that
+        preparing for exp is the same as preparing for sim"""
+        return self.prep_for_sim(N, t=t, dt=dt)
+        
+
     def get_output(self, i):
         if hasattr(self, 'output'):
             return self.output[i]
         else:
             raise ValueError, 'do not know what to do about my output: %s' % self
+
+
+    def exp_one_step(self, i):
+        """For blocks that don't need to do anything different between
+        simulation and experiment, call the sim method whenever this
+        is called.
+
+        Blocks whose exp method is different will need to override
+        this method."""
+        self.sim_one_step(i)
         
 
     def _build_opt_str(self):
@@ -553,6 +614,55 @@ class DTTMM_block(block):
         self.int_case = int_case
         ## \node [block, right of=sum, node distance=1.75cm] (controller)
         ##     {$G_c(s)$};
+
+
+class serial_plant_block_arduino(block):
+    def read_serial(self, i):
+        self.nvect[i] = self.Read_Two_Bytes_Twos_Comp()
+        for j in self.num_sensors:
+            self.output[i,j] = self.ser.Read_Two_Bytes_Twos_Comp()
+
+        newline = self.ser.Read_Byte()
+        assert newline == 10, "newline problem"
+
+
+    def write_serial(self, i, v):
+        #I guess I am assuming single input for now
+        #
+        #  - that seems unnecessarily limiting, but I don't have a
+        #  multi-input system to test on right now
+        #
+        self.ser.WriteByte(1)
+        self.ser.WriteInt(i)
+        self.ser.WriteInt(v)
+
+
+    def exp_one_step(self, i):
+        cur_input = self.input.get_output(i)
+        self.write_serial(i, cur_input)
+        self.read_serial(i)
+
+
+    def prep_for_exp(self, N, t=None, dt=None):
+        #do I really want to call this prep_for_exp?
+        block.prep_for_sim(self, N, t, dt)
+        NS = len(self.sensors)
+        self.output = zeros((N,NS))
+        self.num_sensors = NS
+        self.nvect = zeros(N)
+        
+
+    def set_ser(self, ser):
+        self.ser = ser
+
+        
+    def __init__(self, name, ser=None, actuators=[], \
+                 sensors=[], **kwargs):
+        block.__init__(self, name, blocktype='serial_plant', **kwargs)
+        self.name = name
+        self.actuators = actuators
+        self.sensors = sensors
+        self.ser = ser
 
 
 class output_block(source_block):
