@@ -522,6 +522,23 @@ class finite_width_pulse(source_block):
         self.u = u
         return self.u
 
+class step_input(finite_width_pulse):
+    def __init__(self, name, t_on=0.0, amp=1.0, **kwargs):
+        block.__init__(self, name, blocktype='step_input', **kwargs)
+        self.t_on = t_on
+        self.amp = amp
+
+
+    def build_u(self, t):
+        N = len(t)
+        dt = t[1]-t[0]
+        u = zeros(N)
+        self.ind_on = self.t_on/dt
+        u[self.ind_on:] = self.amp
+
+        self.u = u
+        return self.u
+
 
 class summing_block(block):
     def __init__(self, name, label='', caption='', \
