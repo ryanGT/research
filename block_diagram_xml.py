@@ -44,6 +44,14 @@ class bd_XML_element(xml_utils.xml_writer):
         self.xml_tag_name = 'block'
 
 
+    def set_params_as_attrs(self):
+        for key, val in self.params.iteritems():
+            val = xml_utils.full_clean(val)
+            val = xml_utils.try_string_to_number(val)
+            setattr(self, key, val)
+                           
+
+
     def create_xml(self, root):
         my_elem = xml_utils.xml_writer.create_xml(self, root)
         params_xml = ET.SubElement(my_elem, 'params')
