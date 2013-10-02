@@ -78,6 +78,30 @@ class bd_XML_element(xml_utils.xml_writer):
         self.clean_params = clean2
 
 
+    def get_num_outputs(self):
+        num_outputs = -1
+        if self.params.has_key('sensors'):
+            sensors = self.params['sensors']
+            if type(sensors) == str:
+                sensors = xml_utils.full_clean(sensors)
+
+            assert type(sensors) in [list, tuple], "Problem with the type of sensors: " + str(type(sensors))
+
+            num_outputs = len(sensors)
+            return num_outputs
+
+        elif self.params.has_key('output_angles'):
+            out_angles = self.params['output_angles']
+            if type(out_angles) == str:
+                out_angles = xml_utils.full_clean(out_angles)
+
+            num_outputs = len(out_angles)
+            return out_angles
+
+        #I don't know what to do if that didn't work
+        return 1
+            
+
 class block_diagram_system_parser(xml_utils.xml_parser):
     def get_blocks(self):
         self.block_xml_list = xml_utils.find_child_if_it_exists(self.root, \
