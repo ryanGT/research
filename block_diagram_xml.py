@@ -90,7 +90,10 @@ class bd_XML_element(xml_utils.xml_writer):
         num_outputs = -1
         if self.params.has_key('sensors'):
             sensors = self.params['sensors']
-            if type(sensors) == str:
+
+            if type(sensors) in [str, unicode]:
+                if type(sensors) == unicode:
+                    sensors = sensors.encode()
                 sensors = xml_utils.full_clean(sensors)
 
             assert type(sensors) in [list, tuple], "Problem with the type of sensors: " + str(type(sensors))
