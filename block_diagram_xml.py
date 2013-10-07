@@ -22,7 +22,7 @@ from IPython.core.debugger import Pdb
 
 class bd_XML_element(xml_utils.xml_writer):
     def __init__(self, name=None, blocktype=None, params={}, \
-                 pullist=[]):
+                 pullist=['input','input2']):
         """pullist refers to a list of parameters that will be pulled
         from params before converting the xml representation to an
         actual elememt.  For the DT-TMM blocks, input was pulled to
@@ -39,9 +39,13 @@ class bd_XML_element(xml_utils.xml_writer):
         self.blocktype = blocktype
         self.params = params
         self.pullist = pullist
-        assert len(pullist) == 0, "pullist is not actually implemented yet"
+        #assert len(pullist) == 0, "pullist is not actually implemented yet"
         self.xml_attrs = ['name','blocktype'] + pullist#?how to handle params?
         self.xml_tag_name = 'block'
+        for key in pullist:
+            if self.params.has_key(key):
+                val = self.params.pop(key)
+                setattr(self, key, val)
 
 
     def set_params_as_attrs(self):
@@ -90,7 +94,6 @@ class bd_XML_element(xml_utils.xml_writer):
         num_outputs = -1
         if self.params.has_key('sensors'):
             sensors = self.params['sensors']
-
             if type(sensors) in [str, unicode]:
                 if type(sensors) == unicode:
                     sensors = sensors.encode()
@@ -107,7 +110,7 @@ class bd_XML_element(xml_utils.xml_writer):
                 out_angles = xml_utils.full_clean(out_angles)
 
             num_outputs = len(out_angles)
-            return out_angles
+            return num_outputs
 
         #I don't know what to do if that didn't work
         return 1

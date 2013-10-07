@@ -5,6 +5,7 @@ its own TiKZ block diagram.  Eventually it will also generate Python
 code for BD-MIL execution and simulation as well as drawing a png
 block diagram probably using matplotlib with invisible axes."""
 from numpy import *
+from scipy import signal
 
 import copy, basic_file_ops, time
 import copy, basic_file_ops, time
@@ -348,6 +349,16 @@ class block(object):
         return self.opt_str
 
 
+
+    def get_input(self, i):
+        if self.input_ind is not None:
+            my_input = self.input.output[i][self.input_ind]
+        else:
+            my_input = self.input.output[i]
+            
+        return my_input
+
+
     def prep_for_sim(self, N, t=None, dt=None):
         if t is not None:
             self.t = t
@@ -522,6 +533,7 @@ class finite_width_pulse(source_block):
         self.u = u
         return self.u
 
+
 class step_input(finite_width_pulse):
     def __init__(self, name, t_on=0.0, amp=1.0, **kwargs):
         block.__init__(self, name, blocktype='step_input', **kwargs)
@@ -579,10 +591,56 @@ class zoh_block(block):
 
 
 class TF_block(block):
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, num=[], den=[], c2dmethod='tustin', \
+                 **kwargs):
+        """The class represents a continuous transfer function that
+        will be converted to a digital one for simulation purposes.
+        num and den are coefficients vectors or lists for the
+        continous laplace polynomials in s.  These vectors will be
+        converted to the coefficients of a digital transfer function
+        using the c2d method c2dmethod (i.e. tustin, zoh, ...) when
+        prep_for_sim is called with a specified dt."""
         block.__init__(self, name, blocktype='TF_block', \
-        **kwargs)
+                       **kwargs)
         self.tikz_style = 'block'
+        self.num = num
+        self.den = den
+        self.c2dmethod = c2dmethod
+        
+
+    def c2d(self, dt):
+        out = signal.cont2discrete((squeeze(self.num), squeeze(self.den)),dt,self.c2dmethod)
+        self.numz = squeeze(out[0])
+        self.denz = squeeze(out[1])
+        self.Nden = len(self.denz)
+        
+
+    def prep_for_sim(self, N, t=None, dt=None):
+        if t is not None:
+            self.t = t
+        if dt is not None:
+            self.dt = dt
+        self.output = zeros(N)
+        self.input_vector = zeros(N)
+        self.c2d(dt)
+        
+
+    def sim_one_step(self, i):
+        out = 0.0
+        self.input_vector[i] = self.get_input(i)
+        
+        for n, bn in enumerate(self.numz):
+            if (i-n) > 0:
+                out += self.input_vector[i-n]*bn
+
+        for n in range(1, self.Nden):
+            if (i-n) > 0:
+                out -= self.output[i-n]*self.denz[n]
+
+        out = out/self.denz[0]
+        self.output[i] = out
+        return out
+        
         ## \node [block, right of=sum, node distance=1.75cm] (controller)
         ##     {$G_c(s)$};
 
