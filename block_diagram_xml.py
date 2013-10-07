@@ -28,6 +28,12 @@ class bd_XML_element(xml_utils.xml_writer):
         actual elememt.  For the DT-TMM blocks, input was pulled to
         process later. I am not sure if there are any params to pull
         for block diagram objects.
+
+        pulling input and input2 from params messes with
+        block_diagram_gui.py, but not having self.input and
+        self.input2 defined seems to mess up parse_bd_xml_system.  I
+        am going to try and make both happy by copying rather than
+        popping from params.
         """
         if not bool(name) and bool(blocktype) and bool(params):
             print('all inputs must be non-empty:')
@@ -44,7 +50,7 @@ class bd_XML_element(xml_utils.xml_writer):
         self.xml_tag_name = 'block'
         for key in pullist:
             if self.params.has_key(key):
-                val = self.params.pop(key)
+                val = self.params[key]
                 setattr(self, key, val)
 
 
