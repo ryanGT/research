@@ -638,9 +638,9 @@ class DT_TMM_System_clamped_free_four_states(DT_TMM_System):
     """This class models a DT-TMM System with clamped/free boundary
     conditions and two states (displacement and force - i.e. 1 DOF
     mass/spring/damper carts vibrating sideways)."""
-    def __init__(self, element_list, \
+    def __init__(self, element_list, N_states=4, \
                  **kwargs):
-        DT_TMM_System.__init__(self, element_list, N_states=4, **kwargs)
+        DT_TMM_System.__init__(self, element_list, N_states=N_states, **kwargs)
 
     
     def solve_boundary_conditions(self, i=None):

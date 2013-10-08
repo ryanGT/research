@@ -589,8 +589,88 @@ class zoh_block(block):
             self.output[i] = self.input.output[i-1]
 
 
+class gain_block(block):
+    def __init__(self, name, gain=1.0, **kwargs):
+        block.__init__(self, name, blocktype='gain_block', \
+                       **kwargs)
+        self.gain = gain
 
-class TF_block(block):
+
+    def sim_one_step(self, i):
+        my_input = self.get_input(i)
+        out = my_input*self.gain
+        self.output[i] = out
+
+        return out
+
+
+class saturation_block(block):
+    def __init__(self, name, max=200.0, min=None, **kwargs):
+        block.__init__(self, name, blocktype='saturation_block', \
+                       **kwargs)
+        self.max = max
+        if min is None:
+            self.min = -1.0*self.max
+        else:
+            self.min = min
+
+            
+    def sim_one_step(self, i):
+        my_input = self.get_input(i)
+        if my_input > self.max:
+            out = self.max
+        elif my_input < self.min:
+            out = self.min
+        else:
+            out = my_input
+
+        self.output[i] = out
+
+        return out
+
+
+class digital_TF_block(block):
+    def __init__(self, name, numz=[], denz=[], \
+                 **kwargs):
+        """The class represents a digital transfer function.  numz and
+        denz are the coefficients of z.  It is assumed that the
+        digital sampling time to generate numz and denz are the same
+        as whatever is used in the system simulation."""
+        block.__init__(self, name, blocktype='digital_TF_block', \
+                       **kwargs)
+        self.tikz_style = 'block'
+        self.numz = numz
+        self.denz = denz
+        self.Nden = len(self.denz)
+
+
+    def prep_for_sim(self, N, t=None, dt=None):
+        if t is not None:
+            self.t = t
+        if dt is not None:
+            self.dt = dt
+        self.output = zeros(N)
+        self.input_vector = zeros(N)
+
+
+    def sim_one_step(self, i):
+        out = 0.0
+        self.input_vector[i] = self.get_input(i)
+
+        for n, bn in enumerate(self.numz):
+            if (i-n) > 0:
+                out += self.input_vector[i-n]*bn
+
+        for n in range(1, self.Nden):
+            if (i-n) > 0:
+                out -= self.output[i-n]*self.denz[n]
+
+        out = out/self.denz[0]
+        self.output[i] = out
+        return out
+
+
+class TF_block(digital_TF_block):
     def __init__(self, name, num=[], den=[], c2dmethod='tustin', \
                  **kwargs):
         """The class represents a continuous transfer function that
@@ -616,31 +696,9 @@ class TF_block(block):
         
 
     def prep_for_sim(self, N, t=None, dt=None):
-        if t is not None:
-            self.t = t
-        if dt is not None:
-            self.dt = dt
-        self.output = zeros(N)
-        self.input_vector = zeros(N)
+        digital_TF_block.prep_for_sim(self, N, t=t, dt=dt)
         self.c2d(dt)
-        
-
-    def sim_one_step(self, i):
-        out = 0.0
-        self.input_vector[i] = self.get_input(i)
-        
-        for n, bn in enumerate(self.numz):
-            if (i-n) > 0:
-                out += self.input_vector[i-n]*bn
-
-        for n in range(1, self.Nden):
-            if (i-n) > 0:
-                out -= self.output[i-n]*self.denz[n]
-
-        out = out/self.denz[0]
-        self.output[i] = out
-        return out
-        
+                
         ## \node [block, right of=sum, node distance=1.75cm] (controller)
         ##     {$G_c(s)$};
 

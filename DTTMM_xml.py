@@ -16,7 +16,7 @@ def prettify(elem):
 
 element_params = {'dc_motor':['g','p','dt'], \
                   'torsional_spring_damper':['k','c'], \
-                  'rigid_mass':['M','L','R','I'], \
+                  'rigid_mass':['m','L','r','I'], \
                   'beam':['mu','L','EI','t','N'], \
                   }
 
