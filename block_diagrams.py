@@ -290,6 +290,15 @@ class psoc_exp_block_diagram_system(exp_block_diagram_system):
         #Reset Theta? #<-- probably
         self.Get_IC()
         exp_block_diagram_system.Run_Exp(self)
+        self.Stop_Test()
+        
+        
+    def Stop_Test(self):
+        #send a 0 voltage
+        self.WriteByte(47)
+        self.WriteInt(0)
+        #stop serial on the psoc
+        self.WriteByte(115)
         
 
 class block(object):
