@@ -786,7 +786,7 @@ class serial_plant_block_arduino(block):
 
     def exp_one_step(self, i):
         cur_input = self.input.get_output(i)
-        self.write_serial(i, cur_input)
+        self.write_serial(i, int(cur_input))
         self.read_serial(i)
 
 
