@@ -272,11 +272,13 @@ class exp_block_diagram_system(block_diagram_system, \
 
     def _open_ser(self):
         system_with_serial.system_with_serial._open_ser(self)
-        ser_blocks = self.get_blocks_by_type('serial_plant')
+        ser_blocks = self.get_blocks_by_type('serial_plant')#<-- this is tricky if psoc and arduino blocks aren't exactly this type
+        #                                                   #    I guess they are for now,just be careful
         assert len(ser_blocks) > 0, "did not find any serial_plant blocks"
         assert len(ser_blocks) == 1, "found more than one serial_plant blocks"
         ser_block = ser_blocks[0]
         ser_block.set_ser_sys(self)
+        
         
 class psoc_exp_block_diagram_system(exp_block_diagram_system):
     def Get_IC(self):
@@ -819,6 +821,7 @@ class serial_plant_block_arduino(block):
         self.actuators = actuators
         self.sensors = sensors
         self.ser_sys = ser_sys
+
 
 class serial_plant_block_psoc(serial_plant_block_arduino):
     def read_serial(self, i):
