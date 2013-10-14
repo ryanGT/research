@@ -311,6 +311,11 @@ class psoc_exp_block_diagram_system(exp_block_diagram_system):
         self.WriteInt(0)
         #stop serial on the psoc
         self.WriteByte(115)
+
+
+    def Reset_Theta(self):
+        ##self._open_ser()
+        self.WriteByte(55)
         
 
 class block(object):
