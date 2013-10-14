@@ -270,13 +270,23 @@ class exp_block_diagram_system(block_diagram_system, \
                 block.exp_one_step(i)
 
 
-    def _open_ser(self):
-        system_with_serial.system_with_serial._open_ser(self)
+    def get_serial_block(self):
         ser_blocks = self.get_blocks_by_type('serial_plant')#<-- this is tricky if psoc and arduino blocks aren't exactly this type
         #                                                   #    I guess they are for now,just be careful
         assert len(ser_blocks) > 0, "did not find any serial_plant blocks"
         assert len(ser_blocks) == 1, "found more than one serial_plant blocks"
         ser_block = ser_blocks[0]
+        return ser_block
+        
+    
+    def _open_ser(self):
+        system_with_serial.system_with_serial._open_ser(self)
+        ser_block = self.get_serial_block()
+        ser_block.set_ser_sys(self)
+        
+    def attach_ser(self, ser):
+        self.ser = ser
+        ser_block = self.get_serial_block()
         ser_block.set_ser_sys(self)
         
         
