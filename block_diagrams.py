@@ -630,6 +630,38 @@ class gain_block(block):
         return out
 
 
+class PID_block(block):
+    def __init__(self, name, kp=1.0, kd=0.0, ki=0.0, **kwargs):
+        block.__init__(self, name, blocktype='gain_block', \
+                       **kwargs)
+        self.kp = kp
+        self.kd = kd
+        self.ki = ki
+
+
+    def prep_for_sim(self, N, t=None, dt=None):
+        if t is not None:
+            self.t = t
+        if dt is not None:
+            self.dt = dt
+        self.output = zeros(N)
+        self.evect = zeros(N)
+        self.esum = zeros(N)
+        self.kd_hat = self.kd/dt
+        self.ki_hat = self.ki*dt
+        
+
+    def sim_one_step(self, i):
+        e_i = self.get_input(i)
+        self.evect[i] = e_i
+        self.esum[i] = self.esum[i-1] + e_i
+        ediff = e_i - self.evect[i-1]
+        out = self.kp*e_i + self.ki_hat*self.esum[i] + self.kd_hat*ediff
+        self.output[i] = out
+
+        return out
+    
+
 class saturation_block(block):
     def __init__(self, name, max=200.0, min=None, **kwargs):
         block.__init__(self, name, blocktype='saturation_block', \
