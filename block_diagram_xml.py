@@ -74,7 +74,7 @@ class bd_XML_element(xml_utils.xml_writer):
                 
 
 
-    def clean_params(self):
+    def cleanup_params(self):
         clean_params = copy.copy(self.params)
         for attr in self.pullist:
             if clean_params.has_key(attr):
