@@ -85,8 +85,8 @@ def BuildMask(inds, vect):
 
 ###########################
 
-drop_list = ['{','}','$']
-rep_list = ['\\']
+drop_list = ['{','}','$','(',')','.']
+rep_list = ['\\',' ']
 
 def clean_key(keyin):
     if keyin[0] == '#':
@@ -282,6 +282,24 @@ class Data_File(object_with_n_vector):
                 skip += 1
 
 
+    def fix_missing_t(self):
+        if hasattr(self, 't'):
+            #do nothing
+            return
+
+        first_label_check = self.labels[0].lower()
+        if first_label_check.find('time') == 0:
+            #time is in the first column of the data file
+            old_t_label = self.labels.pop(0)
+            t = getattr(self, old_t_label)#get the corresponding data vector
+            self.t = t
+            self.old_t_label = old_t_label
+        else:
+            msg = "I can't find a time vector for this dat file:\n" + \
+                  "labels: " + str(self.labels)
+            raise ValueError, msg
+                  
+        
     def Load_Data(self):
         """Load the data and store the columns in appropriate
         attributes."""
@@ -293,6 +311,8 @@ class Data_File(object_with_n_vector):
         data = self._load_data()
         for ind, attr in self.col_map.iteritems():
             setattr(self, attr, data[:,ind])
+
+        self.fix_missing_t()
 
 
     def get_figure(self, fignum):
