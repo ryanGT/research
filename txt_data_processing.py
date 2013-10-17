@@ -283,6 +283,10 @@ class Data_File(object_with_n_vector):
 
 
     def fix_missing_t(self):
+        """This function fixes the case where the time label for the
+        first data column is not just 't' but can be anything that
+        when forced to lower case starts with time, i.e.:
+        label.lower().find('time')==0"""
         if hasattr(self, 't'):
             #do nothing
             return
