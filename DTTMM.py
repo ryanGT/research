@@ -501,8 +501,7 @@ class DT_TMM_Element_4_states(DT_TMM_Element):
         self.int_cond_x = zeros(N)
         self.int_cond_th = zeros(N)
         
-
-
+        
     def calculate_velocity_and_accel(self, i):
         #to find x at every station
         ## self.xdot[i] = self.Dx*self.x[i] + self.Ex
@@ -1029,7 +1028,45 @@ class DT_TMM_DC_motor_4_states(DT_TMM_Element_4_states):
         self.U[1,4] = theta_act
         return self.U
 
-        
+
+
+class forcing_element_4_states(DT_TMM_Element_4_states):
+    """This is a base class for external forcing inputs to a DT-TMM
+    model.  The plan is to try and just treat them like pure TMM
+    forcing elements: generate the transfer matrix directly without
+    worrying about ABDE, velocity or acceleration.  Hopefully this
+    doesn't mess up other elements or the system.  So, several methods
+    that are called for each element in a system are overridden to
+    simply pass.  This is a base class and all derived classes must
+    override the method """
+    def calculate_velocity_and_accel(self, i):
+        pass
+    
+    def calculate_ABDE(self, i, dt, int_case=2, debug=0, print_times=0):
+        pass
+
+
+    def calculate_transfer_matrix(self, i, f=None):
+        raise NotImplementedError, "classes derived from forcing_element_4_states must override calculate_transfer_matrix"
+    
+
+class transverse_forcing_element_4_states(forcing_element_4_states):
+    def calculate_transfer_matrix(self, i, f=None):
+        """If f is passed in here, it overrides self.f.  If f is a
+        vector, f[i] is applied to the mass (then i must not be None)."""
+        if f is None:
+            f = self.f
+        if f is None:
+            f_i = 0.0
+        elif (not isscalar(f)):
+            f_i = f[i]
+
+        self.f[i] = f_i
+
+        self.U = eye(5)
+        self.U[2,4] = f_i
+        return self.U
+
 
 if __name__ == "__main__":
     from pylab import figure, show, clf, plot, xlabel, ylabel, title, legend, savefig
