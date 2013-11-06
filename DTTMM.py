@@ -12,6 +12,7 @@ import rwkmisc
 
 beta = 1.0/6
 gamma = 0.5
+theta_W = 1.5
 
 import pdb
 
@@ -582,6 +583,57 @@ class DT_TMM_Element_4_states(DT_TMM_Element):
             ##     dta_vect = ta_vect[1:] - ta_vect[0:-1]
             ##     print('dta_vect = ' + str(dta_vect))
 
+        elif int_case == 4:
+            #Wilson Theta
+            A = 6.0/((theta_W*dt)**2)
+            Bx = -A*(self.x[i-1]+theta_W*dt*self.xdot[i-1] + \
+                     self.xddot[i-1]*(theta_W*dt)**2/3.0)
+            D = 3.0/(theta_W*dt)
+            Ex = -D*(self.x[i-1]+self.xdot[i-1]*(2.0*theta_W*dt)/3.0 + \
+                 self.xddot[i-1]*(theta_W*dt)**2/3.0)
+            Bth = -A*(self.theta[i-1]+theta_W*dt*self.thetadot[i-1] + \
+                      self.thetaddot[i-1]*(theta_W*dt)**2/3.0)
+            Eth = -D*(self.theta[i-1] + \
+                      self.thetadot[i-1]*(2.0*theta_W*dt)/3.0 + \
+                      self.thetaddot[i-1]*(theta_W*dt)**2/3.0)
+
+        elif int_case == 5:
+            #Houbolt
+            if i == 1:
+                A = 6.0/(dt**2)
+                Bx = -2.0/(dt**2)*(3.0*self.x[i-1] + 3.0*dt*self.xdot[i-1] + \
+                                   dt**2*self.xddot[i-1])
+                D = 3.0/dt
+                Ex = -1.0/(2*dt)*(6*self.x[i-1] + 4.0*dt*self.xdot[i-1] + \
+                                  dt**2*self.xddot[i-1])
+                Bth = -2.0/(dt**2)*(3.0*self.theta[i-1] + 3.0*dt*self.thetadot[i-1] + \
+                                    dt**2*self.thetaddot[i-1])
+                Eth = -1.0/(2*dt)*(6*self.theta[i-1] + 4.0*dt*self.thetadot[i-1] + \
+                                   dt**2*self.thetaddot[i-1])
+            elif i == 2:
+                A = 2.0/(dt**2)
+                Bx = -1.0/(dt**2)*(4.0*self.x[i-1] - 2.0*self.x[i-2] + \
+                                   2.0*dt**2*self.xddot[i-2])
+                D = 11.0/6.0*dt
+                Ex = -1.0/(6*dt)*(16*self.x[i-1] - 5.0*self.x[i-2] + \
+                                  dt**2*self.xddot[i-2])
+                Bth = -1.0/(dt**2)*(4.0*self.theta[i-1] - 2.0*self.theta[i-2] + \
+                                   2.0*dt**2*self.thetaddot[i-2])
+                Eth = -1.0/(6*dt)*(16*self.theta[i-1] - 5.0*self.theta[i-2] + \
+                                   dt**2*self.thetaddot[i-2])
+            else: 
+                A = 2.0/(dt**2)
+                Bx = -1.0/(dt**2)*(5.0*self.x[i-1] - 4.0*self.x[i-2] + \
+                                   self.x[i-3])
+                D = 11.0/6.0*dt
+                Ex = -1.0/(6*dt)*(18*self.x[i-1] - 9.0*self.x[i-2] + \
+                                  2*self.x[i-3])
+                Bth = -1.0/(dt**2)*(5.0*self.theta[i-1] - 4.0*self.theta[i-2] + \
+                                    self.theta[i-3])
+                Eth = -1.0/(6*dt)*(18*self.theta[i-1] - 9.0*self.theta[i-2] + \
+                                   2*self.theta[i-3])
+
+
         #t1 = time.time()
             
         self.Ax = A
@@ -867,8 +919,8 @@ class DT_TMM_TSD_4_states(DT_TMM_Element_4_states):
         k = self.k
         b = self.b
         self.U = array([[1.0, 0.0, 0.0, 0.0, 0.0], \
-                        [0.0, (D_prev*b + k)/den,  1.0/den,  0.0,\
-                         -(self.Eth_vect[i]*b - E_prev*b)/den], \
+                        [0.0, 1.0,  1.0/den,  0.0,\
+                         -b*(self.Eth_vect[i] - E_prev)/den], \
                         [0.0, 0.0, 1.0, 0.0, 0.0], \
                         [0.0, 0.0, 0.0, 1.0, 0.0], \
                         [0.0, 0.0, 0.0, 0.0, 1.0]])
@@ -909,11 +961,15 @@ class DT_TMM_rigid_mass_4_states(DT_TMM_Element_4_states):
         if self.prev_element is None:
             Ax_prev = 0.0
             Bx_prev = 0.0
+            Ath = 0.0
+            Bth = 0.0
         else:
             ## Ax_prev = self.prev_element.Ax
             ## Bx_prev = self.prev_element.Bx
             Ax_prev = self.prev_element.Ax_vect[i]
             Bx_prev = self.prev_element.Bx_vect[i]
+            Ath = self.prev_element.Ath_vect[i]
+            Bth = self.prev_element.Bth_vect[i]
 
         L = self.L
         m = self.m
@@ -923,8 +979,6 @@ class DT_TMM_rigid_mass_4_states(DT_TMM_Element_4_states):
         #Bth = self.Bth
         ## Ath = self.prev_element.Ath
         ## Bth = self.prev_element.Bth
-        Ath = self.prev_element.Ath_vect[i]
-        Bth = self.prev_element.Bth_vect[i]
 
         
         self.U = array([[1.0, L, 0.0, 0.0, 0.0], \
@@ -1066,6 +1120,414 @@ class transverse_forcing_element_4_states(forcing_element_4_states):
         self.U = eye(5)
         self.U[2,4] = f_i
         return self.U
+
+
+    def _initialize_vectors(self, N):
+        DT_TMM_Element_4_states._initialize_vectors(self, N)
+        self.f = zeros(N)
+
+
+
+# Rui 7x7 analysis
+# =============================
+
+class DT_TMM_Element_6_states(DT_TMM_Element):
+    def _initialize_vectors(self, N):
+        self.x = zeros(N)
+        self.xdot = zeros(N)
+        self.xddot = zeros(N)        
+        self.y = zeros(N)
+        self.ydot = zeros(N)
+        self.yddot = zeros(N)
+        self.theta = zeros(N)
+        self.thetadot = zeros(N)
+        self.thetaddot = zeros(N)
+        self.z_mat = zeros((N,6))
+        #self.Ax_vect = zeros(N)
+        self.Bx_vect = zeros(N)
+        #self.Dx_vect = zeros(N)
+        self.Ex_vect = zeros(N)
+        self.By_vect = zeros(N)
+        self.Ey_vect = zeros(N)
+        #self.Ath_vect = zeros(N)
+        self.Bth_vect = zeros(N)
+        #self.Dth_vect = zeros(N)
+        self.Eth_vect = zeros(N)
+        self.int_det_x = zeros(N)
+        self.int_det_y = zeros(N)
+        self.int_det_th = zeros(N)
+        self.int_cond_x = zeros(N)
+        self.int_cond_y = zeros(N)        
+        self.int_cond_th = zeros(N)
+
+
+    def calculate_velocity_and_accel(self, i):
+        #to find x at every station
+        ## self.xdot[i] = self.Dx*self.x[i] + self.Ex
+        ## self.xddot[i] = self.Ax*self.x[i] + self.Bx
+        ## self.thetadot[i] = self.Dth*self.theta[i] + self.Eth
+        ## self.thetaddot[i] = self.Ath*self.theta[i] + self.Bth
+
+        self.xdot[i] = self.D*self.x[i] + self.Ex_vect[i]
+        self.xddot[i] = self.A*self.x[i] + self.Bx_vect[i]
+        self.ydot[i] = self.D*self.y[i] + self.Ey_vect[i]
+        self.yddot[i] = self.A*self.y[i] + self.By_vect[i]
+        self.thetadot[i] = self.*self.theta[i] + self.Eth_vect[i]
+        self.thetaddot[i] = self.A*self.theta[i] + self.Bth_vect[i]
+
+
+    def calculate_ABDE(self, i, dt, int_case=2, debug=0, print_times=0):
+        #t0 = time.time()
+        #if print_times:
+        #    print('int_case = %i' % int_case)
+        if int_case == 1:
+            #Finite difference 
+            A = 4.0/(dt**2)
+            Bx = -A*(self.x[i-1] + dt*self.xdot[i-1] + \
+                     (dt**2/4.0)*self.xddot[i-1])
+            By = -A*(self.y[i-1] + dt*self.ydot[i-1] + \
+                     (dt**2/4.0)*self.yddot[i-1])
+            Bth = -A*(self.theta[i-1] + dt*self.thetadot[i-1] + \
+                      (dt**2/4.0)*self.thetaddot[i-1])
+            D = 2.0/dt
+            Ex = -D*(self.x[i-1] + 0.5*dt*self.xdot[i-1])
+            Ey = -D*(self.y[i-1] + 0.5*dt*self.ydot[i-1])            
+            Eth = -D*(self.theta[i-1] + 0.5*dt*self.thetadot[i-1])
+        elif int_case == 2:
+            #Newmark Beta
+            # B = -1.0/(beta*dt**2)*(self.x[i-1] + dt*self.xdot[i-1] + (0.5-beta)*dt**2*self.xddot[i-1])
+            # E = self.xdot[i-1] + dt*((1.0-gamma)*self.xddot[i-1]+gamma*B)      
+
+            ta = time.time()
+            A = 1.0/(beta*dt**2)
+            tb = time.time()
+            Bx = -1.0/(beta*dt**2)*(self.x[i-1] + \
+                                    dt*self.xdot[i-1] + \
+                                    (0.5-beta)*dt**2*self.xddot[i-1])
+            By = -1.0/(beta*dt**2)*(self.y[i-1] + \
+                                    dt*self.ydot[i-1] + \
+                                    (0.5-beta)*dt**2*self.yddot[i-1])
+            tc = time.time()
+            Bth = -1.0/(beta*dt**2)*(self.theta[i-1] + \
+                                     dt*self.thetadot[i-1] + \
+                                     (0.5-beta)*dt**2*self.thetaddot[i-1])
+            td = time.time()
+            D = gamma/(beta*dt)
+            te = time.time()
+            Ex = self.xdot[i-1] + \
+                 dt*((1.0-gamma)*self.xddot[i-1]+gamma*Bx)
+            Ey = self.ydot[i-1] + \
+                 dt*((1.0-gamma)*self.yddot[i-1]+gamma*By)
+            tf = time.time()
+            Eth = self.thetadot[i-1] + \
+                  dt*((1.0-gamma)*self.thetaddot[i-1]+gamma*Bth)
+            tg = time.time()
+
+            if print_times:
+                ta_vect = array([ta, tb, tc, td, te, tf, tg])
+                dta_vect = ta_vect[1:] - ta_vect[0:-1]
+                print('dta_vect = ' + str(dta_vect))
+
+        elif int_case == 3:
+            #Fox-Euler
+            #print('Fox-Euler is badddddd!!!!!!!!!!!!!!!')
+
+            #ta = time.time()
+            A = 2.0/dt**2
+            #tb = time.time()
+            Bx = -A*(self.x[i-1]+dt*self.xdot[i-1])
+            By = -A*(self.y[i-1]+dt*self.ydot[i-1])            
+            #tc = time.time()
+            Bth = -A*(self.theta[i-1]+dt*self.thetadot[i-1])
+            #td = time.time()
+            D = 2.0/dt
+            #te = time.time()
+            Ex = -(D*self.x[i-1]+self.xdot[i-1])
+            Ey = -(D*self.y[i-1]+self.ydot[i-1])            
+            #tf = time.time()
+            Eth = -(D*self.theta[i-1]+self.thetadot[i-1])
+            #tg = time.time()
+
+            ## if print_times:
+            ##     ta_vect = array([ta, tb, tc, td, te, tf, tg])
+            ##     dta_vect = ta_vect[1:] - ta_vect[0:-1]
+            ##     print('dta_vect = ' + str(dta_vect))
+
+        elif int_case == 4:
+            #Wilson Theta
+            A = 6.0/((theta_W*dt)**2)
+            Bx = -A*(self.x[i-1]+theta_W*dt*self.xdot[i-1] + \
+                     self.xddot[i-1]*(theta_W*dt)**2/3.0)
+            By = -A*(self.y[i-1]+theta_W*dt*self.ydot[i-1] + \
+                     self.yddot[i-1]*(theta_W*dt)**2/3.0)
+            D = 3.0/(theta_W*dt)
+            Ex = -D*(self.x[i-1]+self.xdot[i-1]*(2.0*theta_W*dt)/3.0 + \
+                 self.xddot[i-1]*(theta_W*dt)**2/3.0)
+            Ey = -D*(self.y[i-1]+self.ydot[i-1]*(2.0*theta_W*dt)/3.0 + \
+                 self.yddot[i-1]*(theta_W*dt)**2/3.0)
+            Bth = -A*(self.theta[i-1]+theta_W*dt*self.thetadot[i-1] + \
+                      self.thetaddot[i-1]*(theta_W*dt)**2/3.0)
+            Eth = -D*(self.theta[i-1] + \
+                      self.thetadot[i-1]*(2.0*theta_W*dt)/3.0 + \
+                      self.thetaddot[i-1]*(theta_W*dt)**2/3.0)
+
+        elif int_case == 5:
+            #Houbolt
+            if i == 1:
+                A = 6.0/(dt**2)
+                Bx = -2.0/(dt**2)*(3.0*self.x[i-1] + 3.0*dt*self.xdot[i-1] + \
+                                   dt**2*self.xddot[i-1])
+                By = -2.0/(dt**2)*(3.0*self.y[i-1] + 3.0*dt*self.ydot[i-1] + \
+                                   dt**2*self.yddot[i-1])
+                D = 3.0/dt
+                Ex = -1.0/(2*dt)*(6*self.x[i-1] + 4.0*dt*self.xdot[i-1] + \
+                                  dt**2*self.xddot[i-1])
+                Ey = -1.0/(2*dt)*(6*self.y[i-1] + 4.0*dt*self.ydot[i-1] + \
+                                  dt**2*self.yddot[i-1])
+                Bth = -2.0/(dt**2)*(3.0*self.theta[i-1] + 3.0*dt*self.thetadot[i-1] + \
+                                    dt**2*self.thetaddot[i-1])
+                Eth = -1.0/(2*dt)*(6*self.theta[i-1] + 4.0*dt*self.thetadot[i-1] + \
+                                   dt**2*self.thetaddot[i-1])
+            elif i == 2:
+                A = 2.0/(dt**2)
+                Bx = -1.0/(dt**2)*(4.0*self.x[i-1] - 2.0*self.x[i-2] + \
+                                   2.0*dt**2*self.xddot[i-2])
+                By = -1.0/(dt**2)*(4.0*self.y[i-1] - 2.0*self.y[i-2] + \
+                                   2.0*dt**2*self.yddot[i-2])
+                D = 11.0/6.0*dt
+                Ex = -1.0/(6*dt)*(16*self.x[i-1] - 5.0*self.x[i-2] + \
+                                  dt**2*self.xddot[i-2])
+                Ey = -1.0/(6*dt)*(16*self.y[i-1] - 5.0*self.y[i-2] + \
+                                  dt**2*self.yddot[i-2])
+                Bth = -1.0/(dt**2)*(4.0*self.theta[i-1] - 2.0*self.theta[i-2] + \
+                                   2.0*dt**2*self.thetaddot[i-2])
+                Eth = -1.0/(6*dt)*(16*self.theta[i-1] - 5.0*self.theta[i-2] + \
+                                   dt**2*self.thetaddot[i-2])
+            else: 
+                A = 2.0/(dt**2)
+                Bx = -1.0/(dt**2)*(5.0*self.x[i-1] - 4.0*self.x[i-2] + \
+                                   self.x[i-3])
+                By = -1.0/(dt**2)*(5.0*self.y[i-1] - 4.0*self.y[i-2] + \
+                                   self.y[i-3])
+                D = 11.0/6.0*dt
+                Ex = -1.0/(6*dt)*(18*self.x[i-1] - 9.0*self.x[i-2] + \
+                                  2*self.x[i-3])
+                Ey = -1.0/(6*dt)*(18*self.y[i-1] - 9.0*self.y[i-2] + \
+                                  2*self.y[i-3])
+                Bth = -1.0/(dt**2)*(5.0*self.theta[i-1] - 4.0*self.theta[i-2] + \
+                                    self.theta[i-3])
+                Eth = -1.0/(6*dt)*(18*self.theta[i-1] - 9.0*self.theta[i-2] + \
+                                   2*self.theta[i-3])
+
+
+        #t1 = time.time()
+
+        self.A = A
+        self.Bx = Bx
+        self.By = By
+        self.Bth = Bth
+        self.D = D
+        self.Ex = Ex
+        self.Ey = Ey
+        self.Eth = Eth
+        #save for debugging purposes
+
+        #t2 = time.time()
+
+        self.Bx_vect[i] = Bx
+        self.By_vect[i] = By        
+        self.Bth_vect[i] = Bth
+        self.Ex_vect[i] = Ex
+        self.Ey_vect[i] = Ey        
+        self.Eth_vect[i] = Eth
+
+        #t3 = time.time()
+
+        ## if print_times:
+        ##     t_vect = array([t0, t1, t2, t3])
+        ##     dt_vect = t_vect[1:] - t_vect[0:-1]
+        ##     print('dt_vect = ' + str(dt_vect))
+
+        if debug:
+            x_mat = array([[A, Bx],[D, Ex]])
+            self.int_det_x[i] = numpy.linalg.det(x_mat)
+            self.int_cond_x[i] = numpy.linalg.cond(x_mat)
+
+            th_mat = array([[A, Bth],[D, Eth]])
+            self.int_det_th[i] = numpy.linalg.det(th_mat)
+            self.int_cond_th[i] = numpy.linalg.cond(th_mat)
+
+
+
+
+    def calculate_state_vector(self, prev_z, i, xdof=0, ydof=1, thetadof=2):
+        self.z = dot(self.U, prev_z)
+        self.x[i] = self.z[xdof]
+        self.y[i] = self.z[ydof]        
+        self.theta[i] = self.z[thetadof]
+        self.z_mat[i,:] = squeeze(self.z[0:4])
+        return self.z
+
+
+
+class DT_TMM_TSD_6_states(DT_TMM_Element_4_states):
+    """This class models a torsional spring/damper with 6 states.  The
+    state vector is
+
+    z = [x, y, theta3, mz, qx, qy, 1]^T
+
+    where theta3 is the angular displacement about the z axis."""
+    def __init__(self, k=0.0, b=0.0, prev_element=None, **kwargs):
+        """A torsional spring/damper element.
+
+        k is the stiffness coefficient (N/m).  b is the damping
+        coefficient (N*s/m).
+
+        The spring needs the displacement and velocity of the previous
+        element to calculate the relative displacement and velocity of
+        its spring and damper.  If prev_element is None, it is assumed
+        the spring is connected to a wall and the D and E parameters
+        of the previous element are zero."""
+        DT_TMM_Element_4_states.__init__(self, **kwargs)
+        self.k = k
+        self.b = b
+        self.prev_element = prev_element
+
+
+    def calculate_transfer_matrix(self, i=None):
+        den = (self.k+self.b*self.D)
+        if self.prev_element is None:
+            D_prev = 0.0
+            E_prev = 0.0
+        else:
+            ## D_prev = self.prev_element.Dth
+            ## E_prev = self.prev_element.Eth
+            D_prev = self.prev_element.D
+            E_prev = self.prev_element.Eth_vect[i]
+
+        k = self.k
+        b = self.b
+        self.U = eye(7)
+
+        #z = [x, y, theta3, mz, qx, qy, 1]^T
+        u34 = 1.0/den#starting with index 1
+        self.U[2,3] = u34#zero index
+        u37 = -b*(self.Eth_vect[i] - E_prev)/den
+        self.U[2,6] = u37
+        return self.U
+
+
+class DT_TMM_rigid_mass_6_states(DT_TMM_Element_6_states):
+    def __init__(self, m, L, r, I, f=None, prev_element=None, **kwargs):
+        """This is a one-dimensional rigid body for use in
+        verification of Rui's 2005 paper and investigation into
+        numeric stability.  So, the y dimensions of the element
+        (y_{2,o}, y_{IO}, y_{IC},...) will be 0. 
+
+        m is the mass of the rigid element and L is its length.  r
+        is the distance from the previous element to the center of
+        gravity of rigid element.  I is the second moment of inertia
+        about the center of gravity.
+
+        f is the applied external force acting on the mass.  The f
+        vector can be passed in here.  If it is, f must be left as
+        None in calculate_transfer_matrix.  Then f[i] will be applied
+        to the mass at each step in the simulation."""
+        DT_TMM_Element_6_states.__init__(self, **kwargs)
+        self.m = m
+        self.L = L
+        self.r = r
+        self.I = I
+        self.f = f
+        self.x2o = L
+        self.y2o = 0.0
+        self.x2c = r
+        self.y2c = 0.0
+        self.prev_element = prev_element
+
+
+    def calculate_transfer_matrix(self, i=None, f=None):
+        """If f is passed in here, it overrides self.f.  If f is a
+        vector, f[i] is applied to the mass (then i must not be None).
+
+        Note that I am not sure what to do with f on a mass element
+        currently because Rui applied f to the center of mass."""
+        if f is None:
+            f = self.f
+        if f is None:
+            f_i = 0.0
+        elif (not isscalar(f)):
+            f_i = f[i]
+
+        if self.prev_element is None:
+            A_prev = 0.0
+            Bx_prev = 0.0
+            By_prev = 0.0
+            Bth = 0.0
+        else:
+            ## Ax_prev = self.prev_element.Ax
+            ## Bx_prev = self.prev_element.Bx
+            A_prev = self.prev_element.A
+            Bx_prev = self.prev_element.Bx_vect[i]
+            By_prev = self.prev_element.By_vect[i]            
+            Bth = self.prev_element.Bth_vect[i]
+
+        L = self.L
+        m = self.m
+        I = self.I
+        r = self.r
+        self.U = eye(7)
+
+        x2o = self.x2o
+        y2o = self.y2o
+        x2c = self.x2c
+        y2c = self.y2c
+
+        dt = self.dt
+        
+        s = sin(self.theta[i-1])
+        c = cos(self.theta[i-1])
+        # based on my understanding of the Rui 2005 paper (eqn 32)
+        # and the Taylor series expansion that appears in the 2010 JSV paper
+        # (eqn 8), I am assuming that s and c in u_{1,3} really mean
+        # the sin and cos of theta[i-1]
+        u13 = -x2o*s - y2o*c
+        self.U[0,2] = u13#zero index
+
+        # comparing the 2005 and 2010 papers, it seems clear that G1 =
+        # capital C bar and G2 = capital S bar, defined in the JSV
+        # 2010 eqn (8), so the quanties in G1 and G2 in the 2005 paper
+        # are all i-1
+        thm1 = self.theta[i-1]
+        thdotm1 = self.thetadot[i-1]
+        thddotm1 = self.thetaddot[i-1]
+
+        G1 = c + thm1*s - 0.5*c*(thdotm1*dt)**2
+        G2 = s + thm1*c - 0.5*s*(thdotm1*dt)**2        
+        u17 = x2o*G1 - y2o*G2
+        self.U[0,6] = u17
+
+        u23 = x2o*c - y2o*s
+        self.U[1,2] = u23
+
+        u27 = x2o*G2 + y2o*G1
+        self.Y[1,6] = u27
+
+        sbar = sin(thm1)*(1.-0.5*(thdotm1*dt)**2) + \
+               cos(thm1)*(thdotm1*dt + 0.5*thddotm1*dt**2)
+        cbar =
+        
+        xic = x2c*cbar - y2c*sbar
+        yic = x2c*sbar + y2c*cbar
+        xio = x2o*cbar - y2o*sbar
+        yio = x2o*sbar + y2o*cbar
+        
+        
+        return self.U
+
+
+
+
 
 
 if __name__ == "__main__":

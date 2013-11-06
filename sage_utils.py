@@ -36,6 +36,17 @@ def sympy_code_list_to_useable_code(codelist, outname):
     outline = outname + ' = ' + codeline[4:]
     return outline
 
+
+def sage_to_python(expr):
+    sympy_expr = sympy.sympify(expr)
+    python_str = sympy.python(sympy_expr)
+    python_list = python_str.split('\n')
+    last_line = python_list[-1]
+    assert last_line.find('e = ') == 0, "last_line doesn't start with 'e = ':" + \
+           last_line
+    return last_line[4:]
+
+    
     
 def sage_tf_to_python(tf, name_out='tf', s=None, substr=''):
     N = tf.numerator()
@@ -79,3 +90,47 @@ def cse_sage_sympy(exprs):
     outlist.append(out_str)
     outlist.append('return result')
     return outlist
+
+
+def _row_to_str(row_in):
+    str_out = ''
+
+    for elem in row_in:
+        cur_str = sage_to_python(elem)
+        if str_out:
+            str_out += ', '
+        str_out += cur_str
+
+    return '[' + str_out + ']'
+
+
+def sage_array_to_python(array_in, lhs_str):
+    """Convert an array that is most likely a numpy object array to
+    code that can be pasted into a numeric python file to be executed
+    in IPython.  Basically, use the sage_to_python function above on
+    each element of the array and output a string."""
+
+    if len(array_in.shape) == 1:
+        #1D array
+        row_str = _row_to_str(array_in)
+        out_str = '%s = array(%s)' % (lhs_str, row_str)
+        return [out_str]
+
+    #if we get to this point, we have a 2D array
+    line1 = '%s = array([\\' % lhs_str
+
+    ws = ' '*(len(line1) -1)
+    mylines = [line1]
+
+    nr, nc = array_in.shape
+    
+    for i, row in enumerate(array_in):
+        row_str = _row_to_str(row)
+        if i < (nr-1):
+            #append comma to all rows except the last one
+            row_str += ','
+        mylines.append(ws + row_str + ' \\')
+
+    mylines.append(ws[0:-1] + '])')
+
+    return mylines
