@@ -1472,6 +1472,13 @@ class DT_TMM_rigid_mass_6_states(DT_TMM_Element_6_states):
             By_prev = self.prev_element.By_vect[i]            
             Bth = self.prev_element.Bth_vect[i]
 
+
+        # hard coding zero forces for now
+        #
+        # - this will only work if I use forcing elements
+        fxc = 0.0
+        fyc = 0.0
+        
         L = self.L
         m = self.m
         I = self.I
@@ -1487,6 +1494,9 @@ class DT_TMM_rigid_mass_6_states(DT_TMM_Element_6_states):
         
         s = sin(self.theta[i-1])
         c = cos(self.theta[i-1])
+
+        chi1 = self.A
+        
         # based on my understanding of the Rui 2005 paper (eqn 32)
         # and the Taylor series expansion that appears in the 2010 JSV paper
         # (eqn 8), I am assuming that s and c in u_{1,3} really mean
@@ -1515,13 +1525,37 @@ class DT_TMM_rigid_mass_6_states(DT_TMM_Element_6_states):
 
         sbar = sin(thm1)*(1.-0.5*(thdotm1*dt)**2) + \
                cos(thm1)*(thdotm1*dt + 0.5*thddotm1*dt**2)
-        cbar =
+        cbar = cos(thm1)*(1.-0.5*(thdotm1*dt)**2) + \
+               -sin(thm1)*(thdotm1*dt + 0.5*thddotm1*dt**2)
         
         xic = x2c*cbar - y2c*sbar
         yic = x2c*sbar + y2c*cbar
         xio = x2o*cbar - y2o*sbar
         yio = x2o*sbar + y2o*cbar
+
+        u51 = -m*chi1
+        u53 = m*chi1*(x2c*s+y2c*c)
+        u57 = fxc - m*chi1*(x2c*G1-y2c*G2)-m*self.Bx_vect[i]
+        self.U[4,0] = u51
+        self.U[4,2] = u53
+        self.U[4,6] = u57
+
+        u62 = -m*chi1
+        u63 = -m*chi1*(x2c*c-y2c*s)
+        u67 = fyc - m*chi1*(x2c*G2 + y2c*G2) - m*self.By_vect[i]
+        self.U[5,1] = u62
+        self.U[5,2] = u63
+        self.U[5,6] = u67
         
+        u41 = m*chi1*(yio-yic)
+        u42 = m*chi1*(xic-xio)
+        u43 = u63*xio-u53*yio+I*chi1
+        u45 = -yio
+        u46 = xio
+        u47 = -mc + u67*xio - u57*yio + I*self.Bth_vect[i] + \
+              xic*(m*self.By_vect[i] - fyc) + \
+              (fxc - m*self.Bx_vect[i])*yic
+        self.U[3,:] = array([u41,u42,u43,1.0,u45,u46,u47])
         
         return self.U
 
