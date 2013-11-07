@@ -15,6 +15,7 @@ gamma = 0.5
 theta_W = 1.5
 
 import pdb
+from IPython.core.debugger import Pdb
 
 class DT_TMM_System(object):
     """A DT-TMM System will consist of a connection of elements and a
@@ -1118,13 +1119,14 @@ class transverse_forcing_element_4_states(forcing_element_4_states):
         self.f[i] = f_i
 
         self.U = eye(5)
-        self.U[2,4] = f_i
+        self.U[3,4] = f_i
         return self.U
 
 
     def _initialize_vectors(self, N):
         DT_TMM_Element_4_states._initialize_vectors(self, N)
-        self.f = zeros(N)
+        if not hasattr(self, 'f'):
+            self.f = zeros(N)
 
 
 
@@ -1172,7 +1174,7 @@ class DT_TMM_Element_6_states(DT_TMM_Element):
         self.xddot[i] = self.A*self.x[i] + self.Bx_vect[i]
         self.ydot[i] = self.D*self.y[i] + self.Ey_vect[i]
         self.yddot[i] = self.A*self.y[i] + self.By_vect[i]
-        self.thetadot[i] = self.*self.theta[i] + self.Eth_vect[i]
+        self.thetadot[i] = self.D*self.theta[i] + self.Eth_vect[i]
         self.thetaddot[i] = self.A*self.theta[i] + self.Bth_vect[i]
 
 
@@ -1365,12 +1367,12 @@ class DT_TMM_Element_6_states(DT_TMM_Element):
         self.x[i] = self.z[xdof]
         self.y[i] = self.z[ydof]        
         self.theta[i] = self.z[thetadof]
-        self.z_mat[i,:] = squeeze(self.z[0:4])
+        self.z_mat[i,:] = squeeze(self.z[0:6])
         return self.z
 
 
 
-class DT_TMM_TSD_6_states(DT_TMM_Element_4_states):
+class DT_TMM_TSD_6_states(DT_TMM_Element_6_states):
     """This class models a torsional spring/damper with 6 states.  The
     state vector is
 
@@ -1388,7 +1390,7 @@ class DT_TMM_TSD_6_states(DT_TMM_Element_4_states):
         its spring and damper.  If prev_element is None, it is assumed
         the spring is connected to a wall and the D and E parameters
         of the previous element are zero."""
-        DT_TMM_Element_4_states.__init__(self, **kwargs)
+        DT_TMM_Element_6_states.__init__(self, **kwargs)
         self.k = k
         self.b = b
         self.prev_element = prev_element
@@ -1478,6 +1480,7 @@ class DT_TMM_rigid_mass_6_states(DT_TMM_Element_6_states):
         # - this will only work if I use forcing elements
         fxc = 0.0
         fyc = 0.0
+        mc = 0.0
         
         L = self.L
         m = self.m
@@ -1521,7 +1524,7 @@ class DT_TMM_rigid_mass_6_states(DT_TMM_Element_6_states):
         self.U[1,2] = u23
 
         u27 = x2o*G2 + y2o*G1
-        self.Y[1,6] = u27
+        self.U[1,6] = u27
 
         sbar = sin(thm1)*(1.-0.5*(thdotm1*dt)**2) + \
                cos(thm1)*(thdotm1*dt + 0.5*thddotm1*dt**2)
@@ -1536,6 +1539,9 @@ class DT_TMM_rigid_mass_6_states(DT_TMM_Element_6_states):
         u51 = -m*chi1
         u53 = m*chi1*(x2c*s+y2c*c)
         u57 = fxc - m*chi1*(x2c*G1-y2c*G2)-m*self.Bx_vect[i]
+        print('u57 = ' + str(u57))
+        if i == 5:
+            Pdb().set_trace()
         self.U[4,0] = u51
         self.U[4,2] = u53
         self.U[4,6] = u57
@@ -1560,6 +1566,87 @@ class DT_TMM_rigid_mass_6_states(DT_TMM_Element_6_states):
         return self.U
 
 
+
+class forcing_element_6_states(DT_TMM_Element_6_states):
+    """This is a base class for external forcing inputs to a DT-TMM
+    model.  The plan is to try and just treat them like pure TMM
+    forcing elements: generate the transfer matrix directly without
+    worrying about ABDE, velocity or acceleration.  Hopefully this
+    doesn't mess up other elements or the system.  So, several methods
+    that are called for each element in a system are overridden to
+    simply pass.  This is a base class and all derived classes must
+    override the method """
+    def calculate_velocity_and_accel(self, i):
+        pass
+
+    def calculate_ABDE(self, i, dt, int_case=2, debug=0, print_times=0):
+        pass
+
+
+    def calculate_transfer_matrix(self, i, f=None):
+        raise NotImplementedError, "classes derived from forcing_element_6_states must override calculate_transfer_matrix"
+
+
+class transverse_forcing_element_6_states(forcing_element_6_states):
+    def calculate_transfer_matrix(self, i, f=None):
+        """If f is passed in here, it overrides self.f.  If f is a
+        vector, f[i] is applied to the mass (then i must not be None)."""
+        if f is None:
+            f = self.f
+        if f is None:
+            f_i = 0.0
+        elif (not isscalar(f)):
+            f_i = f[i]
+
+        self.f[i] = f_i
+
+        self.U = eye(7)
+        self.U[5,6] = f_i
+        return self.U
+
+
+    def _initialize_vectors(self, N):
+        DT_TMM_Element_6_states._initialize_vectors(self, N)
+        if not hasattr(self, 'f'):
+            self.f = zeros(N)
+
+
+class DT_TMM_System_clamped_free_six_states(DT_TMM_System_clamped_free_four_states):
+    """This class models a DT-TMM System with clamped/free boundary
+    conditions and six states (planar motion)"""
+    def __init__(self, element_list, N_states=6, \
+                 **kwargs):
+        DT_TMM_System.__init__(self, element_list, N_states=N_states, **kwargs)
+
+
+    def solve_boundary_conditions(self, i=None):
+        ###########################################
+        #    z = [x, y, theta3, mz, qx, qy, 1]^T
+        #
+        # [   x_tip   ]          [    0    ]
+        # [   y_tip   ]          [    0    ]
+        # [ theta_tip ]          [    0    ]
+        # [     0     ]  = U_sys [  M_base ]
+        # [     0     ]          [ qx_base ]
+        # [     0     ]          [ qy_base ]
+        # [     1     ]          [    1    ]
+        #
+        ###########################################
+        submat = self.U_sys[3:6, 3:6]
+        last_col = self.U_sys[3:6,6]
+        cond = numpy.linalg.cond(submat)
+        #print('i=%i, cond=%s' % (i, cond))
+        assert cond is not nan, 'singular matrix'
+        submat_inv = numpy.linalg.inv(submat)
+        MV_base = squeeze(dot(submat_inv, -last_col))
+        z0 = array([[0.0], \
+                    [0.0], \
+                    [0.0], \
+                    [MV_base[0]], \
+                    [MV_base[1]], \
+                    [MV_base[2]], \
+                    [1.0]])
+        self.z0 = z0
 
 
 
