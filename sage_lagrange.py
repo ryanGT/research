@@ -36,3 +36,27 @@ def eom_to_one_matrix_row(eom, vars, zero_dict):
         row_list.append(seom)
 
     return numpy.array(row_list)
+
+
+def eom_list_to_one_matrix(eom_list, vars, zero_dict):
+    big_list = []
+
+    for eom in eom_list:
+        cur_row = eom_to_one_matrix_row(eom, vars, zero_dict)
+        big_list.append(cur_row)
+
+    return numpy.array(big_list)
+
+
+    
+def find_eom_list(T,V,W,list_of_tuples,diff_dict):
+    """Create a list of equations of motion where each eom is one row
+    of Lagrange's equations.  list_of_tuples should contain a list of
+    (vel,pos) tuples that correspond to q and q_dot for each row."""
+    eom_list = []
+
+    for vel, pos in list_of_tuples:
+        eom_i = eom_one_row(T,V,W,vel,pos,diff_dict)
+        eom_list.append(eom_i)
+
+    return eom_list

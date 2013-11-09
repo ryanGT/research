@@ -490,11 +490,11 @@ class DT_TMM_Element_4_states(DT_TMM_Element):
         self.thetadot = zeros(N)
         self.thetaddot = zeros(N)
         self.z_mat = zeros((N,4))
-        self.Ax_vect = zeros(N)
+        #self.Ax_vect = zeros(N)
         self.Bx_vect = zeros(N)
         self.Dx_vect = zeros(N)
         self.Ex_vect = zeros(N)
-        self.Ath_vect = zeros(N)
+        #self.Ath_vect = zeros(N)
         self.Bth_vect = zeros(N)
         self.Dth_vect = zeros(N)
         self.Eth_vect = zeros(N)
@@ -512,9 +512,9 @@ class DT_TMM_Element_4_states(DT_TMM_Element):
         ## self.thetaddot[i] = self.Ath*self.theta[i] + self.Bth
 
         self.xdot[i] = self.Dx_vect[i]*self.x[i] + self.Ex_vect[i]
-        self.xddot[i] = self.Ax_vect[i]*self.x[i] + self.Bx_vect[i]
+        self.xddot[i] = self.A*self.x[i] + self.Bx_vect[i]
         self.thetadot[i] = self.Dth_vect[i]*self.theta[i] + self.Eth_vect[i]
-        self.thetaddot[i] = self.Ath_vect[i]*self.theta[i] + self.Bth_vect[i]
+        self.thetaddot[i] = self.A*self.theta[i] + self.Bth_vect[i]
 
 
     def calculate_ABDE(self, i, dt, int_case=2, debug=0, print_times=0):
@@ -539,13 +539,13 @@ class DT_TMM_Element_4_states(DT_TMM_Element):
             ta = time.time()
             A = 1.0/(beta*dt**2)
             tb = time.time()
-            Bx = -1.0/(beta*dt**2)*(self.x[i-1] + \
-                                    dt*self.xdot[i-1] + \
-                                    (0.5-beta)*dt**2*self.xddot[i-1])
+            Bx = (-1.0/(beta*dt**2))*(self.x[i-1] + \
+                                      dt*self.xdot[i-1] + \
+                                      (0.5-beta)*dt**2*self.xddot[i-1])
             tc = time.time()
-            Bth = -1.0/(beta*dt**2)*(self.theta[i-1] + \
-                                     dt*self.thetadot[i-1] + \
-                                     (0.5-beta)*dt**2*self.thetaddot[i-1])
+            Bth = (-1.0/(beta*dt**2))*(self.theta[i-1] + \
+                                       dt*self.thetadot[i-1] + \
+                                       (0.5-beta)*dt**2*self.thetaddot[i-1])
             td = time.time()
             D = gamma/(beta*dt)
             te = time.time()
@@ -637,8 +637,7 @@ class DT_TMM_Element_4_states(DT_TMM_Element):
 
         #t1 = time.time()
             
-        self.Ax = A
-        self.Ath = A
+        self.A = A
         self.Bx = Bx
         self.Bth = Bth
         self.Dx = D
@@ -649,8 +648,8 @@ class DT_TMM_Element_4_states(DT_TMM_Element):
 
         #t2 = time.time()
 
-        self.Ax_vect[i] = A
-        self.Ath_vect[i] = A
+        #self.Ax_vect[i] = A
+        #self.Ath_vect[i] = A
         self.Bx_vect[i] = Bx
         self.Bth_vect[i] = Bth
         self.Dx_vect[i] = D
@@ -736,6 +735,12 @@ class DT_TMM_System_clamped_free_four_states(DT_TMM_System):
             element.t = self.t
 
 
+    def _set_dt(self, dt):
+        self.dt = dt
+        for element in self.element_list:
+            element.dt = dt
+            
+        
     def Run_Simulation(self, N, dt, initial_conditions=None, \
                        int_case=2):
         """If initial_conditions is not None, then it must be a list
@@ -746,6 +751,7 @@ class DT_TMM_System_clamped_free_four_states(DT_TMM_System):
         self._initialize_vectors(N)
         self.t = arange(0, N*dt, dt)
         self._assign_t_vect()
+        self._set_dt(dt)
         if initial_conditions is not None:
             self._set_initial_conditions(initial_conditions)
         for i in range(1,N):    # Time loop
@@ -958,18 +964,17 @@ class DT_TMM_rigid_mass_4_states(DT_TMM_Element_4_states):
             f_i = 0.0
         elif (not isscalar(f)):
             f_i = f[i]
-
+            
         if self.prev_element is None:
-            Ax_prev = 0.0
+            A = 0.0#<--- this seems risky, it isn't really true, but it should only multiply things that are 0.0
             Bx_prev = 0.0
             Ath = 0.0
             Bth = 0.0
         else:
             ## Ax_prev = self.prev_element.Ax
             ## Bx_prev = self.prev_element.Bx
-            Ax_prev = self.prev_element.Ax_vect[i]
+            A = self.prev_element.A
             Bx_prev = self.prev_element.Bx_vect[i]
-            Ath = self.prev_element.Ath_vect[i]
             Bth = self.prev_element.Bth_vect[i]
 
         L = self.L
@@ -984,12 +989,73 @@ class DT_TMM_rigid_mass_4_states(DT_TMM_Element_4_states):
         
         self.U = array([[1.0, L, 0.0, 0.0, 0.0], \
                         [0.0, 1.0, 0.0, 0.0, 0.0], \
-                        [-(L-r)*Ax_prev*m, -((L*r-r**2)*m-I)*Ath, 1.0, -L, \
+                        [-(L-r)*A*m, -((L*r-r**2)*m-I)*A, 1.0, -L, \
                          -(L*m-m*r)*Bx_prev-(L*m*r-m*r**2-I)*Bth], \
-                        [Ax_prev*m, Ath*m*r, 0.0, 1.0, Bth*m*r + Bx_prev*m-f_i], \
+                        [A*m, A*m*r, 0.0, 1.0, Bth*m*r + Bx_prev*m-f_i], \
                         [0.0, 0.0, 0.0, 0.0, 1.0]])
         return self.U
     
+
+
+class DT_TMM_rigid_mass_4_states_Taylor(DT_TMM_rigid_mass_4_states):
+    def calculate_transfer_matrix(self, i=None, f=None, debug=1):
+        if f is None:
+            f = self.f
+        if f is None:
+            f_i = 0.0
+        elif (not isscalar(f)):
+            f_i = f[i]
+
+        if self.prev_element is None:
+            A = 0.0
+            Bx_prev = 0.0
+            Bth = 0.0
+        else:
+            ## Ax_prev = self.prev_element.Ax
+            ## Bx_prev = self.prev_element.Bx
+            A = self.prev_element.A
+            Bxp = self.prev_element.Bx_vect[i]
+            Bth = self.prev_element.Bth_vect[i]
+
+        L = self.L
+        m = self.m
+        I = self.I
+        r = self.r
+        F = f_i
+        #Ath = self.Ath
+        #Bth = self.Bth
+        ## Ath = self.prev_element.Ath
+        ## Bth = self.prev_element.Bth
+
+        if i > 0:
+            th0m1 = self.theta[i-1]
+            thdotm1 = self.thetadot[i-1]
+            thddotm1 = self.thetaddot[i-1]
+        else:
+            th0m1 = 0.0#<-- should probably do an initial condition here
+            thdotm1 = 0.0
+            thddotm1 = 0.0
+
+        dt = self.dt
+        Sbar = sin(th0m1) - th0m1*cos(th0m1) - 0.5*sin(th0m1)*(thdotm1*dt)**2
+        cbar = cos(th0m1)*(1.0-0.5*(thdotm1*dt)**2) - sin(th0m1)*(thdotm1*dt+0.5*thddotm1*dt**2)
+        u35 = -Bth*L*cbar**2*m*r + Bth*cbar**2*m*r**2 \
+              -Bxp*L*cbar*m + Bxp*cbar*m*r + Bth*I
+
+        if debug > 0:
+            def myprint(lhs, var):
+                fmt = '%s = %0.6g'
+                print(fmt % (lhs, var))
+            myprint('th0m1', th0m1)
+            myprint('Sbar', Sbar)
+            myprint('cbar', cbar)
+        
+        self.U = array([[1, L*cos(th0m1), 0, 0, L*Sbar], \
+                        [0, 1, 0, 0, 0,], \
+                        [-A*L*cbar*m + A*cbar*m*r, -A*L*cbar**2*m*r + A*cbar**2*m*r**2 + A*I, \
+                         1, -L*cbar, u35], \
+                        [A*m, A*cbar*m*r, 0, 1, Bth*cbar*m*r + Bxp*m - F], \
+                        [0, 0, 0, 0, 1]])
 
 
 class DT_TMM_DC_motor_4_states(DT_TMM_Element_4_states):
@@ -1548,7 +1614,8 @@ class DT_TMM_rigid_mass_6_states(DT_TMM_Element_6_states):
 
         u62 = -m*chi1
         u63 = -m*chi1*(x2c*c-y2c*s)
-        u67 = fyc - m*chi1*(x2c*G2 + y2c*G2) - m*self.By_vect[i]
+        u67 = fyc - m*chi1*(x2c*G2 + y2c*G2) - m*self.By_vect[i]#<-- the double G2 in this line is
+                                                                #    suspicious to me
         self.U[5,1] = u62
         self.U[5,2] = u63
         self.U[5,6] = u67
