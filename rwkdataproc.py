@@ -12,7 +12,7 @@ import sys, os, glob, time
 #from converters import blitz as cblitz
 #t2=time.time()
 #from scipy.io.mio import loadmat, savemat
-from scipy.io import save_as_module, loadmat, savemat
+from scipy.io import loadmat, savemat
 from scipy import r_, c_, mat, shape, iscomplexobj, multiply, \
      shape, atleast_2d , fft, pi, zeros, where, column_stack, \
      arange, squeeze, array, fft
@@ -400,6 +400,7 @@ def PreviewOneFileForTrunc(filepath, signame, sigdict, truncsig='ce2', startcush
     return ind1,ind2
 
 def TruneOneFile(filepath, signames, sigdict, truncsig='ce2', startcush=500, endcush=500, xlabel='t',folder='trunc'):
+    from scipy.io import save_as_module
     mydata=loadmat(filepath)
     trunckey=sigdict[truncsig]
     truncsig=mydata[trunckey]
