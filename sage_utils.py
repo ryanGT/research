@@ -74,8 +74,43 @@ def sage_tf_to_python(tf, name_out='tf', s=None, substr=''):
     return out_list
 
 
+def sage_matrix_to_nested_list(matin):
+    nr, nc = matin.dimensions()
+
+    nested_list = []
+
+    for i in range(nr):
+        row_list = []
+        for j in range(nc):
+            ent = matin[i,j]
+            row_list.append(ent)
+
+        nested_list.append(row_list)
+
+    return nested_list
+
+
+def sage_matrix_to_sympy(matin):
+    matlist = sage_matrix_to_nested_list(matin)
+    sympy_list = []
+    for row in matlist:
+        row_list = []
+        for item in row:
+            item_s = sympy.sympify(item)
+            row_list.append(item_s)
+        sympy_list.append(row_list)
+    matout = sympy.Matrix(sympy_list)
+    return matout
+
+
 def cse_sage_sympy(exprs):
-    expr_sympy = sympy.sympify(exprs)
+    if str(type(exprs)).find("'sympy.") > -1:
+        expr_sympy = exprs
+    elif (exprs.__class__.__name__ == 'Matrix_symbolic_dense') and \
+             (str(type(exprs)).find("'sage.") > -1):
+        expr_sympy = sage_matrix_to_sympy(exprs)
+    else:
+        expr_sympy = sympy.sympify(exprs)
     out = sympy.cse(expr_sympy)
     outlist = []
     mydefs = out[0]
