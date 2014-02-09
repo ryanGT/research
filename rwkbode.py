@@ -1,4 +1,4 @@
-from scipy import log10, shape, zeros, c_, r_, atleast_2d, compress, imag, real, pi, cos, sin, squeeze, where, dot, arange, arctan2, column_stack, row_stack
+from scipy import log10, shape, zeros, c_, r_, atleast_2d, compress, imag, real, pi, cos, sin, squeeze, where, dot, arange, arctan2, column_stack, row_stack, unique
 #from math import atan2
 
 #import pylab
@@ -17,6 +17,8 @@ import os, copy
 import mplutil
 #reload(mplutil)
 import rwkmisc
+
+from data_utils import FindLogInds, FindVarLogInds, BuildMask
 
 #from IPython.core.debugger import Pdb
 
@@ -277,13 +279,44 @@ class rwkbode:
                 setattr(self,item,compress(mask,tempvect,0))
         return dsfreq
 
+
+    def log_downsample(self, fvect, freqs_in, Ns):
+       """Logarhythmically downsample mag, phase, and coh vectors.
+       fvect is the frequency vector associated with the unmodified
+       mag, phase, and coh vectors.  freqs_in is a list of the bounds of
+       the frequency ranges and Ns is a list of the downsampling
+       factors.  freqs_in should have one more entry than Ns does."""
+       freqs = copy.copy(freqs_in)
+       inds_log = []
+       prev_f = freqs.pop(0)
+       for f, N in zip(freqs, Ns):
+          cur_inds = FindVarLogInds(fvect, prev_f, f, N)
+          inds_log += cur_inds
+          prev_f = f
+
+       varinds = unique(inds_log)#unique is from scipy
+       varmask = BuildMask(varinds, fvect)
+       fvarlog = fvect.compress(varmask)
+       mycopy = copy.deepcopy(self)
+       mycopy.compress(varmask)
+       ## bodes = copy.deepcopy(getattr(self, attr))
+       ## for bode in bodes:
+       ##    bode.compress(varmask)
+       ## attr_out = 'compressed_'+attr
+       ## self.compressed_f = fvarlog
+       ## setattr(self, attr_out, bodes)
+       ## return varinds, varmask, fvarlog
+       return varinds, fvarlog, mycopy
+     
+
     def compress(self, mask):
         mylist=['mag','phase','coh']
         for item in mylist:
             tempvect=getattr(self,item)
             if tempvect is not None:
-                tempvect=colwise(tempvect)
-                setattr(self,item,tempvect.compress(mask,0))
+               if len(tempvect) > 0:
+                  tempvect=colwise(tempvect)
+                  setattr(self,item,tempvect.compress(mask,0))
 
     def CrossoverFreq(self, freqin):
        t1=squeeze(self.dBmag() > 0.0)

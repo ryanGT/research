@@ -7,7 +7,16 @@ from sage.all import *
 
 from numpy import array
 
-import sage_utils, os, sympy
+import sage_utils, os, sympy, re, sympy_utils
+
+maxima_bv = ['submat:submatrix(1,2,5,Usys,1,2,5)$', \
+             'subcol:submatrix(1,2,5,Usys,1,2,3,4)$', \
+             'nzbv:invert(submat).(-1*subcol)$', \
+             'bv:zeromatrix(5,1)$', \
+             'bv[5,1]:1$', \
+             'bv[3,1]:nzbv[1,1]$', \
+             'bv[4,1]:nzbv[2,1]$']
+
 
 class symbolic_dttmm_system(object):
     def __init__(self):
@@ -182,16 +191,57 @@ class symbolic_dttmm_system(object):
         return outlines
                                
             
+
+    def Usys_Maxima(self):
+        Usys_str = None
+        for i in range(len(self.Ui_list)):
+            name = 'U%i' % i
+            if i == 0:
+                Usys_str = name
+            else:
+                Usys_str = name + '.' + Usys_str
+        Usys_str = 'Usys:' + Usys_str + '$'
+        return Usys_str
+    
+
+    def to_maxima(self, filename=None):
+        float_pat = re.compile('\.0+(?![0-9])')
+        outlines = ['showtime:all$']
+        out = outlines.append
+        out('showtime:all$')
+        out('nolabels:true$')
+        out('grind:true$')
+
+        for i, Ui in enumerate(self.Ui_list):
+            Ui_sympy = sage_utils.sage_matrix_to_sympy(Ui)
+            name = 'U%i' % i
+            Ui_line = sympy_utils.matrix_to_Maxima_string(Ui_sympy,name)
+            Ui_line_clean = float_pat.sub('',Ui_line)
+            outlines.append(Ui_line_clean)
+
+        Usys_line = self.Usys_Maxima()
+        out(Usys_line)
+
+        outlines.extend(maxima_bv)
+        
+        if filename is not None:
+            import txt_mixin
+            txt_mixin.dump(filename, outlines)
+
+        return outlines
+    
+
         
 
 class symbolic_dttmm_system_clamped_free(symbolic_dttmm_system):
     def solve_boundary_conditions(self):
         submat = self.U_sys[2:4, 2:4]
+        submat = submat.expand()
         last_col = self.U_sys[2:4,4]
         submat_inv = submat.inverse()
         MV_base = -submat_inv*last_col
         #z0 = matrix(SR, [[0.0],[0.0],[MV_base[0,0]], [MV_base[1,0]],[1.0]])
-        z0 = matrix(SR, [[0.0],[0.0],[MV_base[0,0]], [MV_base[1,0]],[1.0]])
+        z0 = matrix(SR, [[0],[0],[MV_base[0,0]], [MV_base[1,0]],[1]])
         self.z0 = z0
         return self.z0
 
@@ -201,7 +251,10 @@ common_params = ['Bx','Bth','Ex','Eth']
 rigid_param_strings = ['m','L','I','r','F'] + common_params
 tsd_param_strings = ['k','b'] + common_params
 
-    
+required_rigid_params = ['m','L','I','r','F']
+required_tsd_params = ['k','b']
+
+
 class symbolic_rigid_mass_element(object):
     def __init__(self, i=None, parent=None, prev_element=None):
         """i is the index for the element.  It will be used to ensure
@@ -270,7 +323,7 @@ class symbolic_rigid_mass_element(object):
         ##              [0, 0, 0, 0, 1] \
         ##             ])
         mylist = [\
-                 [1.0, L, 0, 0, 0], \
+                 [1, L, 0, 0, 0], \
                  [0, 1, 0, 0, 0], \
                  [-A*L*m + A*m*r, A*I - A*L*m*r + A*m*r**2, 1, -L, Bth*I - Bth*L*m*r + Bth*m*r**2 - Bxp*L*m + Bxp*m*r], \
                  [A*m, A*m*r, 0, 1, Bth*m*r + Bxp*m - F], \
@@ -315,28 +368,108 @@ class symbolic_tsd_element(symbolic_rigid_mass_element):
         ##                 [0.0, 0.0, 1.0, 0.0, 0.0], \
         ##                 [0.0, 0.0, 0.0, 1.0, 0.0], \
         ##                 [0.0, 0.0, 0.0, 0.0, 1.0]])
-        mylist = [[1.0, 0.0, 0.0, 0.0, 0.0], \
-                  [0.0, 1.0,  1.0/den,  0.0,\
+        mylist = [[1, 0, 0, 0, 0], \
+                  [0, 1,  1/den,  0,\
                    -b*(self.Eth - E_prev)/den], \
-                  [0.0, 0.0, 1.0, 0.0, 0.0], \
-                  [0.0, 0.0, 0.0, 1.0, 0.0], \
-                  [0.0, 0.0, 0.0, 0.0, 1.0]]
+                  [0, 0, 1, 0, 0], \
+                  [0, 0, 0, 1, 0], \
+                  [0, 0, 0, 0, 1]]
         U_TSD = matrix(SR,mylist)
         self.U = U_TSD
         return U_TSD
 
 
 
+class symbolic_dttmm_system_common_params(symbolic_dttmm_system):
+    """Symbolic DT-TMM stuff doesn't work very well if there are more
+    than a few elements.  Before I completely scrap the idea, I want
+    to see what happens if all of the TSD and rigid mass elements have
+    the same properties, as would be the case for a uniform beam
+    broken into pieces."""
+    def gen_list_of_all_params(self, params={}):
+        symbolic_dttmm_system.gen_list_of_all_params(self)
+        self.all_params.extend(params.keys())
+        return self.all_params
+
+
+class symbolic_clamped_free_common_params(symbolic_dttmm_system_common_params, \
+                                          symbolic_dttmm_system_clamped_free):
+    def solve_boundary_conditions(self):
+        symbolic_dttmm_system_clamped_free.solve_boundary_conditions(self)
+
+
+
+class symbolic_rigid_mass_element_common_params(symbolic_rigid_mass_element):
+    """A rigid mass elment where the mass properties will be passed in."""
+    def __init__(self, i=None, parent=None, params={}, prev_element=None):
+        """i is the index for the element.  It will be used to ensure
+        unique names for the elements parameters.
+
+        I am allowing a default of None so that a symbolic DT-TMM
+        system could assign the indices later.  But almost nothing
+        will work before the index i is assigned a value.
+
+        parent will be a DT-TMM symbolic system that will at least
+        contain the symbolic A and D """
+        self.i = i
+        self.parent = parent
+        self.prev_element = prev_element
+        self.param_strings = common_params
+
+        for key in required_rigid_params:
+            assert params.has_key(key), "Missing key in params: %s" % key
+            setattr(self, key, params[key])
+
+
+class symbolic_tsd_element_common_params(symbolic_tsd_element):
+    """A TSD elment where the mass properties will be passed in."""
+    def __init__(self, i=None, parent=None, params={}, prev_element=None):
+        """i is the index for the element.  It will be used to ensure
+        unique names for the elements parameters.
+
+        I am allowing a default of None so that a symbolic DT-TMM
+        system could assign the indices later.  But almost nothing
+        will work before the index i is assigned a value.
+
+        parent will be a DT-TMM symbolic system that will at least
+        contain the symbolic A and D """
+        self.i = i
+        self.parent = parent
+        self.prev_element = prev_element
+        self.param_strings = common_params
+
+        for key in required_tsd_params:
+            assert params.has_key(key), "Missing key in params: %s" % key
+            setattr(self, key, params[key])
+
+
+
 if __name__ == '__main__':
-    mysys = symbolic_dttmm_system_clamped_free()
+    use_common_params = 1
+
+    if use_common_params:
+        m, L, I, r, F = var('m','L','I','r','F')
+        k, b = var('k','b')
+        params = {'m':m, 'L':L, 'I':I, 'r':r, 'F':F, \
+                  'k':k, 'b':b}
+        mysys = symbolic_clamped_free_common_params()
+        tsd_class = symbolic_tsd_element_common_params
+        rm_class = symbolic_rigid_mass_element_common_params
+        kwargs = {'params':params}
+    else:
+        mysys = symbolic_dttmm_system_clamped_free()
+        tsd_class = symbolic_tsd_element
+        rm_class = symbolic_rigid_mass_element
+        kwargs = {}
+
     mylist = []
 
-    N = 10
+    N = 5
     
     for i in range(N):
-        tsd_i = symbolic_tsd_element()
+        tsd_i = tsd_class(**kwargs)
         mylist.append(tsd_i)
-        rm_i = symbolic_rigid_mass_element()
+        rm_i = rm_class(**kwargs)
         mylist.append(rm_i)
 
 
@@ -345,10 +478,20 @@ if __name__ == '__main__':
     mysys.find_Ui()
     mysys.multiply_Ui()
     z0 = mysys.solve_boundary_conditions()
-    mysys.find_zi()
+    #mysys.find_zi()
 
-    import rwkos
-    outfolder = rwkos.FindFullPath('siue/Research/work/2013/sabbatical_summer_fall_2013/DTTMM_vs_FEA_vs_Lagrange_TSDs')
-    modname = 'sym_tsd_rigid_mass_dttmm_N_%i.py' % N
-    outpath = os.path.join(outfolder, modname)
-    #mysys.gen_all_module_lines(filename=outpath)
+    save_module = 1
+
+    if save_module:
+        import rwkos
+        outfolder = rwkos.FindFullPath('siue/Research/work/2013/sabbatical_summer_fall_2013/DTTMM_vs_FEA_vs_Lagrange_TSDs')
+        #modname = 'sym_tsd_rigid_mass_dttmm_N_%i.py' % N
+        #outpath = os.path.join(outfolder, modname)
+        #mysys.gen_all_module_lines(filename=outpath)
+
+        if use_common_params:
+            maxima_name = 'sym_tsd_rigid_maxima_common_params_N_%i.mac' % N
+        else:
+            maxima_name = 'sym_tsd_rigid_maxima_N_%i.mac' % N
+        outpath = os.path.join(outfolder, maxima_name)
+        outlines = mysys.to_maxima(outpath)
