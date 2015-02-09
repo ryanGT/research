@@ -155,13 +155,14 @@ class Data_File(object_with_n_vector):
     (the code actually uses setattr(self, key, data[:,ind])).
     """
     def __init__(self, path=None, col_map={}, delim='\t', skiprows=None, \
-                 check_n=True, prelabel='', postlabel=''):
+                 check_n=True, prelabel='', postlabel='', figsize=None):
         self.path = path
         self.col_map = col_map
         self.delim = delim
         self.prelabel = prelabel
         self.postlabel = postlabel
         self.skiprows = skiprows
+        self.figsize = figsize
         if (path is not None) and os.path.exists(self.path):
             self.Load_Data()
             if check_n and hasattr(self,'n'):
@@ -279,13 +280,15 @@ class Data_File(object_with_n_vector):
         self.fix_missing_t()
 
 
-    def get_figure(self, fignum):
+    def get_figure(self, fignum, figsize=None):
+        if figsize is None:
+            figsize = self.figsize
         from pylab import figure
-        fig = figure(fignum)
+        fig = figure(fignum, figsize=figsize)
         return fig
 
-    def get_time_axis(self, fignum):
-        fig = self.get_figure(fignum)
+    def get_time_axis(self, fignum, figsize=None):
+        fig = self.get_figure(fignum, figsize=figsize)
         ax = fig.add_subplot(111)
         return ax
 
@@ -316,9 +319,10 @@ class Data_File(object_with_n_vector):
                   basename=None, save=False, \
                   ext='.png', fig_dir='', title=None, \
                   linetypes=None, \
+                  figsize=None, \
                   **plot_opts):
         if ax is None:
-            ax = self.get_time_axis(fignum)
+            ax = self.get_time_axis(fignum, figsize=figsize)
         if clear:
             ax.clear()
         if labels is None:

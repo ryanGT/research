@@ -9,7 +9,10 @@ def eom_one_row(T,V,W,vel,pos,diff_dict):
                                       #substituteing theta_ddot for
                                       #theta_dot and such
     Vderiv = V.diff(pos)
-    Q = W.diff(pos)
+    if W != 0:
+        Q = W.diff(pos)
+    else:
+        Q = 0
     eom = Tderiv+Vderiv == Q
     return eom
 

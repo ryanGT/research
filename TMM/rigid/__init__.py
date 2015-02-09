@@ -6,9 +6,9 @@ from scipy.linalg import det
 import copy, re
 import pdb
 
-from TMM.TMMElement import TMMElementLHT, HT4
+from TMM.TMMElement import TMMElementLHT, HT4, Transform8by8
 
-from rwkmisc import symstr, SymstrMattoMaxima
+from rwkmisc import symstr, SymstrMattoMaxima, get_first_key_that_exists
 import rwkmisc
 
 class RigidMass(TMMElementLHT):
@@ -183,14 +183,15 @@ def rigidmatz_vertg(s,params,g=9.81):#omit
 def rigidmatz(s,params):
     """Return the 4x4 transfer matrix for motion of a rigid mass about
     its z-axis."""
-    L=params['L']
-    r=params['r']
+    L = get_first_key_that_exists(params, ['Lz','L'])
+    r = get_first_key_that_exists(params, ['rz','r'])
+    Imat = get_first_key_that_exists(params, ['Iz','I'])
     m=params['m']
-    It=params['I']
-    if shape(It):
-        Iz=It[2]
+
+    if shape(Imat):
+        Iz=Imat[2]
     else:
-        Iz=It
+        Iz=Imat
     #this matrix assumes +w_y is the state [w_y; theta_z; M_z; V_y] and is derived in 
     #Rmatrix_3D.m in E:\GT\Research\SAmii\modeling\transfer_matrix\threeD_TMM_derivations
 #    [                    1,                    L,                    0,                    0]
@@ -206,10 +207,11 @@ def rigidmatz(s,params):
 def rigidmaty(s,params):
     """Return the 4x4 transfer matrix for motion of a rigid mass about
     its y-axis."""
-    L=params['L']
-    r=params['r']
+    L = get_first_key_that_exists(params, ['Ly','L'])
+    r = get_first_key_that_exists(params, ['ry','r'])
+    Imat = get_first_key_that_exists(params, ['Iy','I'])
     m=params['m']
-    Imat=params['I']
+
     if shape(Imat):
         if max(shape(Imat))>=1:
             Iy=Imat[1]

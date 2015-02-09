@@ -10,7 +10,7 @@ import numpy
 import time
 import rwkmisc
 
-beta = 1.0/6
+beta = 1.0/6.0
 gamma = 0.5
 theta_W = 1.5
 
@@ -73,10 +73,10 @@ class DT_TMM_System(object):
             element.calculate_velocity_and_accel(i)
             
 
-    def Run_Simulation(self, N, dt):
+    def Run_Simulation(self, N, dt, int_case=2):
         self._initialize_vectors(N)
         for i in range(1,N):    # Time loop
-            self.calculate_ABDE(i, dt)
+            self.calculate_ABDE(i, dt, int_case=int_case)
             self.calculate_transfer_matrices(i)
             self.calculate_system_transfer_matrix(i)
             self.solve_boundary_conditions(i)#must set self.z0
@@ -370,6 +370,7 @@ class DT_TMM_Element(object):
         
 
     def calculate_ABDE(self, i, dt, int_case=2):
+        #print('int_case = %i' % int_case)
         if int_case == 1:
             #Finite difference 
             A = 4.0/(dt**2)
@@ -428,6 +429,8 @@ class DT_TMM_mass_2_states(DT_TMM_Element):
             f_i = 0.0
         elif (not isscalar(f)):
             f_i = f[i]
+        else:
+            f_i = f
         self.U = array([[1.0,0.0,0.0], \
                         [self.m*self.A,1.0,self.m*self.B - f_i], \
                         [0.0,0.0,1.0]])
@@ -469,7 +472,62 @@ class DT_TMM_spring_2_states(DT_TMM_Element):
                         [0.0, 0.0, 1.0]])
         return self.U
 
-    
+
+
+class DT_TMM_mass_spring_2_states(DT_TMM_spring_2_states):
+    def __init__(self, m, f, k, b, prev_element=None, **kwargs):
+        """An element that represents a spring/damper with a mass
+        attached to it right side.
+
+        m is the mass of the element
+        f is the force applied to the element
+
+        k is the stiffness coefficient (N/m).  b is the damping
+        coefficient (N*s/m).
+
+        The spring needs the displacement and velocity of the previous
+        element to calculate the relative displacement and velocity of
+        its spring and damper.  If prev_element is None, it is assumed
+        the spring is connected to a wall and the D and E parameters
+        of the previous element are zero."""
+        DT_TMM_Element.__init__(self, **kwargs)
+        self.m = m
+        self.f = f
+        self.k = k
+        self.b = b
+        self.prev_element = prev_element
+
+        
+    def calculate_transfer_matrix(self, i=None, f=None):
+        if f is None:
+            f = self.f
+        if f is None:
+            f_i = 0.0
+        elif (not isscalar(f)):
+            f_i = f[i]
+        else:
+            f_i = f
+            
+        sden = (self.k+self.b*self.D)
+        
+        if self.prev_element is None:
+            D_prev = 0.0
+            E_prev = 0.0
+        else:
+            D_prev = self.prev_element.D
+            E_prev = self.prev_element.E
+
+        snum11 = self.k+self.b*D_prev
+        snum13 = -(self.b*(self.E-E_prev))
+        
+        A = self.A
+        B = self.B
+        m = self.m
+        
+        self.U = array([[snum11/sden, 1.0/sden, snum13/sden], \
+                        [A*m*snum11/sden, A*m/sden + 1, A*m*snum13/sden + B*m - f],
+                        [0.0, 0.0, 1.0]])
+        return self.U
 
 
 ###############################################
@@ -518,6 +576,7 @@ class DT_TMM_Element_4_states(DT_TMM_Element):
 
 
     def calculate_ABDE(self, i, dt, int_case=2, debug=0, print_times=0):
+        #print('int_case = %i' % int_case)
         #t0 = time.time()
         #if print_times:
         #    print('int_case = %i' % int_case)
@@ -1245,6 +1304,7 @@ class DT_TMM_Element_6_states(DT_TMM_Element):
 
 
     def calculate_ABDE(self, i, dt, int_case=2, debug=0, print_times=0):
+        #print('int_case = %i' % int_case)
         #t0 = time.time()
         #if print_times:
         #    print('int_case = %i' % int_case)

@@ -33,7 +33,7 @@ from IPython.core.debugger import Pdb
 import xlrd, copy
 
 import cPickle#, dumb_shelve
-from scipy.io import dumb_shelve
+#from scipy.io import dumb_shelve
 
 import rwkmisc, mplutil
 
@@ -1419,14 +1419,22 @@ class LabeledDataFile(TXTDataFile):
 class email_list(CSVSpreadSheet):
     """A spreadsheet class for looking up emails in a class list.
     Typically, there is one row of labels and the first two columns
-    contain student names and emails."""
-    def __init__(self, pathin, name_col=0, email_col=1, \
-                 labelrow=0, dialect=None):
-        CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect)
-        self.labelrow=labelrow
-        self.GetLabelRow()
-        self.ReadData()
+    contain student names and emails.  The zeroth column is assumed to
+    contain lastnames.  The next column is checked for firstnames.  A
+    column whose labels.lower() contains 'email' is the email column."""
+    def look_for_first_names(self):
+        found_first = False
         if self.labels[1].lower().find('first') > -1:
+            found_first = True
+        elif self.labels[1].lower() == 'fname':
+            found_first = True
+
+        return found_first
+
+        
+    def get_names(self):
+        has_first = self.look_for_first_names()
+        if has_first:
             #the last names are in column 0 and the first names are in
             #column 1
             self.first_names = txt_mixin.txt_list(self.get_col(1))
@@ -1437,12 +1445,27 @@ class email_list(CSVSpreadSheet):
                 names.append(curname)
             self.names = txt_mixin.txt_list(copy.copy(names))
 
-            for i, item in enumerate(self.labels):
-                if item.lower().find('email') > -1:
-                    email_col = i
         else:
             self.names = txt_mixin.txt_list(self.get_col(name_col))
-        self.emails = txt_mixin.txt_list(self.get_col(email_col))
+
+
+    def find_emails(self):
+        for i, item in enumerate(self.labels):
+                if item.lower().find('email') > -1:
+                    email_col = i
+        self.email_col = email_col
+        return self.email_col
+    
+            
+    def __init__(self, pathin, name_col=0, \
+                 labelrow=0, dialect=None):
+        CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect)
+        self.labelrow=labelrow
+        self.GetLabelRow()
+        self.ReadData()
+        self.get_names()
+        self.find_emails()
+        self.emails = txt_mixin.txt_list(self.get_col(self.email_col))
 
 
     def get_email(self, lastname, firstname=None, aslist=False, \
@@ -1493,7 +1516,7 @@ class group_list(LabeledDataFile):
         CSVSpreadSheet.__init__(self, pathin=pathin, dialect=dialect)
         self.labelrow=labelrow
         self.GetLabelRow()
-        if self.labels[0] == "Team #":
+        if self.labels[0] in ["Team #", "Team \\#"]:
             team_name_col = 1
             members_col = 2
         self.ReadData()
@@ -1513,7 +1536,15 @@ class group_list(LabeledDataFile):
         return members
 
     def _get_names(self, member_string):
-        name_list = member_string.split(',')
+        if member_string.find(',') == -1:
+            #this group has only 1 or 2 people in it
+            if member_string.find('and') > -1:
+                name_list = member_string.split('and')
+            else:
+                #punt
+                name_list = member_string
+        else:
+            name_list = member_string.split(',')
         name_list = [item.strip() for item in name_list]
         lastnames = None
         firstnames = None

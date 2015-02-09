@@ -8,7 +8,8 @@ from scipy.linalg import det
 import copy, os, sys
 import pdb
 from rref import rrefnull
-from rwkmisc import RowSwap, ColSwap, rowwise, colwise, my_import
+from rwkmisc import RowSwap, ColSwap, rowwise, colwise, my_import, \
+     get_first_key_that_exists, symstr, SymstrMattoMaxima, rwkstr
 import rwkmisc
 import rwkascii
 from rwkdataproc import datastruct
@@ -22,8 +23,8 @@ reload(rwkfortran)
 from rwkfortran import FortranToTextList, GetLHS
 #from rwkmisc import null, norm2
 from IPython.core.debugger import Pdb
-from rwkmisc import symstr, SymstrMattoMaxima, rwkstr
-import rwkmisc
+## from rwkmisc import symstr, SymstrMattoMaxima, rwkstr
+## import rwkmisc
 
 import inspect
 import re
@@ -386,7 +387,7 @@ class TMMElementLHT(TMMElement):
 class TMMElementIHT(TMMElement):
     """This is another convenience class meant to be a base class for
     torsional springs and other elments whose homogenous
-    transformation matrix is simpliy and identity matrix."""
+    transformation matrix is simpliy an identity matrix."""
     def GetHT(self):
         """Return a 4x4 identifiy matrix for the homogenous
         transformation matrix of the TMMElementIHT class."""

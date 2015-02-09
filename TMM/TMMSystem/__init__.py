@@ -206,7 +206,9 @@ class TMMSystem:
             allcomp.extend(curcomp)
         return allcomp
 
-    def GenMaxima(self,prefix='',skipMaxima=True,showbode=False, newsym=True, simplifycommands=[], **kwargs):
+
+    def GenMaxima(self,prefix='',skipMaxima=True,showbode=False, \
+                  newsym=True, simplifycommands=[], **kwargs):
         """This file generates a LaTeX file that describes the
         TMMSystem.  This file can be used as an input to the
         Python->Maxima-> LaTeX symoblic engine.  Optionally, if
@@ -235,6 +237,7 @@ class TMMSystem:
             myfunc=self.SymBodeMaximaAll
         outname,bodenames,chardetnames=myfunc(**kwargs)
         return outname,bodenames,chardetnames
+
 
     def RunMaxima(self, texname,frlist=[]):
         """Takes as an input the name of a LaTeX file and runs the
@@ -553,7 +556,9 @@ class TMMSystem:
 
 
     def SymCharDetAll(self,aug=0,sub=1,outpath='chardet.f',**kwargs):
-        myoptions=['texname','frlist','basebodename','basecdname','debug','grind','optimize','skipMaxima','ratmx','radexpand']
+        myoptions=['texname','frlist','basebodename','basecdname',\
+                   'debug','grind','optimize','skipMaxima',\
+                   'ratmx','radexpand']
         texname,frlist,basebodename,basecdname,debug,grind,optimize,skipMaxima,ratmx,radexpand,simplifycommands=self.GetValuesorDefaults(kwargs,myoptions)
         mylist=latexlist([],texname)
         ulist=self.SymDefineAllUs(aug,**kwargs)

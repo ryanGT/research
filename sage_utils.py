@@ -55,8 +55,12 @@ def sage_poly_to_python_list(sage_poly, s=None):
     if s is None:
         s = sympy.Symbol('s')
     sympy_poly = sympy.Poly(sage_poly,s)
-    
-    coeff_str = sympy.python(sympy_poly.coeffs)
+
+    if callable(sympy_poly.coeffs):
+        mycoeffs = sympy_poly.coeffs()
+    else:
+        mycoeffs = sympy_poly.coeffs
+    coeff_str = sympy.python(mycoeffs)
     coeff_list = coeff_str.split('\n')
     coeff_list = _clean_Symbol(coeff_list)
     return coeff_list
