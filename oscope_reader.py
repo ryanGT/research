@@ -67,6 +67,13 @@ class oscope_folder(object):
             self.vlist.append(v)
 
 
+    def main_load(self):
+        self.find_csvs()
+        self._load_raw()
+        self.raw_data_to_floats()
+        self.zero_out_t()
+
+
     def Plot(self, fig=None, fignum=1, clear=True, \
              ylabel='Voltage', xlabel=None, use_ms=0):
         if xlabel is None:

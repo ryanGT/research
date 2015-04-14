@@ -1,5 +1,6 @@
 from rwkmisc import my_import
 from scipy import *
+import numpy
 import glob
 import os
 import copy
@@ -154,7 +155,7 @@ class Data_File(object_with_n_vector):
 
     (the code actually uses setattr(self, key, data[:,ind])).
     """
-    def __init__(self, path=None, col_map={}, delim='\t', skiprows=None, \
+    def __init__(self, path=None, col_map={}, delim=None, skiprows=None, \
                  check_n=True, prelabel='', postlabel='', figsize=None):
         self.path = path
         self.col_map = col_map
@@ -186,7 +187,13 @@ class Data_File(object_with_n_vector):
 
         If the file doesn't start with lines that start with #, try
         loading data and increment skiprows each time scipy.loadtxt
-        throws a ValueError."""
+        throws a ValueError.
+
+        Note that a significant weakness of this code is that if the
+        file doesn't start with commented lines and the delimiter
+        isn't known ahead of time, this will probably break.
+        """
+
         skip = 0
         self._load_raw()
         while skip < self.N:
@@ -227,19 +234,55 @@ class Data_File(object_with_n_vector):
         self.labels = map(clean_key, raw_labels)
 
 
+    def try_loading_one_delim(self, delim='\t', skip=0):
+        """Try loading data for one delimiter and skip combination."""
+        try:
+            self.data = loadtxt(self.path, delimiter=delim, \
+                                skiprows=skip)
+            #set self.skiprows if successful
+            self.skiprows = skip
+            return self.data
+        except ValueError:
+            return None
 
+
+    def try_load_all_delims(self, skip):
+        """Try loading every delimiter for a given skip number of
+        skiprows"""
+        all_delims = ['\t',',',';',' ']
+        if self.delim in all_delims:
+            #don't try self.delim twice if it is in all_delims
+            index = all_delims.index(self.delim)
+            all_delims.pop(index)
+
+        #try self.delim first if it is not none
+        if self.delim:
+            data = self.try_loading_one_delim(self.delim, skip)
+            if data is not None:
+                return data
+
+        for delim in all_delims:
+            data = self.try_loading_one_delim(delim, skip)
+            if data is not None:
+                self.delim = delim#<-- I think setting this is a good
+                                  #idea, but I am not completely sure
+                return data
+
+        #if we got here, skip didn't work correctly with any delimiter
+        return None
+
+    
     def _load_data(self):
         if self.skiprows is None:
             self.sniff()
         skip = self.skiprows
         self._get_header()
+
         while skip < self.N:
-            try:
-                self.data = loadtxt(self.path, delimiter=self.delim, \
-                                    skiprows=skip)
-                self.skiprows = skip
+            data = self.try_load_all_delims(skip)
+            if data is not None:
                 return self.data
-            except ValueError:
+            else:
                 skip += 1
 
 
@@ -268,12 +311,15 @@ class Data_File(object_with_n_vector):
     def Load_Data(self):
         """Load the data and store the columns in appropriate
         attributes."""
+        data = self._load_data()
+        #self.delim should be correct afer the above code finishes
+        
         if not self.col_map:
             self.get_labels()
             N = len(self.labels)
             keys = range(N)
             self.col_map = dict(zip(keys, self.labels))
-        data = self._load_data()
+
         for ind, attr in self.col_map.iteritems():
             setattr(self, attr, data[:,ind])
 
@@ -319,6 +365,7 @@ class Data_File(object_with_n_vector):
                   basename=None, save=False, \
                   ext='.png', fig_dir='', title=None, \
                   linetypes=None, \
+                  linewidths=None, \
                   figsize=None, \
                   **plot_opts):
         if ax is None:
@@ -338,6 +385,14 @@ class Data_File(object_with_n_vector):
             if linetypes is not None:
                 lt = linetypes[i]
                 plot_opts['linestyle'] = lt
+
+            if linewidths is not None:
+                if numpy.isscalar(linewidths):
+                    plot_opts['linewidth'] = linewidths
+                else:
+                    lw = linewidths[i]
+                    plot_opts['linewidth'] = lw
+                                 
             
             mplutil.plot_vect(ax, self.t, curvect, clear=False, \
                               ylabel=ylabel, labels=[curlabel],

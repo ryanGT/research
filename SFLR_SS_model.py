@@ -1003,12 +1003,29 @@ class SFLR_model_that_saves(rwkmisc.object_that_saves):
             mydict[attr] = val
         return mydict
 
+
     def save(self, filepath, protocol=2):
         if not hasattr(self, 'saveattrs'):
             self.saveattrs = ['A','B','C','D',\
                               'bode_opts', \
                               'accel_C_ind', \
                               'theta_C_ind']
+
+        rwkmisc.object_that_saves.save(self, \
+                                       filepath, \
+                                       protocol=protocol)
+
+
+    def load(self, filepath):
+        rwkmisc.object_that_saves.load(self, filepath)
+        self._init2()
+
+
+class SFLR_model_with_dig_obs(SFLR_model_that_saves):
+    def save(self, filepath, protocol=2):
+        if not hasattr(self, 'saveattrs'):
+            self.saveattrs = ['A','B','C','D',\
+                              'F','g','L','L_dig']
 
         rwkmisc.object_that_saves.save(self, \
                                        filepath, \
