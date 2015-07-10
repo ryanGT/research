@@ -1,4 +1,5 @@
 from scipy import log10, shape, zeros, c_, r_, atleast_2d, compress, imag, real, pi, cos, sin, squeeze, where, dot, arange, arctan2, column_stack, row_stack, unique
+import numpy
 #from math import atan2
 
 #import pylab
@@ -263,6 +264,50 @@ class rwkbode:
             self.freqlim=[min(tfreq),max(tfreq)]
         return tfreq
 
+
+    def append(self, other_bode):
+       """Append mag, phase, and coh if it exists.  It is assumed that
+       other_bode starts where self leaves off frequency-wise."""
+       self.mag = numpy.append(self.mag, other_bode.mag)
+       self.phase = numpy.append(self.phase, other_bode.phase)
+       if hasattr(self, 'coh') and hasattr(other_bode, 'coh'):
+          if (self.coh is not None) and (other_bode.coh is not None):
+             if (len(self.coh) > 0) and (len(other_bode.coh) > 0):
+                self.coh = numpy.append(self.coh, other_bode.coh)
+
+
+    def save(self, filename, freqvect, notes=[], delim=',', fmt='%0.15g'):
+       """save freqvect, mag, dBmag, phase and possibly coh to a file.
+       input and output labels will be added to begining of file.
+       Notes will also be added with comment signs to the begining:
+
+       #notes line 1
+       #notes line 2
+       #input:
+       #output:
+       """
+       import txt_mixin   
+       listout = []
+       out = listout.append
+       
+       if notes:
+          for line in notes:
+             out('#' + line)
+
+       out('#input: %s' % self.input)
+       out('#output: %s' % self.output)
+
+       mylabels = ['freq (Hz)', 'mag', 'dBmag', 'phase']
+       data = numpy.column_stack([freqvect, self.mag, self.dBmag(), self.phase])
+       big_list = txt_mixin.array_and_labels_to_spreadsheet_string(data, \
+                                                                   delim=delim, \
+                                                                   fmt=fmt, \
+                                                                   labels=mylabels)
+       listout.extend(big_list)
+       txt_mixin.dump(filename, listout)
+       return big_list
+   
+       
     def downsample(self,freq,factor,ranges=[]):
         if shape(factor) and ranges:
 #            pdb.set_trace()

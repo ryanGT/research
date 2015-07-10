@@ -24,7 +24,7 @@ import pdb
 import scipy
 from rwkmisc import my_import
 import types
-#from IPython.core.debugger import Pdb
+from IPython.core.debugger import Pdb
 #import rwkmplutil
 
 def is_1D(arrayin):
@@ -147,22 +147,37 @@ class Spectra:
          dsdict[curkey]=DownSamplewithAveraging(curitem,dsf)
       return Spectra(self.input, self.output, ave=self.ave, **dsdict)
 
-   def Truncate(self, f, fcut):
-      """Truncate self.Gxx, self.Gyy, and self.Gxy at the index corresponding to f[ind]=fcut.  return the truncated frequency vector."""
-      fout=copy.copy(f)
-      ind=thresh(f,fcut)
-      fout=fout[0:ind]
+   def Truncate(self, f, fcut, below=True):
+      """Truncate self.Gxx, self.Gyy, and self.Gxy at the index
+      corresponding to f[ind]=fcut.  return the truncated frequency
+      vector.
+
+      This function makes only one cut and keeps all data either above
+      or below fcut.  As of June 10, 2015, I am adding the option to
+      keep above by setting below=False."""
+      fout = copy.copy(f)
+      ind = thresh(f,fcut)
+      if below:
+          fout = fout[0:ind]
+      else:
+          fout = fout[ind:]
+          
       keys=['Gxx','Gyy','Gxy']
+
       for curkey in keys:
-         curitem=colwise(getattr(self,curkey))
-         curitem=curitem[0:ind,:]
+         curitem = colwise(getattr(self,curkey))
+
+         if below:
+             curitem = curitem[0:ind,:]
+         else:
+             curitem = curitem[ind:,:]
+             
          setattr(self,curkey,squeeze(curitem))
       return fout
 
 
 def thresh_py(iterin, value, startind=0, above=1,reverse=0):
     myiter=iterin[startind:]
-#    Pdb().set_trace()
     if reverse:
         myiter=myiter[::-1]
     ind=-1
@@ -345,6 +360,7 @@ def BuildDataSet(pattern,directory='',ext='',xlabel='t'):
     mystruct.ynames=[]
     firstfile=1
 
+    
     for filename in filelist:
 #        print("filename="+filename)
         d=loadmat(filename)
@@ -353,14 +369,14 @@ def BuildDataSet(pattern,directory='',ext='',xlabel='t'):
             mystruct.xname=xlabel
             for name, vector in d.iteritems():
                 if name!=xlabel:
-                    setattr(mystruct,name,c_[mat(vector).T])
+                    setattr(mystruct,name,c_[colwise(mat(vector))])
                     mystruct.ynames.append(name)
             firstfile=0
         else:
             for name, vector in d.iteritems():
                 if name!=xlabel:
                     tempmat=getattr(mystruct,name)
-                    setattr(mystruct,name,c_[tempmat,mat(vector).T])
+                    setattr(mystruct,name,c_[tempmat,colwise(mat(vector))])
     return mystruct
 
 
@@ -370,7 +386,9 @@ def BuildDataSet(pattern,directory='',ext='',xlabel='t'):
 #    05/09/2006
 #
 #------------------------------------
-def PreviewOneFileForTrunc(filepath, signame, sigdict, truncsig='ce2', startcush=500, endcush=500,fi=1, fig=None):
+def PreviewOneFileForTrunc(filepath, signame, sigdict, \
+                           truncsig='ce2', startcush=500, \
+                           endcush=500,fi=1, fig=None):
     """Preview one untruncated signal.  signame is the truncname you
     wish to view, truncsig is the name of the channel used for
     truncation.  sigdict is a dictionary mapping long names to
@@ -399,7 +417,9 @@ def PreviewOneFileForTrunc(filepath, signame, sigdict, truncsig='ce2', startcush
        rwkmplutil.myvline(te,'r:')
     return ind1,ind2
 
-def TruneOneFile(filepath, signames, sigdict, truncsig='ce2', startcush=500, endcush=500, xlabel='t',folder='trunc'):
+
+def TruneOneFile(filepath, signames, sigdict, truncsig='ce2', \
+                 startcush=500, endcush=500, xlabel='t',folder='trunc'):
     from scipy.io import save_as_module
     mydata=loadmat(filepath)
     trunckey=sigdict[truncsig]
