@@ -30,6 +30,13 @@ def Negative_to_Twos(num):
         return num
 
 
+def TwoIntBytesToSignedInt(msb, lsb):
+    output =  256*msb + lsb
+    if output > (2**15 - 1):
+        output = output - 2**16
+    return output
+
+
 def Clean_Twos(int_in):
     if int_in > 2**15:
         return -(2**16-int_in)
