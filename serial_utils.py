@@ -90,7 +90,14 @@ def WriteInt(ser, intin):
 
 
 def WriteByte(ser, bytein):
-    ser.write(chr(bytein))
+    ser.write(chr(bytein).encode())
+
+
+def WriteLine(ser, msg):
+    ## if msg[-1] not in ['\n','\r']:
+    ##     msg += '\n'
+    byte_array = msg.encode()
+    ser.write(byte_array)
 
 
 def Read_Two_Bytes(ser):
@@ -103,16 +110,22 @@ def Read_Byte(ser):
     return ord(data1)
 
 
-def Read_Line(ser):
+def Read_Line_list(ser):
     out = []
     i = 0
     while i < 1e5:
-        data1 = ser.read(1)
+        data1b = ser.read(1)
+        data1 = data1b.decode('utf-8')
         if data1 in ['\n','\r']:
             break
         out.append(data1)
         i += 1
     return out
+
+def Read_Line(ser):
+    mylist = Read_Line_list(ser)
+    mystr = ''.join(mylist)
+    return mystr
 
 
 def Read_Two_Bytes_Twos_Comp(ser):
