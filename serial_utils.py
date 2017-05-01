@@ -1,3 +1,5 @@
+import sys
+pyver = sys.version_info[0]#python major version (i.e. 2 or 3)
 import serial, socket
 
 #from rwkos import amiLinux
@@ -7,14 +9,17 @@ def float_to_int(u_float):
 
 
 def Two_Char_Bytes_To_Int(msb, lsb):
-    msb = ord(msb)
-    lsb = ord(lsb)
+    if pyver == 2:
+        # reading bytes already gives ints in python 3,
+        # so this is only necessary for python 2
+        msb = ord(msb)
+        lsb = ord(lsb)
     return 256*msb+lsb
 
 
 def two_bytes(intin):
     intin = int(intin)
-    msb = intin/256
+    msb = int(intin/256)
     lsb = intin-msb*256
     return msb, lsb
 
@@ -82,15 +87,31 @@ def flush_ser(ser):
     ser.flushOutput()
 
 
-def WriteInt(ser, intin):
+def one_byte_int_to_serial_byte(int_byte):
+    if pyver == 2:
+        out_byte = chr(int_byte)
+    else:
+        out_byte = int_byte.to_bytes(1,byteorder='big')
+    return out_byte
+
+    
+def _int_to_bytes(intin):
     intout = Negative_to_Twos(intin)
     msb, lsb = two_bytes(intout)
-    ser.write(chr(msb))
-    ser.write(chr(lsb))
+    msb_byte = one_byte_int_to_serial_byte(msb)
+    lsb_byte = one_byte_int_to_serial_byte(lsb)
+    return msb_byte, lsb_byte
+
+
+def WriteInt(ser, intin):
+    msb_byte, lsb_byte = _int_to_bytes(intin)
+    ser.write(msb_byte)
+    ser.write(lsb_byte)
 
 
 def WriteByte(ser, bytein):
-    ser.write(chr(bytein).encode())
+    out_byte = one_byte_int_to_serial_byte(bytein)
+    ser.write(out_byte)
 
 
 def WriteLine(ser, msg):
