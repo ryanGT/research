@@ -1,7 +1,21 @@
 import sys
 pyver = sys.version_info[0]#python major version (i.e. 2 or 3)
-import serial, socket
+import serial, socket, time, os
 
+def find_portname_RPi():
+    found = -1
+    for i in range(20):
+        portname = '/dev/ttyACM%i' % i
+        if os.path.exists(portname):
+            found = 1
+            break
+
+    if found > 0:
+        return portname
+    else:
+        return None
+    
+    
 #from rwkos import amiLinux
 
 def float_to_int(u_float):
@@ -189,4 +203,131 @@ def Stop_PSoC_ser(ser):
 def Send_One_Voltage(ser, v=0):
     WriteByte(ser, 47)
     WriteInt(ser, v)
+
     
+class serial_test(object):
+    def _in_waiting_2(self):
+        mywaiting = self.ser.inWaiting()
+        return mywaiting
+    
+
+    def _in_waiting_3(self):
+        mywaiting = self.ser.in_waiting
+        return mywaiting
+    
+        
+    def _set_in_waiting_func(self):
+        vstr = serial.VERSION
+        vlist = vstr.split('.')
+        major_version = int(vlist[0])
+        if major_version == 2:
+            self.mywaiting = self._in_waiting_2
+        else:
+            self.mywaiting = self._in_waiting_3
+            
+        
+    def __init__(self, portname, baudrate=115200, timeout=1):
+        self.portname = portname
+        self.baudrate = baudrate
+        self.timeout = timeout
+
+
+    def open(self):
+        self.ser = serial.Serial(self.portname, \
+                                 self.baudrate, \
+                                 timeout=self.timeout)
+        self._set_in_waiting_func()
+
+        
+    def close(self):
+        self.ser.close()
+
+
+    def read_all(self):
+        out = []
+        while self.mywaiting() > 0:
+            data1b = self.ser.read(1)
+            data1 = data1b.decode('utf-8')
+            out.append(data1)
+
+        outstr = ''.join(out)
+        return outstr
+
+
+    def read_two_bytes(self):
+        while self.mywaiting() < 2:
+            time.sleep(0.0001)
+        data1, data2 = self.ser.read(2)
+        return Two_Char_Bytes_To_Int(data1, data2)
+
+
+    def read_two_bytes_twos_comp(self):
+        raw_int = self.read_two_bytes()
+        return Clean_Twos(raw_int)
+
+
+    def read_byte(self):
+        data1 = self.ser.read(1)
+        return ord(data1)
+
+
+    def print_all(self):
+        out = self.read_all()
+        print(out)
+
+
+    def write_byte(self, bytein):
+        WriteByte(self.ser, bytein)
+        
+
+    def write_char(self, charin):
+        myint = ord(charin)
+        self.write_byte(myint)
+
+
+    def write_string(self, string_in):
+        for mychar in string_in:
+            self.write_char(mychar)
+
+
+    def write_int(self, int_in):
+        int_str = '%i' % int_in
+        self.write_string(int_str)
+
+
+    def write_float(self, float_in):
+        float_str = '%0.4f' % float_in
+        self.write_string(float_str)
+
+
+    def write_two_byte_int(self, intin):
+        msb_byte, lsb_byte = _int_to_bytes(intin)
+        self.ser.write(msb_byte)
+        self.ser.write(lsb_byte)
+
+
+    def flush(self):
+        self.ser.flushInput()
+        self.ser.flushOutput()
+
+
+    def get_data(self):
+        data = ''
+        i = 0
+        num_empty = 0
+
+        while i < 100:
+            new_data = self.read_all()
+            data += new_data
+            time.sleep(0.2)
+            i += 1
+            test_str = new_data.strip()
+            if not test_str:
+                num_empty += 1
+            else:
+                num_empty = 0
+
+            if num_empty > 10:
+                break
+
+        return data
