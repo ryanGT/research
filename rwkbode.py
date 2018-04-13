@@ -73,7 +73,7 @@ def bode_from_dict(dictin, keys=None):
    my_bode = rwkbode()
 
    for attr in bode_keys:
-      if dictin.has_key(attr):
+      if attr in dictin:
          setattr(my_bode, attr, dictin[attr])
    return my_bode
 
@@ -930,7 +930,7 @@ def BodeCohPlot(fignum, freqvect, bodein, \
     myargs=['linestyle','colors','linewidth']
     subkwargs={}
     for key in myargs:
-        if kwargs.has_key(key):
+        if key in kwargs:
             subkwargs[key]=kwargs[key]
     if clear:
         fig.clf()
@@ -977,7 +977,7 @@ def GenBodePlot(fignum, freqvect, bodein, clear=True, \
     myargs=['linestyle','colors','linewidth','label','dashes']
     subkwargs={}
     for key in myargs:
-        if kwargs.has_key(key):
+        if key in kwargs:
             subkwargs[key]=kwargs[key]
     if clear:
         fig.clf()
@@ -1002,7 +1002,7 @@ def GenBodePlot(fignum, freqvect, bodein, clear=True, \
     if grid:
        ax2.grid(1)
 
-    if kwargs.has_key('legend'):
+    if 'legend' in kwargs:
        mplutil.Legend(kwargs['legend'], fig, axis=legend_axis, \
                       loc=legloc)
 #ttttttttttttttttttttttttttttt
@@ -1026,7 +1026,7 @@ def GenCohPlot(fignum, freqvect, bodein, \
     myargs=['linestyle','colors','linewidth']
     subkwargs={}
     for key in myargs:
-        if kwargs.has_key(key):
+        if key in kwargs:
             subkwargs[key]=kwargs[key]
     if clear:
         fig.clf()
@@ -1158,7 +1158,7 @@ def FindMatch(bodelist, output, input):
     if foundmatch:
         return bodeout
     else:
-        raise IndexError, 'Could not find bode with output='+output +' and input='+input
+        raise(IndexError, 'Could not find bode with output='+output +' and input='+input)
 
 
 def bodes_to_string_matrix(freq, bode_list, labels):

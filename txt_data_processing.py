@@ -12,7 +12,8 @@ import rwkdataproc
 import rwkmisc
 import time
 import txt_mixin
-reload(mplutil)
+
+from IPython.core.debugger import Pdb
 
 import bode_utils
 #import rst_creator
@@ -231,7 +232,7 @@ class Data_File(object_with_n_vector):
             self._load_raw()
         labels = self.raw_list[self.skiprows-1]
         raw_labels = labels.split(self.delim)
-        self.labels = map(clean_key, raw_labels)
+        self.labels = list(map(clean_key, raw_labels))
 
 
     def try_loading_one_delim(self, delim='\t', skip=0):
@@ -294,7 +295,10 @@ class Data_File(object_with_n_vector):
         if hasattr(self, 't'):
             #do nothing
             return
-
+        elif hasattr(self, 't_ms'):
+            self.t = self.t_ms/1000.0
+            return
+        
         first_label_check = self.labels[0].lower()
         if first_label_check.find('time') == 0:
             #time is in the first column of the data file
@@ -305,7 +309,7 @@ class Data_File(object_with_n_vector):
         else:
             msg = "I can't find a time vector for this dat file:\n" + \
                   "labels: " + str(self.labels)
-            raise ValueError, msg
+            raise(ValueError, msg)
                   
         
     def Load_Data(self):
@@ -320,7 +324,7 @@ class Data_File(object_with_n_vector):
             keys = range(N)
             self.col_map = dict(zip(keys, self.labels))
 
-        for ind, attr in self.col_map.iteritems():
+        for ind, attr in self.col_map.items():
             setattr(self, attr, data[:,ind])
 
         self.fix_missing_t()
@@ -359,7 +363,7 @@ class Data_File(object_with_n_vector):
         return fig_path
 
 
-    def Time_Plot(self, labels=None, ax=None, fignum=1,
+    def Time_Plot(self, labels=None, ax=None, fignum=None,
                   clear=True, legloc=None, legend_dict={}, \
                   ylabel='Voltage (counts)', \
                   basename=None, save=False, \
@@ -376,7 +380,7 @@ class Data_File(object_with_n_vector):
             labels = filter(filterx, self.labels)
         for i, label in enumerate(labels):
             curvect = getattr(self, label)
-            if legend_dict.has_key(label):
+            if label in legend_dict:
                 curlabel = legend_dict[label]
             else:
                 curlabel = label
@@ -409,13 +413,16 @@ class Data_File(object_with_n_vector):
 
 
     def calc_freq_vect(self):
-        dt = self.t[1] - self.t[0]
+        dt_vect = self.t[1:] - self.t[0:-1]
+        dt = dt_vect.mean()
         if not hasattr(self, 'dt'):
             self.dt = dt
         self.fs = 1.0/dt
         T = self.t.max() + dt
         df = 1.0/T
-        self.freq = arange(0,self.fs-0.1*df,df)
+        N = len(self.t)
+        nvect = arange(N)
+        self.freq = df*nvect
         
 
     def calc_spectra(self, inlabel, outlabel):
@@ -448,7 +455,49 @@ class Data_File(object_with_n_vector):
         #rwkbode.GenBodePlot(fignum, self.freq, bode, **kwargs)
         bode_utils.bode_plot(self.freq, bode.dBmag(), bode.phase, \
                              fig=fig, fignum=fignum, **kwargs)
+
+
+    def calc_trunc_bode(self, inlabel, outlabel, freqrange):
+        if not hasattr(self, 'freq'):
+            self.calc_freq_vect()
+
+        start_ind = where(self.freq >= freqrange[0])[0][0]
+        end_ind = where(self.freq > freqrange[1])[0][0]
+
+        invect = getattr(self, inlabel)
+        outvect = getattr(self, outlabel)
+        Gjw = fft(outvect)/fft(invect)
+        Gjw_trunc = Gjw[start_ind:end_ind]
+        f_trunc = self.freq[start_ind:end_ind]
+        db_trunc = 20*log10(abs(Gjw_trunc))
+        phase_trunc = angle(Gjw_trunc,1)
+
+        self.f_trunc = f_trunc
+        self.db_trunc = db_trunc
+        self.phase_trunc = phase_trunc
+
+
+    def plot_trunc_bode(self, db_ax, phase_ax):
+        db_ax.semilogx(self.f_trunc, self.db_trunc)
+        phase_ax.semilogx(self.f_trunc, self.phase_trunc)
+
         
+        
+        
+    def plot_fft(self, attrlist, fignum=None, clear=True, figsize=(9,6)):
+        if not hasattr(self, 'freq'):
+            self.calc_freq_vect()
+
+        ax = self.get_time_axis(fignum, figsize=figsize)
+        if clear:
+            ax.clear()
+
+        for attr in attrlist:
+            vect = getattr(self, attr)
+            F = fft(vect)
+            M = abs(F)
+            ax.plot(self.freq, M, label=attr)
+            
 
     def set_t_from_trigger(self, trigger_channel, level=0.5):
         """Find the index where self.trigger_channel is greater than
@@ -580,6 +629,7 @@ class Data_Set(object):
         self.title_dict = title_dict
         self.delim = delim
         self.skiprows = skiprows
+        self.data_files = []
         call_load = False
         if pattern is not None:
             self.filepaths = glob.glob(pattern)
@@ -616,6 +666,7 @@ class Data_Set(object):
         curfile = Data_File(path, col_map=self.col_map, \
                             delim=self.delim, \
                             skiprows=self.skiprows)
+        self.data_files.append(curfile)
         if not self.col_map:
             self.col_map = curfile.col_map
         #copy the time vector if one does exist
@@ -626,8 +677,9 @@ class Data_Set(object):
         #copy each column of data in col_map, either adding it to an
         #existing matrix (if it exists), or creating a new matrix from
         #the column
-        attrs = self.col_map.values()
-        attrs.remove(self.time_label)
+        attrs = list(self.col_map.values())
+        if self.time_label in attrs:
+            attrs.remove(self.time_label)
         for attr in attrs:
             new_col = getattr(curfile, attr)
             if hasattr(self, attr):
@@ -660,7 +712,7 @@ class Data_Set(object):
             cur_mat = getattr(self, label)
             curlabel = ylabel
             if curlabel is None:
-                if self.title_dict.has_key(label):
+                if label in self.title_dict:
                     curlabel = self.title_dict[label]
             ## kwargs = {}
             ## if linetypes is not None:
@@ -669,7 +721,8 @@ class Data_Set(object):
             mplutil.plot_cols(ax, self.t, cur_mat, ylabel=curlabel, \
                               clear=False, labels=curlabel, \
                               linetypes=linetypes, \
-                              **kwargs)
+                              )
+                              #**kwargs)
         if basename and savefigs:
             fig_name = basename+'_time_plot'
             fig_name += '_%s' % '_'.join(labels)
@@ -703,7 +756,7 @@ class Data_Set(object):
         for item, fig in zip(labels, figs):
             if not overlay:
                 ax = fig.add_subplot(111)
-            if self.title_dict.has_key(item):
+            if item in self.title_dict:
                 my_ylabel = self.title_dict[item]
             else:
                 my_ylabel = item
@@ -980,7 +1033,8 @@ class Bode_Data_Set(Data_Set):
             self.Make_Freq_Vect()
         bode_list = getattr(self, attr)
         for bode in bode_list:
-            bode.PhaseMassage(self.f)
+            if bode.seedfreq is not None:
+                bode.PhaseMassage(self.f)
 
 
     def _calc_bodes(self, attr, func):
@@ -1035,11 +1089,11 @@ class Bode_Data_Set(Data_Set):
 
 
     def _build_auto_title(self, bode, title_dict):
-        if title_dict.has_key(bode.output):
+        if bode.output in title_dict:
             outstr = title_dict[bode.output]
         else:
             outstr = bode.output
-        if title_dict.has_key(bode.input):
+        if bode.input in title_dict:
             instr = title_dict[bode.input]
         else:
             instr = bode.input
@@ -1094,7 +1148,6 @@ class Bode_Data_Set(Data_Set):
 
     def _set_plot_opts(self, bode_attr, figs):
         bode_list = getattr(self, bode_attr)
-        #Pdb().set_trace()
         for bode, fig in zip(bode_list, figs):
             mplutil.set_Bode_opts(fig, bode, coh=self.coh)
 
@@ -1454,7 +1507,7 @@ def load_avebode_data_set(module_name):
         val = my_dict[key]
         setattr(my_data_set, key, val)
     my_data_set.avebodes = list_of_dicts_to_bodes(my_dict, 'avebodes')
-    if my_dict.has_key('trunc_avebodes'):
+    if 'trunc_avebodes' in my_dict:
         my_data_set.trunc_avebodes = list_of_dicts_to_bodes(my_dict, \
                                                             key='trunc_avebodes')
         my_data_set.trunc_f = my_dict['trunc_f']

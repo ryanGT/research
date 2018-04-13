@@ -295,8 +295,8 @@ class serial_test(object):
         self.write_string(int_str)
 
 
-    def write_float(self, float_in):
-        float_str = '%0.4f' % float_in
+    def write_float(self, float_in, fmt='%0.4f'):
+        float_str = fmt % float_in
         self.write_string(float_str)
 
 

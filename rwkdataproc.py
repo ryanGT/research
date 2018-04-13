@@ -1251,7 +1251,7 @@ def norm2(x):
 
 def mat_atan2(y,x):
     if shape(y)!=shape(x):
-        raise IndexError, 'In matrix atan2, shape(x)!-shape(y)'
+        raise(IndexError, 'In matrix atan2, shape(x)!-shape(y)')
     x=atleast_2d(x)
     y=atleast_2d(y)
     nr=shape(y)[0]
