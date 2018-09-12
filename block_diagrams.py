@@ -11,7 +11,7 @@ import copy, basic_file_ops, time
 import copy, basic_file_ops, time
 import DTTMM, control_utils
 
-import system_with_serial
+#import system_with_serial
 
 header_str = r"""\documentclass[landscape,letterpaper,11pt]{article}
 \usepackage[utf8x]{inputenc} % utf8 encoding
@@ -84,7 +84,7 @@ from IPython.core.debugger import Pdb
 
 fmt_dict = {float:'%0.10g'}
 
-import parse_DTTMM_xml
+#import parse_DTTMM_xml
 
 
 def val_to_str(val):
@@ -248,74 +248,74 @@ class block_diagram_system(object):
         basic_file_ops.writefile(filename, self.tikz_list, append=False)
 
 
-class exp_block_diagram_system(block_diagram_system, \
-                               system_with_serial.system_with_serial):
-    def __init__(self, *args, **kwargs):
-        block_diagram_system.__init__(self, *args, **kwargs)
-        self.ser = None
+## class exp_block_diagram_system(block_diagram_system, \
+##                                system_with_serial.system_with_serial):
+##     def __init__(self, *args, **kwargs):
+##         block_diagram_system.__init__(self, *args, **kwargs)
+##         self.ser = None
 
 
-    def prep_for_exp(self, N, t, dt):
-        self.N = N
-        self.t = t
-        self.dt = dt
+##     def prep_for_exp(self, N, t, dt):
+##         self.N = N
+##         self.t = t
+##         self.dt = dt
 
-        for block in self.blocks:
-            block.prep_for_exp(N, t, dt)
-
-
-    def Run_Exp(self):
-        for i in range(1,self.N):
-            for block in self.sorted_list:
-                block.exp_one_step(i)
+##         for block in self.blocks:
+##             block.prep_for_exp(N, t, dt)
 
 
-    def get_serial_block(self):
-        ser_blocks = self.get_blocks_by_type('serial_plant')#<-- this is tricky if psoc and arduino blocks aren't exactly this type
-        #                                                   #    I guess they are for now,just be careful
-        assert len(ser_blocks) > 0, "did not find any serial_plant blocks"
-        assert len(ser_blocks) == 1, "found more than one serial_plant blocks"
-        ser_block = ser_blocks[0]
-        return ser_block
+##     def Run_Exp(self):
+##         for i in range(1,self.N):
+##             for block in self.sorted_list:
+##                 block.exp_one_step(i)
+
+
+##     def get_serial_block(self):
+##         ser_blocks = self.get_blocks_by_type('serial_plant')#<-- this is tricky if psoc and arduino blocks aren't exactly this type
+##         #                                                   #    I guess they are for now,just be careful
+##         assert len(ser_blocks) > 0, "did not find any serial_plant blocks"
+##         assert len(ser_blocks) == 1, "found more than one serial_plant blocks"
+##         ser_block = ser_blocks[0]
+##         return ser_block
         
     
-    def _open_ser(self):
-        system_with_serial.system_with_serial._open_ser(self)
-        ser_block = self.get_serial_block()
-        ser_block.set_ser_sys(self)
+##     def _open_ser(self):
+##         system_with_serial.system_with_serial._open_ser(self)
+##         ser_block = self.get_serial_block()
+##         ser_block.set_ser_sys(self)
         
-    def attach_ser(self, ser):
-        self.ser = ser
-        ser_block = self.get_serial_block()
-        ser_block.set_ser_sys(self)
-        
-        
-class psoc_exp_block_diagram_system(exp_block_diagram_system):
-    def Get_IC(self):
-        #self._open_ser()#I guess this is ok for PSoC, but makes me nervous with arduino
-        self.WriteByte(113)
-        self.IC = self.Read_Two_Bytes_Twos_Comp()
-        return self.IC
-        
-    def Run_Exp(self):
-        self.flush_ser()
-        #Reset Theta? #<-- probably
-        self.Get_IC()
-        exp_block_diagram_system.Run_Exp(self)
-        self.Stop_Test()
+##     def attach_ser(self, ser):
+##         self.ser = ser
+##         ser_block = self.get_serial_block()
+##         ser_block.set_ser_sys(self)
         
         
-    def Stop_Test(self):
-        #send a 0 voltage
-        self.WriteByte(47)
-        self.WriteInt(0)
-        #stop serial on the psoc
-        self.WriteByte(115)
+## class psoc_exp_block_diagram_system(exp_block_diagram_system):
+##     def Get_IC(self):
+##         #self._open_ser()#I guess this is ok for PSoC, but makes me nervous with arduino
+##         self.WriteByte(113)
+##         self.IC = self.Read_Two_Bytes_Twos_Comp()
+##         return self.IC
+        
+##     def Run_Exp(self):
+##         self.flush_ser()
+##         #Reset Theta? #<-- probably
+##         self.Get_IC()
+##         exp_block_diagram_system.Run_Exp(self)
+##         self.Stop_Test()
+        
+        
+##     def Stop_Test(self):
+##         #send a 0 voltage
+##         self.WriteByte(47)
+##         self.WriteInt(0)
+##         #stop serial on the psoc
+##         self.WriteByte(115)
 
 
-    def Reset_Theta(self):
-        ##self._open_ser()
-        self.WriteByte(55)
+##     def Reset_Theta(self):
+##         ##self._open_ser()
+##         self.WriteByte(55)
         
 
 class block(object):
@@ -403,7 +403,7 @@ class block(object):
         if hasattr(self, 'output'):
             return self.output[i]
         else:
-            raise ValueError, 'do not know what to do about my output: %s' % self
+            raise(ValueError, 'do not know what to do about my output: %s' % self)
 
 
     def exp_one_step(self, i):
@@ -1040,7 +1040,8 @@ if __name__ == '__main__':
     sys.append_wire(fb_wire)
     sys.to_tikz()
     import os
-    outdir = '/home/ryan/siue/Research/papers/ASEE_IL_IN_BD_MIL/'
+    #outdir = '/home/ryan/siue/Research/papers/ASEE_IL_IN_BD_MIL/'
+    outdir = ''
     outname = 'tikz_sys_test.tex'
     outpath = os.path.join(outdir, outname)
     sys.save_tikz(outpath)

@@ -85,7 +85,7 @@ class DT_TMM_System(object):
 
 
     def solve_boundary_conditions(self, i=None):
-        raise NotImplementedError
+        raise(NotImplementedError)
 
 
     def get_param_by_name(self, name):
@@ -235,11 +235,11 @@ class DT_TMM_System(object):
 
 
     def mymodel(self, C):
-        raise NotImplementedError
+        raise(NotImplementedError)
 
 
     def mycost(self, C):
-        raise NotImplementedError
+        raise(NotImplementedError)
         
 
     def run_fit(self):
@@ -399,7 +399,7 @@ class DT_TMM_Element(object):
     def calculate_transfer_matrix(self, i=None):
         #This method must be overwritten for any derived element class
         #to be valid.  It must set self.U
-        raise NotImplementedError
+        raise(NotImplementedError)
 
 
     def calculate_state_vector(self, prev_z, i, xdof=0):
@@ -1227,7 +1227,7 @@ class forcing_element_4_states(DT_TMM_Element_4_states):
 
 
     def calculate_transfer_matrix(self, i, f=None):
-        raise NotImplementedError, "classes derived from forcing_element_4_states must override calculate_transfer_matrix"
+        raise(NotImplementedError, "classes derived from forcing_element_4_states must override calculate_transfer_matrix")
     
 
 class transverse_forcing_element_4_states(forcing_element_4_states):
@@ -1711,7 +1711,7 @@ class forcing_element_6_states(DT_TMM_Element_6_states):
 
 
     def calculate_transfer_matrix(self, i, f=None):
-        raise NotImplementedError, "classes derived from forcing_element_6_states must override calculate_transfer_matrix"
+        raise(NotImplementedError, "classes derived from forcing_element_6_states must override calculate_transfer_matrix")
 
 
 class transverse_forcing_element_6_states(forcing_element_6_states):

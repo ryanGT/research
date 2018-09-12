@@ -40,7 +40,7 @@ class bd_XML_element(xml_utils.xml_writer):
             print('name: %s' % name)
             print('blocktype: %s' % blocktype)
             print('params: %s' % params)
-            raise ValueError, "problems with non-empty inputs"
+            raise(ValueError, "problems with non-empty inputs")
         self.name = name
         self.blocktype = blocktype
         self.params = params
@@ -175,7 +175,7 @@ class block_parser(xml_utils.xml_parser):
             body = children[0]
             return body
         else:
-            raise ValueError, "Not sure how to proceed for a figure with tag %s" % self.root.tag
+            raise(ValueError, "Not sure how to proceed for a figure with tag %s" % self.root.tag)
 
 
     def parse(self):
