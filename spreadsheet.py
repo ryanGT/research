@@ -32,18 +32,17 @@ from IPython.core.debugger import Pdb
 
 import xlrd, copy
 
-import cPickle#, dumb_shelve
+import pickle#, dumb_shelve
 #from scipy.io import dumb_shelve
 
 import rwkmisc, mplutil
 
 import txt_mixin
-reload(txt_mixin)
 
 from rwkdataproc import thresh, CalcSpectra, makefreqvect
 
 import DataProcMixins
-reload(DataProcMixins)
+
 
 def col_from_nested(nested, col):
     return [row[col] for row in nested]
@@ -554,7 +553,7 @@ class SpreadSheet(object):
             pklpath = mypath+'.pkl'
         mypkl = open(pklpath,'wb')
         mydict = self._BuildDict(picklekeys)
-        cPickle.dump(mydict, mypkl, protocol=2)
+        pickle.dump(mydict, mypkl, protocol=2)
         mypkl.close()
         self.pklpath = pklpath
         return pklpath
@@ -635,7 +634,7 @@ class SpreadSheet(object):
 
     def GetLabelRow(self):
         if self.labelrow < 0:
-            raise ValueError, "self.labelrow must be defined.  You must call FindLabelRow before you call GetLabelRow."
+            raise ValueError("self.labelrow must be defined.  You must call FindLabelRow before you call GetLabelRow.")
         if not self.header:
             self.ReadHeader(headerrows=self.labelrow+1)
         self.labels = self.header[self.labelrow]
@@ -713,7 +712,7 @@ class SpreadSheet(object):
         collabels is a list of the column labels from which data is to
         be extracted."""
         if not self.labels:
-            raise ValueError, "self.labels must be defined.  You must call FindLabelRow before you call FindDataColumns."
+            raise ValueError("self.labels must be defined.  You must call FindLabelRow before you call FindDataColumns.")
         colnums = []
         if not collabels:
             assert self.colmap, "You cannot call FindDataColumns without either passing collabels or having self.colmap already defined."
@@ -1338,7 +1337,7 @@ class LabviewSpreadSheet(TabDelimSpreadSheet):
         elif t==0.0 and self.t[0]==0.0:
             return self.a[0]
         else:
-            raise ValueError, "Called LabviewSpreadSheet with t < 0."
+            raise ValueError("Called LabviewSpreadSheet with t < 0.")
         a1 = self.a[ind1]
         a0 = self.a[ind2]
         t1 = self.t[ind1]
@@ -2757,10 +2756,10 @@ def find_header_row(p, nestedlist):
     p=re.compile(r'[Ff]irst.*[Nn]ame')
 
     for x in range(100):
-	temp=str(sh1.cell_value(x,0))
-	if p.match(temp):
-		indr=x
-		break
+        temp=str(sh1.cell_value(x,0))
+        if p.match(temp):
+            indr=x
+            break
 
 
 def search_uids(ent, uids):
@@ -2816,7 +2815,7 @@ def clean_nested(nestin):
 def find_first_empty_row(col):
     end_row=None
     for x, ent in enumerate(col):
-	if not ent:
+        if not ent:
             end_row=x#this is the first empty row
             break
     return end_row

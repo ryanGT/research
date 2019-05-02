@@ -12,7 +12,7 @@ from rwkdataproc import thresh, CalcSpectra, makefreqvect, edges
 from rwkmisc import reverse
 
 import rwkbode
-reload(rwkbode)
+
 
 def _staythresh(vectin, thresh, staypoints=20, above=True):
     if above:

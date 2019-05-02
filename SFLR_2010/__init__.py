@@ -1,7 +1,7 @@
 from pylab import *
 from scipy import *
 
-import controls
+import control
 
 #import step_response_utils, ROM_model, accel_FB_system
 

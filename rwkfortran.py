@@ -254,7 +254,7 @@ def WrapFortranLine(linein, operators=['+','-','**',',','*','/']):
             if myind>curind:
                 curind=myind
         if curind==-1:
-            raise StandardError, "could not find an operator to break the line at:\n"+remainder
+            raise StandardError("could not find an operator to break the line at:\n"+remainder)
         curline=remainder[0:curind+1]
         linesout.append(curline)
         remainder=prefix+remainder[curind+1:]
@@ -583,7 +583,7 @@ def ReplaceReturnName(filename,newname, oldname='RESULT',makecopy=False):
     elif type(filename)==list:
         mylist=filename
     else:
-        raise StandardError, "filename must be a string, a textlist, or a list."
+        raise StandardError("filename must be a string, a textlist, or a list.")
     if makecopy:
         mylist=copy.copy(mylist)
     myind=FindReturnLine(mylist,oldname)

@@ -1,7 +1,7 @@
 from pylab import *
 from scipy import *
 import os, sys
-import controls
+import control
 import pylab_util as PU
 import rwkos
 from scipy import optimize
@@ -68,7 +68,7 @@ def build_Ga(C):
     ##     a2,a1,a0,b2,b1,b0 = C
     elif len(C) == 6:
         a2,a1,a0,b1,b0,gain2 = C
-    Ga_opt = controls.TF([b1,b0],[1,a2,a1,a0])*gain2
+    Ga_opt = control.TF([b1,b0],[1,a2,a1,a0])*gain2
     return Ga_opt
 
 

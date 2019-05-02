@@ -13,7 +13,7 @@ import txt_data_processing as TDP
 
 import rwkbode, pylab_util, rwkos
 
-import controls
+import control
 
 import copy
 
