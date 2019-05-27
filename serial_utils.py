@@ -252,6 +252,19 @@ class serial_test(object):
 
         outstr = ''.join(out)
         return outstr
+        
+        
+    def read_waiting(self):
+        out = []
+        NW = self.mywaiting()
+        if NW > 0:
+            datar = self.ser.read(NW)
+            data = datar.decode('utf-8')
+            outstr = ''.join(data)
+        else:
+            outstr = ''
+        return outstr
+
 
 
     def read_two_bytes(self):
@@ -275,6 +288,10 @@ class serial_test(object):
         out = self.read_all()
         print(out)
 
+
+    def print_waiting(self):
+        out = self.read_waiting()
+        print(out)
 
     def write_byte(self, bytein):
         WriteByte(self.ser, bytein)
@@ -315,19 +332,23 @@ class serial_test(object):
         data = ''
         i = 0
         num_empty = 0
-
-        while i < 100:
-            new_data = self.read_all()
+        tr0 = time.time()
+        while i < 2000:
+            new_data = self.read_waiting()
             data += new_data
-            time.sleep(0.2)
             i += 1
             test_str = new_data.strip()
             if not test_str:
                 num_empty += 1
+                time.sleep(0.05)
             else:
                 num_empty = 0
 
-            if num_empty > 10:
+            if num_empty > 100:
+                #print("breaking because of num_empty")
                 break
+        tr1 = time.time()
+        self.num_empty = num_empty
+        self.read_time = tr1-tr0
 
         return data
