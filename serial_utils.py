@@ -344,7 +344,7 @@ class serial_test(object):
             else:
                 num_empty = 0
 
-            if num_empty > 100:
+            if num_empty > 50:
                 #print("breaking because of num_empty")
                 break
         tr1 = time.time()
